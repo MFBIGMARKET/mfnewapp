@@ -1,0 +1,2622 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>B2B Wholesale App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+
+    <style>
+        :root {
+            --brand: #0A4A9C; --brand-dark: #073573; --brand-light: #E8F0FE;
+            --success: #0F9D58; --success-bg: #E6F4EA;
+            --bg: #F3F4F6; --card: #FFFFFF;
+            --text: #111827; --text-mut: #6B7280;
+            --border: #E5E7EB; --border-dark: #D1D5DB;
+            --accent: #D32F2F; --warning: #F59E0B;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: var(--bg); color: var(--text); font-size: 14px; overflow: hidden; }
+        .hidden { display: none !important; }
+
+        /* --- LOGIN SCREEN --- */
+        #login-screen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #F9FAFB; display: flex; align-items: center; justify-content: center; z-index: 9999; flex-direction: column; color: var(--text);}
+        .login-box { background: white; padding: 40px 30px; border-radius: 16px; width: 90%; max-width: 360px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border: 1px solid var(--border);}
+        .login-header { text-align: center; margin-bottom: 30px; }
+        .login-header i { font-size: 2.5rem; color: var(--brand); margin-bottom: 10px; }
+        .login-header h2 { color: var(--text); font-weight: 800; font-size: 1.5rem; }
+        .login-input { width: 100%; padding: 14px; margin-bottom: 16px; background: #F3F4F6; border: 1px solid transparent; border-radius: 8px; font-size: 1rem; outline: none;}
+        .login-input:focus { background: white; border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-light); }
+        .login-btn { width: 100%; padding: 14px; background: var(--brand); color: white; border: none; border-radius: 8px; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 10px;}
+
+        /* --- APP SHELL --- */
+        .app-view { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .tab-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 55px; }
+        .scroll-area { flex: 1; overflow-y: auto; }
+        
+        .header { background: var(--brand); color: white; display: flex; justify-content: space-between; align-items: center; padding: 10px 14px; z-index: 100; flex-shrink: 0; }
+        .logo { font-weight: 700; font-size: 1.1rem; display: flex; align-items: center; gap: 6px; }
+        .role-badge { background: rgba(0,0,0,0.2); padding: 3px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; }
+        
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: white; border-top: 1px solid var(--border); display: flex; justify-content: space-around; padding: 6px 0; z-index: 500; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 0.65rem; color: var(--text-mut); cursor: pointer; gap: 4px; font-weight: 600; flex: 1; }
+        .nav-item i { font-size: 1.1rem; }
+        .nav-item.active { color: var(--brand); }
+
+        .search-bar { background: white; padding: 8px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+        .search-bar input { flex: 1; border: none; outline: none; font-size: 0.9rem; }
+        .cat-scroll { display: flex; overflow-x: auto; gap: 6px; padding: 8px 14px; background: white; border-bottom: 1px solid var(--border); scrollbar-width: none; flex-shrink: 0; }
+        .cat-scroll::-webkit-scrollbar { display: none; }
+        .cat-pill { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; color: var(--text-mut); background: var(--bg); border: 1px solid transparent; cursor: pointer; white-space: nowrap; }
+        .cat-pill.active { background: var(--brand); color: white; }
+
+        /* --- SALESMAN VIEWS --- */
+        .cust-list { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+        .cust-card { background: white; padding: 12px 14px; border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+        .btn-take-order { background: var(--brand-light); color: var(--brand); border: 1px solid var(--brand); padding: 6px 12px; border-radius: 6px; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
+
+        .order-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 1000; display: flex; flex-direction: column; }
+        .ov-head { background: var(--brand-dark); color: white; display: flex; align-items: center; justify-content: space-between; padding: 8px 14px; flex-shrink: 0; }
+        .ov-head i { font-size: 1.1rem; cursor: pointer; padding: 4px; }
+        .ov-center { text-align: center; flex: 1; margin: 0 10px; min-width: 0;}
+        .ov-title { font-weight: 700; font-size: 0.85rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; line-height: 1.2; }
+        .ov-sub { font-size: 0.75rem; color: #FFD54F; font-weight: 600; margin-top: 2px;}
+        .cart-btn { background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 20px; font-weight: 600; display: flex; align-items: center; gap: 6px; cursor: pointer; font-size: 0.85rem; flex-shrink: 0;}
+        .badge { background: var(--warning); color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.7rem; }
+        
+        /* --- SHARED ITEM CARD --- */
+        .feed { padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+        .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); overflow: hidden; display: flex; flex-direction: column; flex-shrink: 0; }
+        .c-body { padding: 10px; }
+        .c-top { display: flex; gap: 10px; align-items: flex-start; }
+        .c-img { width: 90px; height: 90px; background: #F9FAFB; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #9CA3AF; flex-shrink: 0; border: 1px solid var(--border); font-size: 1.5rem; }
+        .c-info { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+        .c-title { font-weight: 700; font-size: 0.9rem; color: var(--text); line-height: 1.3; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+        .c-meta { font-size: 0.75rem; color: var(--text-mut); margin-bottom: 4px; }
+        .c-mrp { color: var(--accent); font-weight: 700; }
+        .quick-price { font-size: 0.7rem; color: var(--brand); font-weight: 600; background: var(--brand-light); padding: 3px 6px; border-radius: 4px; display: inline-block; width: fit-content; margin-top: 4px; }
+        
+        .slab-toggle { display: flex; justify-content: space-between; align-items: center; padding: 8px 4px 0 4px; font-size: 0.7rem; color: var(--brand); font-weight: 600; cursor: pointer; margin-top: 8px; border-top: 1px dashed var(--border); }
+        .slab-list { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; }
+        .slab-row { display: flex; align-items: center; justify-content: space-between; background: #F9FAFB; padding: 4px 6px; border-radius: 4px; gap: 4px; border: 1px solid #F3F4F6; }
+        
+        .sl-col-name { width: 30%; font-weight: 600; color: var(--text-mut); font-size: 0.65rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sl-col-rate { width: 40%; text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--text); white-space: nowrap; }
+        .sl-col-rate .prof { color: var(--success); font-weight: 600; font-size: 0.65rem; margin-left: 4px; }
+        .sl-col-act { width: 30%; text-align: right; }
+        .btn-apply { padding: 4px 10px; background: var(--brand-light); color: var(--brand); border: 1px solid var(--brand); border-radius: 4px; font-weight: 700; font-size: 0.65rem; cursor: pointer; display: inline-block; }
+
+        .act-row { display: flex; gap: 10px; align-items: flex-end; margin-top: 10px; border-top: 1px solid var(--border); padding-top: 10px; }
+        .step-grp { display: flex; flex-direction: column; align-items: center; flex: 1; }
+        .step-lbl { font-size: 0.65rem; color: var(--text-mut); font-weight: 600; margin-bottom: 4px; }
+        .stepper { display: flex; width: 100%; height: 28px; border: 1px solid var(--border); border-radius: 4px; overflow: hidden; background: #F9FAFB;}
+        .stepper button { flex: 1; background: transparent; border: none; font-weight: 600; color: var(--brand); cursor: pointer; font-size: 1rem; }
+        .stepper input { width: 35px; text-align: center; border: none; border-left: 1px solid var(--border); border-right: 1px solid var(--border); font-weight: 600; font-size: 0.8rem; outline: none; padding: 0; color: var(--text); background: white;}
+        .stepper.disabled { opacity: 0.4; pointer-events: none; }
+        .btn-add { height: 28px; padding: 0 12px; background: var(--brand); color: white; border: none; border-radius: 4px; font-weight: 600; font-size: 0.8rem; cursor: pointer; min-width: 60px; flex-shrink: 0;}
+        .btn-edit { background: var(--warning); } 
+        .savings-strip { background: var(--success-bg); color: var(--success); text-align: center; font-weight: 600; font-size: 0.7rem; padding: 4px; border-top: 1px solid #D1FAE5; display: none; }
+
+        /* --- ADMIN: PRICING TABLE VIEW --- */
+        .bulk-actions-bar { display: flex; flex-wrap: wrap; gap: 10px; padding: 8px 10px; background: white; border-bottom: 1px solid var(--border); align-items: center; }
+        .bulk-group { display: flex; align-items: center; gap: 6px; border-left: 2px solid var(--bg); padding-left: 10px; }
+        .bulk-label { font-size: 0.65rem; font-weight: 700; color: var(--text-mut); text-transform: uppercase;}
+        .btn-csv { background: white; color: var(--brand); border: 1px solid var(--brand); padding: 4px 8px; border-radius: 4px; font-weight: 600; font-size: 0.7rem; cursor: pointer; display: flex; align-items: center; gap: 4px;}
+        .btn-csv.upload { background: var(--success-bg); color: var(--success); border-color: var(--success); }
+
+        .table-container { padding: 10px; overflow-x: auto; }
+        .table-wrapper { border: 1px solid var(--border-dark); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .pricing-table { width: 100%; border-collapse: collapse; background: white; min-width: 1050px; table-layout: fixed; }
+        .pricing-table th, .pricing-table td { border: 1px solid var(--border-dark); }
+        .pricing-table th { background: var(--brand-dark); color: white; padding: 10px 4px; text-align: center; font-size: 0.75rem; font-weight: 600; line-height: 1.2; border-color: #0b4085;}
+        .pricing-table td { padding: 6px 4px; vertical-align: middle; text-align: center; }
+        .pricing-table input[type="number"]::-webkit-outer-spin-button, .pricing-table input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .pricing-table input[type="number"] { -moz-appearance: textfield; }
+
+        .pt-code { font-weight: 600; font-size: 0.75rem; color: var(--text-mut); }
+        .pt-name-cell { text-align: left !important; padding: 6px 10px !important; }
+        .pt-name { font-weight: 600; font-size: 0.85rem; color: var(--text); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-align: left;}
+        
+        .slab-cell { padding: 6px 4px !important; transition: 0.2s;}
+        .slab-wrapper { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 0 4px; }
+        .slab-row-top, .slab-row-bot { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 4px; flex-wrap: nowrap; }
+        .slab-input { flex: 1; min-width: 0; width: 100%; padding: 4px 2px; border: 1px solid var(--border-dark); border-radius: 3px; text-align: center; font-size: 0.75rem; font-weight: 600; background: #F9FAFB; outline: none; color: var(--text); }
+        .slab-input:focus { background: #FFFFFF; border-color: var(--brand); box-shadow: 0 0 0 2px var(--brand-light); z-index: 2; }
+        .slab-rate-prev { flex: 1; min-width: 0; text-align: center; font-weight: 700; color: var(--text); font-size: 0.75rem; white-space: nowrap; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .slab-divider { width: 1px; height: 16px; background: var(--border-dark); flex-shrink: 0; }
+        
+        .switch { position: relative; display: inline-block; width: 30px; height: 16px; margin: 0 auto;}
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 16px; }
+        .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--brand); }
+        input:checked + .slider:before { transform: translateX(14px); }
+
+        .btn-save-row { background: var(--success); color: white; border: none; width: 34px; height: 34px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; transition: 0.2s; margin: 0 auto;}
+        .dimmed-slab { opacity: 0.3; pointer-events: none; }
+
+        /* --- CART VIEW --- */
+        .cart-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; }
+        .cv-head { background: white; padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; font-weight: 700; font-size: 1.1rem; }
+        .cv-list { flex: 1; overflow-y: auto; padding: 10px; display: flex; flex-direction: column; gap: 10px; }
+        .cart-tile { background: white; border: 1px solid var(--border); border-radius: 6px; overflow: hidden; flex-shrink: 0;}
+        .ct-body { padding: 10px; }
+        .ct-title { font-weight: 600; font-size: 0.9rem; margin-bottom: 10px; display: flex; justify-content: space-between; line-height: 1.3;}
+        .ct-controls { display: flex; align-items: flex-end; gap: 10px; }
+        .cv-del { color: var(--accent); background: #FEF2F2; border: 1px solid #FEE2E2; border-radius: 4px; font-size: 0.9rem; cursor: pointer; margin-left: auto; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;}
+        .cv-foot { background: white; padding: 14px; border-top: 1px solid var(--border); box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .sum-row { display: flex; justify-content: space-between; font-size: 0.85rem; color: var(--text-mut); margin-bottom: 6px; }
+        .sum-row.bold { font-weight: 700; font-size: 1.05rem; color: var(--text); margin-bottom: 12px; }
+        .btn-checkout { width: 100%; background: var(--success); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 600; font-size: 1rem; cursor: pointer; }
+        
+        /* --- HISTORY / BILLING / PACKING --- */
+        .hist-top { padding: 12px 16px; background: white; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: center; flex-shrink: 0;}
+        .hist-top input[type="date"] { flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; outline: none; font-family: inherit; font-size: 0.9rem; color: var(--text);}
+        .order-card { background: white; padding: 16px; border-radius: 8px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;}
+        .btn-excel { background: #107C41; color: white; border: none; padding: 8px 12px; border-radius: 6px; font-weight: 600; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px; flex-shrink: 0;}
+
+        /* --- PACKING SPECIFIC --- */
+        .pack-row { display: flex; align-items: center; gap: 10px; padding: 12px; border-bottom: 1px solid var(--border); background: white; transition: 0.2s;}
+        .pack-row.sorted-down { background: #F9FAFB; opacity: 0.7; }
+        .pack-row.packed-done { background: var(--success-bg); }
+        .pack-chk { width: 22px; height: 22px; cursor: pointer; flex-shrink: 0; accent-color: var(--brand);}
+        .pack-chk.success { accent-color: var(--success); }
+        .pack-sl { font-weight: 700; color: var(--text-mut); width: 20px; font-size: 0.8rem; text-align: center;}
+        .pack-info { flex: 1; min-width: 0; }
+        .pack-title { font-weight: 600; font-size: 0.85rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+        .pack-qty { font-weight: 800; color: var(--brand); font-size: 0.95rem; }
+        .pack-meta { font-size: 0.7rem; color: var(--text-mut); margin-left: 6px;}
+        .pack-mrp { display: inline-flex; align-items: center; gap: 4px; background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; border: 1px solid var(--border); cursor: pointer;}
+        .pack-mrp i { font-size: 0.65rem; color: var(--text-mut); }
+        .pack-mrp.changed { background: #FEF3C7; border-color: #F59E0B; color: #B45309; font-weight: 700;}
+        .pack-new-badge { background: var(--accent); color: white; padding: 2px 4px; border-radius: 3px; font-size: 0.6rem; font-weight: 700; margin-left: 4px; }
+        
+        .pack-top-bar { background: white; padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-weight: 700; color: var(--text); }
+        .btn-pack-add { background: white; color: var(--brand); border: 1px solid var(--brand); padding: 6px 12px; border-radius: 4px; font-size: 0.8rem; cursor: pointer;}
+        .pack-summary { display: flex; gap: 15px; font-size: 0.85rem; }
+        /* --- BILLING SPECIFIC --- */
+        .bill-row { display: flex; align-items: center; gap: 10px; padding: 12px; border-bottom: 1px solid var(--border); background: white; }
+        .bill-row.highlight-new { background: #F0FDF4; border-left: 4px solid var(--success); }
+        .bill-row.highlight-mrp { background: #FFFBEB; border-left: 4px solid var(--warning); }
+
+        /* --- MODALS --- */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; display: flex; justify-content: center; align-items: center; padding: 16px; }
+        .modal-content { background: white; width: 100%; max-width: 400px; border-radius: 8px; display: flex; flex-direction: column; max-height: 80vh; }
+        .modal-header { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 1.1rem; }
+        .modal-body { padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+
+        .prof-view { padding: 20px; text-align: center; }
+        .btn-logout { background: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; width: 90%; cursor: pointer; margin-top: 20px;}
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen">
+        <div class="login-header">
+            <i class="fas fa-bolt"></i>
+            <h2>B2B Portal</h2>
+            <p>Sign in to continue</p>
+        </div>
+        <div class="login-box">
+            <input type="email" id="auth-email" class="login-input" placeholder="Email Address">
+            <input type="password" id="auth-pass" class="login-input" placeholder="Password">
+            <button class="login-btn" onclick="handleLogin()">Sign In</button>
+            <div class="loader" id="login-loader"></div>
+            <p id="login-error" style="color: var(--accent); font-size: 0.85rem; text-align: center; margin-top: 15px; display: none;"></p>
+        </div>
+    </div>
+
+    <!-- COLLECTION MODAL (Salesman) -->
+    <div id="collection-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 320px;">
+            <div class="modal-header">
+                <span>Record Payment</span>
+                <i class="fas fa-times" onclick="closeModal('collection-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
+            </div>
+            <div class="modal-body">
+                <p id="col-cust-name" style="font-size: 0.95rem; font-weight: 700; margin-bottom: 5px;"></p>
+                <p id="col-cust-bal" style="font-size: 0.85rem; color: var(--accent); margin-bottom: 15px; font-weight: 600;"></p>
+                
+                <span class="step-lbl" style="display:block;">Cash Amount (₹)</span>
+                <input type="number" id="col-cash" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:10px; outline:none;" placeholder="0" oninput="calcColTotal()">
+                
+                <span class="step-lbl" style="display:block;">GPay / UPI (₹)</span>
+                <input type="number" id="col-gpay" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:15px; outline:none;" placeholder="0" oninput="calcColTotal()">
+                
+                <div style="display:flex; justify-content: space-between; font-weight: 700; font-size: 1.1rem; margin-bottom: 15px; padding-top: 10px; border-top: 1px dashed var(--border);">
+                    <span>Total Received:</span>
+                    <span id="col-total" style="color: var(--success);">₹0</span>
+                </div>
+
+                <button onclick="submitCollection()" style="width: 100%; background: var(--brand); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: 700; cursor: pointer;">Submit Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SHARED MODALS -->
+    <div id="cust-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span>Select Customer</span>
+                <i class="fas fa-times" onclick="closeModal('cust-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
+            </div>
+            <div class="modal-body" id="modal-cust-list"></div>
+        </div>
+    </div>
+
+    <!-- PACK EDIT MODAL (Packing) -->
+    <div id="pack-edit-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 320px;">
+            <div class="modal-header">
+                <span>Edit Packed Item</span>
+                <i class="fas fa-times" onclick="closeModal('pack-edit-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
+            </div>
+            <div class="modal-body">
+                <p id="pack-edit-name" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 10px; line-height: 1.3;"></p>
+                
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <div class="step-grp" style="flex:1;">
+                        <span class="step-lbl">Cases</span>
+                        <div class="stepper">
+                            <button onclick="stepPackEdit('c', -1)">-</button>
+                            <input type="number" id="pack-edit-c" value="0" onchange="stepPackEditManual('c', this.value)" onfocus="this.select()">
+                            <button onclick="stepPackEdit('c', 1)">+</button>
+                        </div>
+                    </div>
+                    <div class="step-grp" style="flex:1;">
+                        <span class="step-lbl">Pieces</span>
+                        <div class="stepper">
+                            <button onclick="stepPackEdit('p', -1)">-</button>
+                            <input type="number" id="pack-edit-p" value="0" onchange="stepPackEditManual('p', this.value)" onfocus="this.select()">
+                            <button onclick="stepPackEdit('p', 1)">+</button>
+                        </div>
+                    </div>
+                </div>
+
+                <span class="step-lbl" style="display:block; text-align:center;">Item MRP (₹)</span>
+                <input type="number" id="pack-edit-mrp" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; text-align:center; font-weight:700; margin-bottom:15px; font-size: 1.1rem; outline:none;" onfocus="this.select()">
+                
+                <button onclick="savePackEdit()" style="width: 100%; background: var(--success); color: white; border: none; padding: 10px; border-radius: 4px; font-weight: 600; cursor: pointer; margin-bottom: 8px;">Save Changes</button>
+                <button onclick="duplicatePackItem()" style="width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 10px; border-radius: 4px; font-weight: 600; cursor: pointer;"><i class="fas fa-copy"></i> Duplicate Item (To Split MRP)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD ITEM MODAL (Packing) -->
+    <div id="add-item-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 500px; height: 90vh;">
+            <div class="modal-header">
+                <span>Add Item to Order</span>
+                <i class="fas fa-times" onclick="closeModal('add-item-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
+            </div>
+            <div class="search-bar" style="border-bottom: 1px solid var(--border);">
+                <i class="fas fa-search" style="color:var(--text-mut);"></i>
+                <input type="text" placeholder="Search item..." oninput="handlePackAddSearch(this.value)">
+            </div>
+            <div class="modal-body" id="pack-add-list" style="padding: 0;">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+    </div>
+
+
+    <!-- MAIN APP STRUCTURE -->
+    <div id="main-app" class="app-view hidden">
+        
+        <div class="header">
+            <div class="logo"><i class="fas fa-bolt"></i> B2B Portal</div>
+            <div class="role-badge" id="hdr-role-badge">ROLE</div>
+        </div>
+        
+        <!-- ========================================== -->
+        <!-- SALESMAN VIEWS                             -->
+        <!-- ========================================== -->
+        
+        <div id="view-customers" class="tab-content salesman-view hidden">
+            <div class="search-bar" style="border-bottom: none;">
+                <i class="fas fa-search" style="color:var(--text-mut);"></i>
+                <input type="text" placeholder="Search customer name or code..." id="cust-search-input" oninput="handleCustSearch(this.value)">
+            </div>
+            <div class="scroll-area">
+                <div class="cust-list" id="full-cust-list"></div>
+            </div>
+        </div>
+
+        <div id="view-collection" class="tab-content hidden salesman-view">
+            <div class="search-bar" style="border-bottom: none;">
+                <i class="fas fa-search" style="color:var(--text-mut);"></i>
+                <input type="text" placeholder="Search customer name or code..." id="col-search-input" oninput="handleCollectionSearch(this.value)">
+            </div>
+            <div class="scroll-area">
+                <div class="cust-list" id="collection-cust-list"></div>
+            </div>
+        </div>
+
+        <div id="view-history" class="tab-content hidden salesman-view">
+            <div class="hist-top">
+                <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
+                <input type="date" id="salesman-date-filter" onchange="renderSalesmanHistory()">
+            </div>
+            <div class="scroll-area" style="padding: 12px;" id="salesman-history-feed"></div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SHARED CATALOG (Admin & Manager)           -->
+        <!-- ========================================== -->
+
+        <div id="view-catalog" class="tab-content hidden manager-view admin-view">
+            <div class="search-bar">
+                <i class="fas fa-search" style="color:var(--text-mut);"></i>
+                <input type="text" placeholder="Search catalog..." id="catalog-search-input" oninput="handleCatalogSearch(this.value)">
+            </div>
+            <div class="cat-scroll" id="catalog-cat-scroll"></div>
+            <div class="scroll-area">
+                <div class="feed" id="catalog-feed"></div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- ADMIN SPECIFIC: PRICING TABLE              -->
+        <!-- ========================================== -->
+
+        <div id="view-pricing" class="tab-content admin-view hidden">
+            <div class="bulk-actions-bar">
+                <div class="search-bar" style="padding:0; border:none; flex:1; min-width: 150px;">
+                    <i class="fas fa-search" style="color:var(--text-mut);"></i>
+                    <input type="text" placeholder="Search item code or name..." id="pricing-search" oninput="handlePricingSearch(this.value)">
+                </div>
+                <div class="bulk-group" style="border-left:none; padding-left:0;">
+                    <span class="bulk-label">1. ITEMS</span>
+                    <button class="btn-csv" onclick="downloadItemSampleCSV()"><i class="fas fa-download"></i> Template</button>
+                    <button class="btn-csv upload" onclick="document.getElementById('csv-upload-items').click()"><i class="fas fa-upload"></i> Upload</button>
+                    <input type="file" id="csv-upload-items" class="hidden" accept=".csv" onchange="handleItemCSVUpload(event)">
+                </div>
+                <div class="bulk-group">
+                    <span class="bulk-label">2. MARGINS</span>
+                    <button class="btn-csv" onclick="downloadMarginSampleCSV()"><i class="fas fa-download"></i> Template</button>
+                    <button class="btn-csv upload" onclick="document.getElementById('csv-upload-margins').click()"><i class="fas fa-upload"></i> Upload</button>
+                    <input type="file" id="csv-upload-margins" class="hidden" accept=".csv" onchange="handleMarginCSVUpload(event)">
+                </div>
+            </div>
+
+            <div class="scroll-area">
+                <div class="table-container">
+                    <div class="table-wrapper">
+                        <table class="pricing-table">
+                            <colgroup>
+                                <col style="width: 6%;">
+                                <col style="width: 20%;">
+                                <col style="width: 4%;">
+                                <col style="width: 6%;">
+                                <col style="width: 5%;">
+                                <col style="width: 13.5%;">
+                                <col style="width: 13.5%;">
+                                <col style="width: 13.5%;">
+                                <col style="width: 13.5%;">
+                                <col style="width: 5%;">
+                            </colgroup>
+                            <thead>
+                                <tr>
+                                    <th>Code</th>
+                                    <th style="text-align: center;">Item Name</th>
+                                    <th>ON</th>
+                                    <th>MRP<br><span style="font-weight:normal; font-size:0.6rem;">Case Qty</span></th>
+                                    <th>Cost</th>
+                                    <th>Slab 1<br><span style="font-weight:normal; font-size:0.65rem;">From/To | %/Rate</span></th>
+                                    <th>Slab 2<br><span style="font-weight:normal; font-size:0.65rem;">From/To | %/Rate</span></th>
+                                    <th>Slab 3<br><span style="font-weight:normal; font-size:0.65rem;">From/To | %/Rate</span></th>
+                                    <th>Slab 4<br><span style="font-weight:normal; font-size:0.65rem;">From/To | %/Rate</span></th>
+                                    <th><i class="fas fa-save" title="Save All"></i></th>
+                                </tr>
+                            </thead>
+                            <tbody id="pricing-table-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- PACKING VIEW                               -->
+        <!-- ========================================== -->
+        
+        <div id="view-packing" class="tab-content hidden packing-view salesman-view">
+            <div class="hist-top">
+                <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
+                <input type="date" id="packing-date-filter" onchange="renderPackingOrders()">
+            </div>
+            <div class="scroll-area" style="padding: 16px;" id="packing-feed"></div>
+        </div>
+
+       <!-- ========================================== -->
+        <!-- BILLING VIEWS                              -->
+        <!-- ========================================== -->
+        
+        <div id="view-billing" class="tab-content hidden billing-view">
+            <div class="hist-top">
+                <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
+                <input type="date" id="billing-date-filter" onchange="renderBillingOrders()">
+            </div>
+            <div class="scroll-area" style="padding: 16px;" id="billing-feed"></div>
+        </div>
+
+        <div id="view-bill-hist" class="tab-content hidden billing-view">
+            <div class="hist-top">
+                <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
+                <input type="date" id="bill-hist-date-filter" onchange="renderBillingHistory()">
+            </div>
+            <div class="scroll-area" style="padding: 16px;" id="bill-hist-feed"></div>
+        </div>
+
+        <div id="view-bill-col" class="tab-content hidden billing-view">
+            <div class="hist-top">
+                <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
+                <input type="date" id="bill-col-date-filter" onchange="renderBillingCollections()">
+            </div>
+            <div class="scroll-area" style="padding: 16px;" id="bill-col-feed"></div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- SHARED PROFILE                             -->
+        <!-- ========================================== -->
+
+        <div id="view-profile" class="tab-content hidden shared-view">
+            <div class="scroll-area">
+                <div class="prof-view">
+                    <div style="width: 80px; height: 80px; background: var(--brand-light); color: var(--brand); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 2rem; margin: 20px auto 10px auto;"><i class="fas fa-user"></i></div>
+                    <h2 id="prof-name" style="font-size: 1.3rem;">User</h2>
+                    <p style="color:var(--text-mut); margin-bottom: 30px; font-weight: 500;">Authenticated Session</p>
+                    <button class="btn-logout" onclick="handleLogout()">Secure Logout</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Role Navs -->
+        <div class="bottom-nav salesman-nav hidden">
+            <div class="nav-item active" onclick="switchTab('customers')" data-target="customers"><i class="fas fa-users"></i>Orders</div>
+            <div class="nav-item" onclick="switchTab('collection')" data-target="collection"><i class="fas fa-rupee-sign"></i>Collect</div>
+            <div class="nav-item" onclick="switchTab('packing')" data-target="packing"><i class="fas fa-box"></i>Pack</div>
+            <div class="nav-item" onclick="switchTab('history')" data-target="history"><i class="fas fa-history"></i>History</div>
+            <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
+        </div>
+
+        <div class="bottom-nav manager-nav hidden">
+            <div class="nav-item active" onclick="switchTab('catalog')" data-target="catalog"><i class="fas fa-box-open"></i>Catalog</div>
+            <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
+        </div>
+
+        <div class="bottom-nav admin-nav hidden">
+            <div class="nav-item active" onclick="switchTab('catalog')" data-target="catalog"><i class="fas fa-box-open"></i>Catalog</div>
+            <div class="nav-item" onclick="switchTab('pricing')" data-target="pricing"><i class="fas fa-tags"></i>Pricing</div>
+            <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
+        </div>
+        
+        <div class="bottom-nav packing-nav hidden">
+            <div class="nav-item active" onclick="switchTab('packing')" data-target="packing"><i class="fas fa-box"></i>To Pack</div>
+            <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
+        </div>
+
+        <div class="bottom-nav billing-nav hidden">
+            <div class="nav-item active" onclick="switchTab('billing')" data-target="billing"><i class="fas fa-clock"></i>Pending</div>
+            <div class="nav-item" onclick="switchTab('bill-hist')" data-target="bill-hist"><i class="fas fa-check-circle"></i>History</div>
+            <div class="nav-item" onclick="switchTab('bill-col')" data-target="bill-col"><i class="fas fa-rupee-sign"></i>Collects</div>
+            <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- OVERLAYS (Full Screen Views)               -->
+    <!-- ========================================== -->
+
+    <!-- SALESMAN: ORDER TAKING -->
+    <div id="order-view" class="order-view hidden">
+        <div class="ov-head">
+            <i class="fas fa-arrow-left" onclick="exitOrder()"></i>
+            <div class="ov-center">
+                <div class="ov-title" id="ov-cust-name">Loading...</div>
+                <div class="ov-sub" id="ov-cust-bal">Bal: ₹0</div>
+            </div>
+            <div class="cart-btn" onclick="openCart()">
+                <i class="fas fa-shopping-cart"></i>
+                <span class="badge" id="cart-badge">0</span>
+            </div>
+        </div>
+        
+        <div class="search-bar">
+            <i class="fas fa-search" style="color:var(--text-mut);"></i>
+            <input type="text" placeholder="Search item name..." id="order-search-input" oninput="handleOrderSearch(this.value)">
+        </div>
+        <div class="cat-scroll" id="order-cat-scroll"></div>
+        <div class="scroll-area">
+            <div class="feed" id="order-feed"></div>
+        </div>
+    </div>
+
+    <!-- SALESMAN: CART APP -->
+    <div id="cart-app" class="cart-view hidden">
+        <div class="cv-head">
+            <i class="fas fa-arrow-left" onclick="closeCart()" style="cursor:pointer;"></i>
+            <span>Order Summary</span>
+            <span id="cart-item-count" style="margin-left: auto; font-size: 0.85rem; color: var(--brand); font-weight: 700; background: var(--brand-light); padding: 4px 10px; border-radius: 12px;">0 Items</span>
+        </div>
+        <div class="cv-list" id="cart-list"></div>
+        <div class="cv-foot">
+            <div class="sum-row"><span>Total Value (MRP)</span><span id="sum-mrp">₹0.00</span></div>
+            <div class="sum-row" style="color:var(--success); font-weight: 600;"><span>Margin</span><span id="sum-ret-margin">₹0.00 (0%)</span></div>
+            <div class="sum-row bold" style="margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px;"><span>Total Amount</span><span id="sum-pay">₹0.00</span></div>
+            <button class="btn-checkout" onclick="confirmOrder()">Submit Order</button>
+        </div>
+    </div>
+
+    <!-- PACKING: DETAIL VIEW -->
+    <div id="packing-detail-view" class="order-view hidden">
+        <div class="ov-head">
+            <i class="fas fa-arrow-left" onclick="exitPacking()"></i>
+            <div class="ov-center">
+                <div class="ov-title" id="pack-cust-name">Loading...</div>
+                <div class="ov-sub" id="pack-order-id">ORD-XXXX</div>
+            </div>
+            <i class="fas fa-check" style="color: transparent;"></i> <!-- Spacer -->
+        </div>
+        <div class="pack-top-bar">
+            <div class="pack-summary">
+                <span>Total: <span id="pack-total-count" style="color:var(--brand);">0</span></span>
+                <span>Packed: <span id="pack-done-count" style="color:var(--success);">0</span></span>
+            </div>
+            <button class="btn-pack-add" onclick="openPackAddModal()">+ Add Item</button>
+        </div>
+        <div class="scroll-area" style="background: var(--bg);" id="packing-item-list">
+            <!-- Injected via JS -->
+        </div>
+        <div style="padding: 14px; background: white; border-top: 1px solid var(--border);">
+            <button class="btn-checkout" onclick="confirmPackingFinal()">Confirm Packing</button>
+        </div>
+    </div>
+
+    <!-- BILLING: DETAIL VIEW -->
+    <div id="billing-detail-view" class="order-view hidden">
+        <div class="ov-head">
+            <i class="fas fa-arrow-left" onclick="exitBilling()" style="cursor: pointer; padding: 4px;"></i>
+            <div class="ov-center">
+                <div class="ov-title" id="bill-cust-name">Loading...</div>
+                <div class="ov-sub" id="bill-order-id">ORD-XXXX</div>
+            </div>
+            <i class="fas fa-file-excel" id="bill-head-excel" style="cursor: pointer; padding: 4px;" onclick="exportOrderExcel(currentBillOrder.id)"></i>
+        </div>
+        <div class="pack-top-bar" style="justify-content: flex-start; gap: 10px;">
+            <span>Total Items: <span id="bill-total-count" style="color:var(--brand);">0</span></span>
+        </div>
+        <div class="scroll-area" style="background: var(--bg);" id="billing-item-list"></div>
+        
+        <div style="padding: 14px; background: white; border-top: 1px solid var(--border);" id="bill-footer-pending">
+            <button class="btn-checkout" style="background: var(--success);" onclick="confirmToSaleOrder()">
+                <i class="fas fa-check"></i> Confirm to Sale Order
+            </button>
+        </div>
+    </div>
+
+    <!-- BILLING: COLLECTION DETAIL VIEW -->
+    <div id="billing-col-detail-view" class="order-view hidden">
+        <div class="ov-head">
+            <i class="fas fa-arrow-left" onclick="exitBillingCollection()" style="cursor: pointer; padding: 4px;"></i>
+            <div class="ov-center">
+                <div class="ov-title" id="bill-col-sm-name">Loading...</div>
+                <div class="ov-sub" id="bill-col-date-sub">Date</div>
+            </div>
+            <i class="fas fa-file-pdf" style="cursor: pointer; padding: 4px; color: #ffeb3b;" onclick="downloadCollectionPDF()"></i>
+        </div>
+        <div class="pack-top-bar" style="justify-content: space-between; gap: 10px; background: #F9FAFB;">
+            <select id="bill-col-sort" onchange="renderBillingCollectionDetailList()" style="padding: 4px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.8rem; font-weight: 600; color: var(--text);">
+                <option value="time">Sort by Time</option>
+                <option value="alpha">Sort Alphabetically</option>
+                <option value="type">Sort by Type (Cash/Gpay)</option>
+            </select>
+            <span style="font-size: 0.85rem; color:var(--success);">Total: <span id="bill-col-total-sum">₹0</span></span>
+        </div>
+        <div class="scroll-area" style="background: var(--bg); padding: 12px;" id="billing-col-detail-list"></div>
+    </div>
+
+    <script>
+        /* ========================================== */
+        /* SUPABASE INTEGRATION                       */
+        /* ========================================== */
+        
+        const SUPABASE_URL = 'https://xokjdpkskjctteondwxf.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhva2pkcGtza2pjdHRlb25kd3hmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTM5ODgsImV4cCI6MjEwMDk2OTk4OH0.4SR4nFJJCo0igMKj644pNrjNLB71ZtKVnjGT-rPsy2g';
+        
+        const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let userSession = null;
+        let INVENTORY = [];
+        let CUSTOMERS = [];
+        let SUBMITTED_ORDERS = []; 
+        let MY_ORDERS = []; 
+        let MY_COLLECTIONS = []; 
+        let CATEGORIES = ["All"];
+        let currentUserFullName = ""; 
+
+        let currentUserRole = "Salesman"; // Default
+        let activeCust = null; 
+        
+        let orderCat = "All";
+        let orderSearchQuery = ""; 
+        let custSearchQuery = "";
+        
+        let catalogCat = "All";
+        let catalogSearchQuery = "";
+        let pricingSearchQuery = "";
+
+        let cart = {};  
+        let draft = {}; 
+
+        // Packing State
+        let currentPackOrder = null;
+        let packSearchQuery = "";
+
+        /* --- REAL DATABASE ARRAYS --- */
+        // Inventory and Customers will now only load from Supabase.
+
+        /* --- AUTH & INIT --- */
+        window.onload = async () => {
+            const today = new Date().toISOString().split('T')[0];
+            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.value = today;
+            });
+
+            try {
+                const { data: { session }, error } = await sbClient.auth.getSession();
+                if (session && !error) {
+                    userSession = session;
+                    await initializeApp();
+                } else {
+                    document.getElementById('login-screen').classList.remove('hidden');
+                    document.getElementById('main-app').classList.add('hidden');
+                }
+            } catch (err) {
+                document.getElementById('login-screen').classList.remove('hidden');
+                document.getElementById('main-app').classList.add('hidden');
+            }
+        };
+
+        async function handleLogin() {
+            const email = document.getElementById('auth-email').value;
+            const password = document.getElementById('auth-pass').value;
+            const btn = document.querySelector('.login-btn');
+            const loader = document.getElementById('login-loader');
+            const errorText = document.getElementById('login-error');
+
+            if(!email || !password) {
+                errorText.style.display = 'block';
+                errorText.innerText = "Please enter email and password.";
+                return;
+            }
+
+            btn.style.display = 'none';
+            loader.style.display = 'block';
+            errorText.style.display = 'none';
+
+            try {
+                const { data, error } = await sbClient.auth.signInWithPassword({ email, password });
+
+                if (error) {
+                    btn.style.display = 'block';
+                    loader.style.display = 'none';
+                    errorText.style.display = 'block';
+                    errorText.innerText = error.message;
+                } else {
+                    userSession = data.session;
+                    await initializeApp();
+                }
+            } catch (err) {
+                btn.style.display = 'block';
+                loader.style.display = 'none';
+                errorText.style.display = 'block';
+                errorText.innerText = "Connection error.";
+            }
+        }
+
+        async function handleLogout() {
+            try { await sbClient.auth.signOut(); } catch (e) {}
+            userSession = null;
+            document.getElementById('login-screen').classList.remove('hidden');
+            document.getElementById('main-app').classList.add('hidden');
+            document.querySelector('.login-btn').style.display = 'block';
+            document.getElementById('login-loader').style.display = 'none';
+        }
+
+        async function initializeApp() {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+
+            try {
+                const { data: profile, error } = await sbClient.from('profiles').select('*').eq('id', userSession.user.id).single();
+                if (profile && !error) {
+                    currentUserRole = profile.role;
+                    currentUserFullName = profile.full_name || "Unknown";
+                } else {
+                    // Fallback if missing from profiles table
+                    currentUserRole = "Admin";
+                    currentUserFullName = "Admin (Auto-Fallback)";
+                }
+            } catch (e) {
+                console.warn("Profiles table missing or blocked. Defaulting to Admin.");
+                currentUserRole = "Admin";
+                currentUserFullName = "Admin (Auto-Fallback)";
+            }
+            
+            // Set UI headers
+            document.getElementById('prof-name').innerText = currentUserFullName;
+            document.getElementById('hdr-role-badge').innerText = currentUserRole.toUpperCase();
+
+            // ALWAYS fetch data, even if profile check failed
+            await fetchDataFromSupabase();
+            
+            loadState();
+            applyRoleUI();
+        }
+
+        async function fetchDataFromSupabase() {
+            try {
+                const { data: itemsData } = await sbClient.from('items').select('*');
+                if (itemsData && itemsData.length > 0) {
+                    // SANITIZE DATA: Ensure no null values crash the app
+                    INVENTORY = itemsData.map(item => {
+                        item.cost = parseFloat(item.cost) || 0;
+                        item.mrp = parseFloat(item.mrp) || 0;
+                        item.price2 = parseFloat(item.price2) || 0;
+                        item.price3 = parseFloat(item.price3) || 0;
+                        item.price4 = parseFloat(item.price4) || 0;
+                        item.stock = parseInt(item.stock) || 0;
+                        item.caseQty = parseInt(item.caseQty) || null;
+                        
+                        // If slabs array is missing or corrupted, inject safe defaults
+                        if (!item.slabs || !Array.isArray(item.slabs) || item.slabs.length < 4) {
+                            item.slabs = [
+                                {min: 0, max: 0, markup: 0}, 
+                                {min: 0, max: 0, markup: 0}, 
+                                {min: 0, max: 0, markup: 0}, 
+                                {min: 0, max: 99999, markup: 0}
+                            ];
+                        }
+                        return item;
+                    });
+
+                    const rawCats = INVENTORY.map(i => i.category).filter(Boolean);
+                    CATEGORIES = ["All", ...new Set(rawCats)];
+                }
+
+                if (currentUserRole === 'Salesman') {
+                    const { data: custData } = await sbClient.from('customers').select('*');
+                    if (custData) CUSTOMERS = custData;
+                    
+                    const { data: myOrdData } = await sbClient.from('orders').select('*').eq('salesman_id', userSession.user.id).order('created_at', { ascending: false });
+                    if (myOrdData) MY_ORDERS = myOrdData;
+
+                    const { data: myColData } = await sbClient.from('collections').select('*').eq('salesman_id', userSession.user.id).order('created_at', { ascending: false });
+                    if (myColData) MY_COLLECTIONS = myColData;
+                }
+
+                if (currentUserRole === 'Packing' || currentUserRole === 'Billing') {
+                    const { data: orderData } = await sbClient.from('orders').select('*').order('created_at', { ascending: false });
+                    if (orderData) SUBMITTED_ORDERS = orderData;
+                    
+                    if (currentUserRole === 'Billing') {
+                        const { data: colData } = await sbClient.from('collections').select('*').order('created_at', { ascending: false });
+                        if (colData) ALL_COLLECTIONS = colData;
+                    }
+                }
+            } catch (e) {
+                console.warn("Using offline mock data.");
+            }
+        }
+
+        function switchRole(role) {
+            currentUserRole = role;
+            document.getElementById('hdr-role-badge').innerText = role.toUpperCase();
+            
+            let profTitle = 'Rahul (Salesman)';
+            if(role === 'Manager') profTitle = 'Store Manager';
+            if(role === 'Admin') profTitle = 'System Admin';
+            if(role === 'Packing') profTitle = 'Packer';
+            if(role === 'Billing') profTitle = 'Billing Dept';
+            document.getElementById('prof-name').innerText = profTitle;
+            
+            applyRoleUI();
+        }
+
+        function applyRoleUI() {
+            const sNav = document.querySelector('.salesman-nav');
+            const mNav = document.querySelector('.manager-nav');
+            const aNav = document.querySelector('.admin-nav');
+            const pNav = document.querySelector('.packing-nav');
+            const bNav = document.querySelector('.billing-nav');
+
+            if(sNav) sNav.classList.add('hidden');
+            if(mNav) mNav.classList.add('hidden');
+            if(aNav) aNav.classList.add('hidden');
+            if(pNav) pNav.classList.add('hidden');
+            if(bNav) bNav.classList.add('hidden');
+            
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            
+            if(currentUserRole === 'Salesman') {
+                if(sNav) sNav.classList.remove('hidden');
+                if(typeof renderCustomersView === 'function') renderCustomersView();
+                switchTab('customers');
+            } else if (currentUserRole === 'Manager') {
+                if(mNav) mNav.classList.remove('hidden');
+                catalogCat = "All"; 
+                if(typeof renderCatalogCats === 'function') renderCatalogCats();
+                if(typeof renderCatalogView === 'function') renderCatalogView();
+                switchTab('catalog');
+            } else if (currentUserRole === 'Admin') {
+                if(aNav) aNav.classList.remove('hidden');
+                catalogCat = "All"; 
+                if(typeof renderCatalogCats === 'function') renderCatalogCats();
+                if(typeof renderCatalogView === 'function') renderCatalogView();
+                if(typeof renderPricingTable === 'function') renderPricingTable();
+                switchTab('pricing'); 
+            } else if (currentUserRole === 'Packing') {
+                if(pNav) pNav.classList.remove('hidden');
+                if(typeof renderPackingOrders === 'function') renderPackingOrders();
+                switchTab('packing');
+            } else if (currentUserRole === 'Billing') {
+                if(bNav) bNav.classList.remove('hidden');
+                if(typeof renderBillingOrders === 'function') renderBillingOrders();
+                switchTab('billing');
+            }
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+            
+            const view = document.getElementById(`view-${tabId}`);
+            if(view) view.classList.remove('hidden');
+            
+            let activeNav = document.querySelector('.salesman-nav');
+            if (currentUserRole === 'Manager') activeNav = document.querySelector('.manager-nav');
+            if (currentUserRole === 'Admin') activeNav = document.querySelector('.admin-nav');
+            if (currentUserRole === 'Packing') activeNav = document.querySelector('.packing-nav');
+            if (currentUserRole === 'Billing') activeNav = document.querySelector('.billing-nav');
+            
+            if (activeNav) {
+                const navBtn = activeNav.querySelector(`[data-target="${tabId}"]`);
+                if (navBtn) navBtn.classList.add('active');
+            }
+
+            if (tabId === 'history' && currentUserRole === 'Salesman') renderSalesmanHistory();
+            if (tabId === 'collection' && currentUserRole === 'Salesman') renderCollectionCustomers();
+            if (tabId === 'packing' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman')) renderPackingOrders();
+            if (tabId === 'billing' && currentUserRole === 'Billing') renderBillingOrders();
+            if (tabId === 'bill-hist' && currentUserRole === 'Billing') renderBillingHistory();
+            if (tabId === 'bill-col' && currentUserRole === 'Billing') renderBillingCollections();
+        }
+
+        /* --- HELPERS --- */
+        function fmt(num) { return Number(parseFloat(num).toFixed(2)); }
+        function getRate(cost, markup) { return parseFloat((cost + (cost * (markup / 100))).toFixed(2)); }
+        function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+
+        function getApplicableRate(item, totalPcs, selectedRateKey = 'price2', customRate = 0) {
+            if (!item.has_slabs || !item.caseQty) {
+                if (selectedRateKey === 'custom') return parseFloat(customRate) || 0;
+                return item[selectedRateKey] || item.price2; 
+            }
+            if(totalPcs <= 0) return 0;
+            const match = item.slabs.find(s => totalPcs >= s.min && totalPcs < s.max);
+            const fallback = match || item.slabs[item.slabs.length - 1]; 
+            return getRate(item.cost, fallback.markup);
+        }
+
+        function getSmartSlabLabel(min, max, caseQty) {
+            if(!caseQty || caseQty <= 0) return `${min} - ${max}`; 
+            const halfCase = Math.floor(caseQty / 2);
+            const formatVal = (val) => {
+                if (val === 0) return "0";
+                if (val === caseQty) return "1 Case";
+                if (val % caseQty === 0) return `${val/caseQty} Case`;
+                if (caseQty > 50 && val === halfCase) return "Half Case";
+                return `${val}`;
+            };
+            let minText = formatVal(min);
+            if (max >= 99999) return `${minText}+`;
+            let maxText = formatVal(max);
+            return `${minText} - ${maxText}`;
+        }
+
+        let ALL_COLLECTIONS = []; // Global collections for billing
+        function loadState() {
+            // NEVER load inventory from local storage anymore to prevent data corruption.
+            if (localStorage.getItem('b2b_c')) cart = JSON.parse(localStorage.getItem('b2b_c'));
+            if (localStorage.getItem('b2b_u')) activeCust = JSON.parse(localStorage.getItem('b2b_u'));
+            updateBadge();
+        }
+        
+        function saveLocalState() {
+            localStorage.setItem('b2b_c', JSON.stringify(cart));
+            localStorage.setItem('b2b_u', JSON.stringify(activeCust));
+        }
+
+        /* ========================================== */
+        /* SALESMAN LOGIC                             */
+        /* ========================================== */
+        
+        function handleCustSearch(val) { custSearchQuery = val.toLowerCase(); renderCustomersView(); }
+
+        function renderCustomersView() {
+            const list = document.getElementById('full-cust-list');
+            if(!list) return;
+
+            let filtered = CUSTOMERS;
+            if(custSearchQuery) {
+                filtered = filtered.filter(c => c.name.toLowerCase().includes(custSearchQuery) || c.code.toLowerCase().includes(custSearchQuery));
+            }
+
+            if(filtered.length === 0) {
+                list.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-mut);">No customers found.</div>`;
+                return;
+            }
+
+            list.innerHTML = filtered.map(c => `
+                <div class="cust-card">
+                    <div style="flex: 1; min-width: 0; padding-right: 15px;">
+                        <div class="ov-title" style="margin-bottom: 2px;">${c.name}</div>
+                        <span style="font-weight:700; color:var(--brand); display:inline-block;">Bal: ₹${fmt(c.bal)}</span>
+                    </div>
+                    <button class="btn-take-order" style="flex-shrink: 0;" onclick="startOrder('${c.code}')">Take Order</button>
+                </div>
+            `).join('');
+        }
+
+        function startOrder(custCode) {
+            const selectedCust = CUSTOMERS.find(c => c.code === custCode);
+            if (activeCust && activeCust.code !== custCode && Object.keys(cart).length > 0) {
+                if(!confirm(`Clear active cart for ${activeCust.name} to start order for ${selectedCust.name}?`)) return;
+                cart = {}; draft = {};
+            }
+            activeCust = selectedCust;
+            saveLocalState();
+
+            document.getElementById('ov-cust-name').innerText = activeCust.name;
+            document.getElementById('ov-cust-bal').innerText = `Bal: ₹${fmt(activeCust.bal)}`;
+            updateBadge();
+            
+            orderSearchQuery = ""; document.getElementById('order-search-input').value = "";
+            renderOrderCats(); renderOrderFeed();
+            document.getElementById('order-view').classList.remove('hidden');
+        }
+
+        function exitOrder() { document.getElementById('order-view').classList.add('hidden'); }
+        function handleOrderSearch(val) { orderSearchQuery = val.toLowerCase(); renderOrderFeed(); }
+        function setOrderCat(cat) { orderCat = cat; renderOrderCats(); renderOrderFeed(); }
+        
+        function renderOrderCats() {
+            const el = document.getElementById('order-cat-scroll');
+            if(el) el.innerHTML = CATEGORIES.map(cat => `<div class="cat-pill ${cat === orderCat ? 'active' : ''}" onclick="setOrderCat('${cat}')">${cat}</div>`).join('');
+        }
+
+        function toggleAccordion(listId, iconId) {
+            const list = document.getElementById(listId);
+            const icon = document.getElementById(iconId);
+            if(list && icon) {
+                list.classList.toggle('hidden');
+                if(list.classList.contains('hidden')) icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+                else icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+            }
+        }
+
+        function applySlab(code, minQty) {
+            const item = INVENTORY.find(i => i.code === code);
+            const cases = Math.floor(minQty / item.caseQty);
+            const pcs = minQty % item.caseQty;
+            
+            if(!draft[code]) draft[code] = {c:0, p:0};
+            draft[code].c = cases;
+            draft[code].p = pcs;
+            
+            const dc = document.getElementById(`dc-${code}`);
+            const dp = document.getElementById(`dp-${code}`);
+            if(dc) dc.value = draft[code].c;
+            if(dp) dp.value = draft[code].p;
+            updateSavingsStrip(code, 'sav', draft[code]);
+        }
+
+        function renderOrderFeed() {
+            const feed = document.getElementById('order-feed');
+            if(!feed) return;
+            
+            if (INVENTORY.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 30px; color: var(--text-mut);">No inventory data.</div>`;
+                return;
+            }
+
+            let items = orderCat === "All" ? INVENTORY : INVENTORY.filter(i => i.category === orderCat);
+            if (orderSearchQuery) {
+                if (orderSearchQuery.includes('.')) {
+                    const parts = orderSearchQuery.split('.');
+                    const textQuery = parts[0].trim();
+                    const mrpQuery = parseFloat(parts[1]);
+                    items = items.filter(i => {
+                        const matchText = textQuery === "" || i.name.toLowerCase().includes(textQuery) || i.code.toLowerCase().includes(textQuery);
+                        const matchMrp = !isNaN(mrpQuery) ? i.mrp === mrpQuery : true;
+                        return matchText && matchMrp;
+                    });
+                } else {
+                    items = items.filter(i => i.name.toLowerCase().includes(orderSearchQuery) || i.code.toLowerCase().includes(orderSearchQuery));
+                }
+            }
+            if (items.length === 0) { feed.innerHTML = `<div style="text-align:center; padding: 20px;">No items found.</div>`; return; }
+
+            feed.innerHTML = items.map(item => {
+                // Initialize draft with selected rate (r) and custom rate (cr)
+                if(!draft[item.code]) draft[item.code] = cart[item.code] ? {...cart[item.code]} : {c: 0, p: 0, r: 'price2', cr: 0};
+                const d = draft[item.code];
+                const inCart = !!cart[item.code];
+                const btnClass = inCart ? 'btn-edit' : '';
+                const btnText = inCart ? 'UPDATE' : 'ADD';
+
+                let pricingUI = '';
+                let dropdownUI = '';
+                let isCaseDisabled = false;
+
+                if (item.has_slabs && item.caseQty > 0) {
+                    const slabHTML = item.slabs.slice(1).map((s) => {
+                        const rate = fmt(getRate(item.cost, s.markup));
+                        const retailerMargin = rate > 0 ? (((item.mrp - rate) / rate) * 100) : 0;
+                        const smartLabel = getSmartSlabLabel(s.min, s.max, item.caseQty);
+                        
+                        return `
+                            <div class="slab-row">
+                                <div class="sl-col-name">${smartLabel}</div>
+                                <div class="sl-col-rate">₹${rate.toFixed(2)} <span class="prof">(${retailerMargin.toFixed(2)}%)</span></div>
+                                <div class="sl-col-act"><button class="btn-apply" onclick="applySlab('${item.code}', ${s.min})">Apply</button></div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    // Calculate Best Rate
+                    const baseRate = fmt(getRate(item.cost, item.slabs[0].markup));
+                    const validRates = item.slabs.map(s => fmt(getRate(item.cost, s.markup))).filter(r => r > 0 && r < baseRate);
+                    const bestRate = validRates.length > 0 ? Math.min(...validRates) : baseRate;
+
+                    pricingUI = `
+                        <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
+                            <div class="quick-price">Base Rate: ₹${baseRate.toFixed(2)}</div>
+                            ${bestRate < baseRate ? `<div class="quick-price" style="background: var(--success-bg); color: var(--success);">Best Rate: ₹${bestRate.toFixed(2)}</div>` : ''}
+                        </div>
+                    `;
+                    
+                    dropdownUI = `
+                        <div class="slab-toggle" onclick="toggleAccordion('slabs-${item.code}', 'slab-icon-${item.code}')">
+                            <span>View Quantity Slabs</span>
+                            <i class="fas fa-chevron-down" id="slab-icon-${item.code}"></i>
+                        </div>
+                        <div class="slab-list hidden" id="slabs-${item.code}">${slabHTML}</div>
+                    `;
+                } else {
+                    isCaseDisabled = true;
+                    if(!d.r) d.r = 'price2';
+                    const activeRateKey = d.r;
+                    const customVal = d.cr || '';
+                    const p2 = fmt(item.price2);
+                    const p3 = fmt(item.price3);
+                    const p4 = fmt(item.price4);
+                    
+                    const getBoxStyle = (key) => activeRateKey === key 
+                        ? `background:var(--brand); color:white; border:1px solid var(--brand);` 
+                        : `background:white; color:var(--text); border:1px solid var(--border);`;
+
+                    let rateSelectionUI = `
+                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:6px; margin-top:8px;">
+                            <div onclick="selectFlatRate('${item.code}', 'price2')" style="${getBoxStyle('price2')} text-align:center; padding:6px 2px; border-radius:4px; cursor:pointer;">
+                                <div style="font-size:0.65rem; font-weight:600; opacity:0.8;">P1</div>
+                                <div style="font-size:0.85rem; font-weight:700;">₹${p2 > 0 ? p2 : '-'}</div>
+                            </div>
+                            <div onclick="selectFlatRate('${item.code}', 'price3')" style="${getBoxStyle('price3')} text-align:center; padding:6px 2px; border-radius:4px; cursor:pointer; pointer-events:${p3>0?'auto':'none'}; opacity:${p3>0?1:0.4};">
+                                <div style="font-size:0.65rem; font-weight:600; opacity:0.8;">P2</div>
+                                <div style="font-size:0.85rem; font-weight:700;">₹${p3 > 0 ? p3 : '-'}</div>
+                            </div>
+                            <div onclick="selectFlatRate('${item.code}', 'price4')" style="${getBoxStyle('price4')} text-align:center; padding:6px 2px; border-radius:4px; cursor:pointer; pointer-events:${p4>0?'auto':'none'}; opacity:${p4>0?1:0.4};">
+                                <div style="font-size:0.65rem; font-weight:600; opacity:0.8;">P3</div>
+                                <div style="font-size:0.85rem; font-weight:700;">₹${p4 > 0 ? p4 : '-'}</div>
+                            </div>
+                            <div style="${getBoxStyle('custom')} text-align:center; padding:6px 2px; border-radius:4px; cursor:pointer;" onclick="document.getElementById('cr-${item.code}').focus();">
+                                <div style="font-size:0.65rem; font-weight:600; opacity:0.8;">Custom</div>
+                                <input type="number" id="cr-${item.code}" value="${customVal}" placeholder="₹0" oninput="handleCustomRate('${item.code}', this.value)" onfocus="selectFlatRate('${item.code}', 'custom'); this.select();" style="width:100%; border:none; background:transparent; text-align:center; font-size:0.85rem; font-weight:700; outline:none; color:inherit; padding:0;">
+                            </div>
+                        </div>
+                    `;
+
+                    pricingUI = `
+                        <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-mut); margin-top: 6px;">Select Rate:</div>
+                        ${rateSelectionUI}
+                    `;
+                }
+
+                const cQtyStr = item.caseQty ? `(${item.caseQty} NOS)` : '';
+                
+                // Calculate Stock and Color coding
+                const stockVal = parseInt(item.stock) || 0;
+                let stockColor = "var(--success)"; // Green (Good Stock)
+                if (stockVal <= 0) stockColor = "var(--accent)"; // Red (Out of Stock)
+                else if (stockVal < (item.caseQty || 10)) stockColor = "#B45309"; // Dark Orange (Low Stock)
+                
+                const stockStr = `<span style="color: ${stockColor}; font-weight: 700; margin-left: 4px;">| Stock: ${stockVal}</span>`;
+
+                return `
+                <div class="card">
+                    <div class="c-body">
+                        <div class="c-top">
+                            <div class="c-img"><i class="fas fa-image"></i></div>
+                            <div class="c-info">
+                                <div class="c-title">${item.name}</div>
+                                <div class="c-meta">MRP: <span class="c-mrp">₹${fmt(item.mrp)}</span> <span style="font-weight: 600;">${cQtyStr}</span> ${stockStr}</div>
+                                ${pricingUI}
+                            </div>
+                        </div>
+                        ${dropdownUI}
+                        <div class="act-row">
+                            <div class="step-grp">
+                                <span class="step-lbl">Cases</span>
+                                <div class="stepper ${isCaseDisabled ? 'disabled' : ''}">
+                                    <button onclick="stepDraft('${item.code}', 'c', -1)">-</button>
+                                    <input type="number" id="dc-${item.code}" value="${d.c}" min="0" onchange="setDraftManual('${item.code}', 'c', this.value)" onfocus="this.select()" ${isCaseDisabled ? 'disabled' : ''}>
+                                    <button onclick="stepDraft('${item.code}', 'c', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="step-grp">
+                                <span class="step-lbl">Pieces</span>
+                                <div class="stepper">
+                                    <button onclick="stepDraft('${item.code}', 'p', -1)">-</button>
+                                    <input type="number" id="dp-${item.code}" value="${d.p}" min="0" onchange="setDraftManual('${item.code}', 'p', this.value)" onfocus="this.select()">
+                                    <button onclick="stepDraft('${item.code}', 'p', 1)">+</button>
+                                </div>
+                            </div>
+                            <button class="btn-add ${btnClass}" onclick="commitToCart('${item.code}', this)">${btnText}</button>
+                        </div>
+                    </div>
+                    <div class="savings-strip" id="sav-${item.code}"></div>
+                </div>
+                `;
+            }).join('');
+            items.forEach(i => updateSavingsStrip(i.code, 'sav', draft[i.code]));
+        }
+
+        function selectFlatRate(code, rateKey) {
+            if(!draft[code]) draft[code] = {c:0, p:0, r: rateKey, cr: 0};
+            if(draft[code].r === rateKey) return; // Prevent UI flash if already selected
+            
+            draft[code].r = rateKey;
+            if (cart[code]) {
+                cart[code].r = rateKey;
+                saveLocalState();
+                updateBadge();
+            }
+            renderOrderFeed(); 
+            updateSavingsStrip(code, 'sav', draft[code]); 
+        }
+
+        function handleCustomRate(code, val) {
+            if(!draft[code]) draft[code] = {c:0, p:0, r: 'custom', cr: 0};
+            draft[code].r = 'custom';
+            draft[code].cr = parseFloat(val) || 0;
+            
+            if (cart[code]) {
+                cart[code].r = 'custom';
+                cart[code].cr = draft[code].cr;
+                saveLocalState();
+                updateBadge();
+            }
+            // Update savings instantly without closing the mobile keyboard
+            updateSavingsStrip(code, 'sav', draft[code]);
+        }
+
+        function stepDraft(code, type, change) {
+            let d = draft[code];
+            let current = parseInt(d[type]) || 0;
+            setDraftManual(code, type, current + change);
+        }
+
+        function setDraftManual(code, type, val) {
+            const item = INVENTORY.find(i => i.code === code);
+            let d = draft[code];
+            let parsedVal = parseInt(val) || 0;
+            const hasCases = item.has_slabs && item.caseQty && item.caseQty > 0;
+
+            if (type === 'p') {
+                if (parsedVal < 0) {
+                    if (hasCases && d.c > 0) { d.c -= 1; parsedVal = item.caseQty - 1; } 
+                    else { parsedVal = 0; }
+                }
+                if (hasCases && parsedVal >= item.caseQty) {
+                    d.c += Math.floor(parsedVal / item.caseQty);
+                    parsedVal = parsedVal % item.caseQty;
+                }
+                d.p = parsedVal;
+            } else {
+                if (hasCases) d.c = parsedVal < 0 ? 0 : parsedVal;
+            }
+            
+            document.getElementById(`dc-${code}`).value = d.c;
+            document.getElementById(`dp-${code}`).value = d.p;
+            updateSavingsStrip(code, 'sav', d);
+        }
+
+        function updateSavingsStrip(code, prefix, qtyObj) {
+            const el = document.getElementById(`${prefix}-${code}`);
+            if(!el) return;
+            const item = INVENTORY.find(i => i.code === code);
+            
+            if(!qtyObj || (qtyObj.c === 0 && qtyObj.p === 0)) {
+                el.style.display = 'none'; return;
+            }
+            
+            const cQty = parseInt(item.caseQty) || 0;
+            const totalPcs = (qtyObj.c * cQty) + qtyObj.p;
+            const rate = getApplicableRate(item, totalPcs, qtyObj.r, qtyObj.cr);
+            
+            const ourSellPrice = totalPcs * rate;
+            const mrpVal = totalPcs * item.mrp;
+            const sav = mrpVal - ourSellPrice;
+            const perc = ourSellPrice > 0 ? ((sav / ourSellPrice) * 100).toFixed(1) : 0;
+            
+            if (sav > 0) {
+                el.innerHTML = `Total Savings: ₹${fmt(sav)} (${perc}%)`;
+                el.style.display = 'block';
+            } else {
+                el.style.display = 'none';
+            }
+        }
+
+        function commitToCart(code, btnElement) {
+            const d = draft[code];
+            const wasInCart = !!cart[code];
+            
+            if (d.c === 0 && d.p === 0) {
+                delete cart[code];
+                if (btnElement) {
+                    btnElement.innerText = "REMOVED";
+                    btnElement.style.background = "var(--accent)";
+                    btnElement.style.borderColor = "var(--accent)";
+                    btnElement.style.color = "white";
+                }
+            } else {
+                cart[code] = {...d}; 
+                if (btnElement) {
+                    btnElement.innerText = wasInCart ? "UPDATED" : "ADDED";
+                    btnElement.style.background = "var(--success)";
+                    btnElement.style.borderColor = "var(--success)";
+                    btnElement.style.color = "white";
+                }
+            }
+            
+            saveLocalState(); 
+            updateBadge(); 
+            
+            // Wait 600 milliseconds to show the feedback, then refresh the list
+            setTimeout(() => {
+                renderOrderFeed();
+            }, 600); 
+        }
+
+        function updateBadge() { 
+            const badge = document.getElementById('cart-badge');
+            if(badge) badge.innerText = Object.keys(cart).length; 
+        }
+
+        function openCart() {
+            document.getElementById('order-view').classList.add('hidden');
+            document.getElementById('cart-app').classList.remove('hidden');
+            renderCart();
+        }
+        
+        function closeCart() {
+            document.getElementById('cart-app').classList.add('hidden');
+            document.getElementById('order-view').classList.remove('hidden');
+            renderOrderFeed(); 
+        }
+
+        function applyCartSlab(code, minQty) {
+            const item = INVENTORY.find(i => i.code === code);
+            const cases = Math.floor(minQty / item.caseQty);
+            const pcs = minQty % item.caseQty;
+            
+            cart[code].c = cases;
+            cart[code].p = pcs;
+            draft[code] = {...cart[code]};
+            
+            saveLocalState();
+            updateBadge();
+            renderCart();
+        }
+
+        function renderCart() {
+            const list = document.getElementById('cart-list');
+            if(!list) return;
+
+            let tMrpTotal = 0, tPay = 0, tRetailerSav = 0;
+
+            const cartKeys = Object.keys(cart);
+            const countEl = document.getElementById('cart-item-count');
+            if (countEl) countEl.innerText = `${cartKeys.length} Item${cartKeys.length !== 1 ? 's' : ''}`;
+
+            list.innerHTML = cartKeys.map((code, index) => {
+                const qty = cart[code];
+                const item = INVENTORY.find(i => i.code === code);
+                const cq = item.caseQty || 0;
+                const totalPcs = (qty.c * cq) + qty.p;
+                const rate = getApplicableRate(item, totalPcs, qty.r, qty.cr);
+                
+                const itemSellPrice = totalPcs * rate;
+                const itemMrpValue = totalPcs * item.mrp;
+                const itemRetailerSav = itemMrpValue - itemSellPrice;
+
+                tMrpTotal += itemMrpValue;
+                tPay += itemSellPrice;
+                tRetailerSav += itemRetailerSav;
+
+                let sav = 0;
+                let savPerc = 0;
+                if (itemMrpValue > itemSellPrice) {
+                    sav = itemRetailerSav;
+                    savPerc = itemSellPrice > 0 ? ((sav / itemSellPrice) * 100).toFixed(1) : 0;
+                }
+                
+                const isCaseDisabled = (!item.has_slabs || !item.caseQty);
+                
+                // Calculate next slab upsell
+                let upsellUI = '';
+                if (item.has_slabs && item.caseQty > 0) {
+                    const nextSlab = item.slabs.find(s => s.min > totalPcs);
+                    if (nextSlab && nextSlab.min < 99999) {
+                        const diff = nextSlab.min - totalPcs;
+                        const nextRate = fmt(getRate(item.cost, nextSlab.markup));
+                        let addText = `${diff} Pcs`;
+                        if (diff >= item.caseQty && diff % item.caseQty === 0) {
+                            addText = `${diff / item.caseQty} Case${diff/item.caseQty > 1 ? 's' : ''}`;
+                        }
+                        upsellUI = `
+                        <div style="background: #EFF6FF; padding: 6px 10px; font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #BFDBFE; color: #1E3A8A;">
+                            <span><i class="fas fa-arrow-trend-up" style="margin-right:4px;"></i>Add <b>${addText}</b> for <b>₹${nextRate}</b> rate</span>
+                            <button onclick="applyCartSlab('${code}', ${nextSlab.min})" style="background: white; border: 1px solid #2563EB; color: #2563EB; border-radius: 4px; padding: 4px 10px; font-weight: 700; cursor: pointer; font-size: 0.7rem;">Apply</button>
+                        </div>
+                        `;
+                    }
+                }
+
+                return `
+                <div class="cart-tile">
+                    <div class="ct-body">
+                        <div class="ct-title" style="display: block;">
+                            <div style="display:-webkit-box; -webkit-line-clamp:2; overflow:hidden; word-break: break-word; margin-bottom: 6px;">
+                                <span style="color: var(--text-mut); font-weight: 800; margin-right: 4px;">${index + 1}.</span>${item.name}
+                            </div>
+                            <div style="font-size: 0.8rem; color: var(--text-mut); font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
+                                <span style="background: var(--brand-light); color: var(--brand); padding: 2px 6px; border-radius: 4px;">₹${fmt(rate)} × ${totalPcs} Pcs</span>
+                                <span style="color:var(--text); font-size: 1rem;">₹${fmt(itemSellPrice)}</span>
+                            </div>
+                        </div>
+                        <div class="ct-controls">
+                            <div class="step-grp" style="width: 80px;">
+                                <span class="step-lbl">Cases</span>
+                                <div class="stepper ${isCaseDisabled ? 'disabled' : ''}">
+                                    <button onclick="editCartStep('${code}', 'c', -1)">-</button>
+                                    <input type="number" value="${qty.c}" onchange="editCartManual('${code}', 'c', this.value)" onfocus="this.select()" ${isCaseDisabled ? 'disabled' : ''}>
+                                    <button onclick="editCartStep('${code}', 'c', 1)">+</button>
+                                </div>
+                            </div>
+                            <div class="step-grp" style="width: 80px;">
+                                <span class="step-lbl">Pieces</span>
+                                <div class="stepper">
+                                    <button onclick="editCartStep('${code}', 'p', -1)">-</button>
+                                    <input type="number" value="${qty.p}" onchange="editCartManual('${code}', 'p', this.value)" onfocus="this.select()">
+                                    <button onclick="editCartStep('${code}', 'p', 1)">+</button>
+                                </div>
+                            </div>
+                            <button class="cv-del" onclick="delCart('${code}')"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
+                    ${upsellUI}
+                    <div class="savings-strip" style="display:${sav > 0 ? 'block' : 'none'};">Savings: ₹${fmt(sav)} (${savPerc}%)</div>
+                </div>
+                `;
+            }).join('');
+
+            if(Object.keys(cart).length === 0) list.innerHTML = `<div style="text-align:center; padding: 30px; color: var(--text-mut);">Your cart is empty</div>`;
+
+            // Calculate overall Retailer Margin %
+            const retailerMarginPerc = tPay > 0 ? ((tRetailerSav / tPay) * 100).toFixed(1) : 0;
+            
+            document.getElementById('sum-mrp').innerText = `₹${fmt(tMrpTotal)}`;
+            document.getElementById('sum-ret-margin').innerText = `₹${fmt(tRetailerSav)} (${fmt(retailerMarginPerc)}%)`;
+            document.getElementById('sum-pay').innerText = `₹${fmt(tPay)}`;
+        }
+
+        function editCartStep(code, type, change) {
+            let c = cart[code];
+            editCartManual(code, type, c[type] + change);
+        }
+
+        function editCartManual(code, type, val) {
+            const item = INVENTORY.find(i => i.code === code);
+            let c = cart[code];
+            let parsedVal = parseInt(val) || 0;
+            const hasCases = item.has_slabs && item.caseQty && item.caseQty > 0;
+
+            if(type === 'p') {
+                if(parsedVal < 0) {
+                    if(hasCases && c.c > 0) { c.c -= 1; parsedVal = item.caseQty - 1; } 
+                    else { parsedVal = 0; }
+                }
+                if(hasCases && parsedVal >= item.caseQty) {
+                    c.c += Math.floor(parsedVal / item.caseQty);
+                    parsedVal = parsedVal % item.caseQty;
+                }
+                c.p = parsedVal;
+            } else {
+                if (hasCases) c.c = parsedVal < 0 ? 0 : parsedVal;
+            }
+
+            if(c.c === 0 && c.p === 0) delete cart[code];
+            draft[code] = cart[code] ? {...cart[code]} : {c:0, p:0}; 
+            saveLocalState(); updateBadge(); renderCart();
+        }
+
+        function delCart(code) {
+            delete cart[code]; draft[code] = {c:0, p:0}; 
+            saveLocalState(); updateBadge(); renderCart();
+        }
+
+        async function confirmOrder() {
+            if(Object.keys(cart).length === 0) return;
+            
+            // Generate sequential ORD ID (ORD0001)
+            let nextOrdNum = 1;
+            if (SUBMITTED_ORDERS && SUBMITTED_ORDERS.length > 0) {
+                const maxId = SUBMITTED_ORDERS.reduce((max, obj) => {
+                    const num = parseInt(obj.id.replace('ORD', '').replace('-', '')) || 0;
+                    return num > max ? num : max;
+                }, 0);
+                nextOrdNum = maxId + 1;
+            }
+            const orderId = 'ORD' + String(nextOrdNum).padStart(4, '0');
+            
+            let totalAmount = 0;
+            for(const code in cart) {
+                const qty = cart[code];
+                const item = INVENTORY.find(i => i.code === code);
+                const totalPcs = (qty.c * (item.caseQty||0)) + qty.p;
+                totalAmount += totalPcs * getApplicableRate(item, totalPcs, qty.r, qty.cr);
+            }
+
+            const newOrder = {
+                id: orderId,
+                customer_code: activeCust.code,
+                salesman_id: userSession ? userSession.user.id : "local_dev",
+                total_amount: totalAmount,
+                status: 'Pending',
+                items: cart,
+                created_at: new Date().toISOString()
+            };
+
+            try {
+                const { error } = await sbClient.from('orders').insert({
+                    id: newOrder.id,
+                    customer_code: newOrder.customer_code,
+                    salesman_id: newOrder.salesman_id,
+                    total_amount: newOrder.total_amount,
+                    status: newOrder.status,
+                    items: newOrder.items
+                });
+                
+                if (error) throw error;
+                
+                // Cloud Success!
+                if (!MY_ORDERS.find(o => o.id === newOrder.id)) MY_ORDERS.unshift(newOrder);
+                alert(`✅ Order ${newOrder.id} successfully synced to the Cloud!`);
+                
+                cart = {}; draft = {}; activeCust = null;
+                saveLocalState();
+                closeCart();
+                exitOrder();
+
+            } catch (e) {
+                alert(`❌ ORDER FAILED: Could not connect to the cloud. Please check your internet and try again.\n\nError: ${e.message}`);
+            }
+        }
+
+        function renderSalesmanHistory() {
+            const feed = document.getElementById('salesman-history-feed');
+            if(!feed) return;
+            const filterDate = document.getElementById('salesman-date-filter').value;
+            
+            const combinedHistory = [
+                ...MY_ORDERS.map(o => ({ ...o, type: 'order' })),
+                ...MY_COLLECTIONS.map(c => ({ ...c, type: 'collection' }))
+            ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            let filtered = combinedHistory;
+            if (filterDate) {
+                filtered = combinedHistory.filter(item => {
+                    const d = new Date(item.created_at);
+                    const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    return localDate === filterDate;
+                });
+            }
+            
+            if (filtered.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No activity found for this date.</div>`;
+                return;
+            }
+
+            feed.innerHTML = filtered.map(item => {
+                const custName = CUSTOMERS.find(c => c.code === item.customer_code)?.name || item.customer_code;
+                
+                if (item.type === 'order') {
+                    const isPacked = item.status === 'Packed';
+                    const statusColor = isPacked ? 'var(--success)' : 'var(--warning)';
+                    return `
+                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; overflow:hidden;">
+                        <div style="flex:1; min-width:0; padding-right: 10px;">
+                            <b style="color:var(--text); font-size: 0.95rem;">${item.id}</b> <span style="background:var(--brand-light); color:var(--brand); font-size:0.6rem; padding: 2px 4px; border-radius:4px; font-weight:700; margin-left:4px;">ORDER</span><br>
+                            <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${custName}</div>
+                        </div>
+                        <div style="text-align: right; flex-shrink:0;">
+                            <b style="color:var(--brand)">₹${fmt(item.total_amount)}</b><br>
+                            <small style="color:${statusColor}; font-weight: 600;">${item.status || 'Submitted'}</small>
+                        </div>
+                    </div>
+                    `;
+                } else {
+                    let breakdown = [];
+                    if (item.amount_cash > 0) breakdown.push(`Cash: ₹${item.amount_cash}`);
+                    if (item.amount_gpay > 0) breakdown.push(`GPay: ₹${item.amount_gpay}`);
+                    
+                    return `
+                    <div style="background: #F0FDF4; padding: 12px; border-radius: 6px; border: 1px solid #BBF7D0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; overflow:hidden;">
+                        <div style="flex:1; min-width:0; padding-right: 10px;">
+                            <b style="color:var(--success); font-size: 0.95rem;">${item.id}</b> <span style="background:#DCFCE7; color:var(--success); font-size:0.6rem; padding: 2px 4px; border-radius:4px; font-weight:700; margin-left:4px;">PAYMENT</span><br>
+                            <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${custName}</div>
+                        </div>
+                        <div style="text-align: right; flex-shrink:0;">
+                            <b style="color:var(--success)">₹${fmt(item.total_amount)}</b><br>
+                            <small style="color:var(--success); font-weight: 600; font-size:0.7rem;">${breakdown.join(' | ')}</small>
+                        </div>
+                    </div>
+                    `;
+                }
+            }).join('');
+        }
+
+        /* --- SALESMAN COLLECTION LOGIC --- */
+        let colSearchQuery = "";
+        let currentColCust = null;
+
+        function handleCollectionSearch(val) { colSearchQuery = val.toLowerCase(); renderCollectionCustomers(); }
+
+        function renderCollectionCustomers() {
+            const list = document.getElementById('collection-cust-list');
+            if(!list) return;
+
+            let filtered = CUSTOMERS;
+            if(colSearchQuery) {
+                filtered = filtered.filter(c => c.name.toLowerCase().includes(colSearchQuery) || c.code.toLowerCase().includes(colSearchQuery));
+            }
+
+            if(filtered.length === 0) {
+                list.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-mut);">No customers found.</div>`;
+                return;
+            }
+
+            list.innerHTML = filtered.map(c => `
+                <div class="cust-card">
+                    <div style="flex: 1; min-width: 0; padding-right: 15px;">
+                        <div class="ov-title" style="margin-bottom: 2px;">${c.name}</div>
+                        <span style="font-weight:700; color:var(--accent); display:inline-block;">Bal: ₹${fmt(c.bal)}</span>
+                    </div>
+                    <button style="flex-shrink: 0; background: var(--success-bg); color: var(--success); border: 2px solid var(--success); border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor:pointer;" onclick="openCollectionModal('${c.code}')"><i class="fas fa-rupee-sign"></i></button>
+                </div>
+            `).join('');
+        }
+
+        function openCollectionModal(custCode) {
+            currentColCust = CUSTOMERS.find(c => c.code === custCode);
+            document.getElementById('col-cust-name').innerText = currentColCust.name;
+            document.getElementById('col-cust-bal').innerText = `Current Balance: ₹${fmt(currentColCust.bal)}`;
+            
+            document.getElementById('col-cash').value = '';
+            document.getElementById('col-gpay').value = '';
+            document.getElementById('col-total').innerText = '₹0';
+            
+            document.getElementById('collection-modal').classList.remove('hidden');
+        }
+
+        function calcColTotal() {
+            const c = parseFloat(document.getElementById('col-cash').value) || 0;
+            const g = parseFloat(document.getElementById('col-gpay').value) || 0;
+            document.getElementById('col-total').innerText = `₹${fmt(c + g)}`;
+        }
+
+        async function submitCollection() {
+            const cash = parseFloat(document.getElementById('col-cash').value) || 0;
+            const gpay = parseFloat(document.getElementById('col-gpay').value) || 0;
+            const total = cash + gpay;
+
+            if (total <= 0) { alert("Please enter an amount greater than 0"); return; }
+
+            // Generate sequential REC ID (REC0001)
+            let nextRecNum = 1;
+            if (MY_COLLECTIONS && MY_COLLECTIONS.length > 0) {
+                const maxId = MY_COLLECTIONS.reduce((max, obj) => {
+                    const num = parseInt(obj.id.replace('REC', '').replace('-', '')) || 0;
+                    return num > max ? num : max;
+                }, 0);
+                nextRecNum = maxId + 1;
+            }
+            const colId = 'REC' + String(nextRecNum).padStart(4, '0');
+
+            const payload = {
+                id: colId,
+                customer_code: currentColCust.code,
+                salesman_id: userSession ? userSession.user.id : "local_dev",
+                amount_cash: cash,
+                amount_gpay: gpay,
+                total_amount: total,
+                created_at: new Date().toISOString()
+            };
+
+            try {
+                const { error } = await sbClient.from('collections').insert(payload);
+                if (error) throw error;
+                
+                MY_COLLECTIONS.unshift(payload);
+                alert(`✅ Payment of ₹${total} synced to Cloud for ${currentColCust.name}!`);
+                closeModal('collection-modal');
+                
+            } catch(e) {
+                alert(`❌ COLLECTION FAILED: Could not connect to the cloud. Please check your internet and try again.\n\nError: ${e.message}`);
+            }
+        }
+
+        /* ========================================== */
+        /* PACKING LOGIC                              */
+        /* ========================================== */
+        function renderPackingOrders() {
+            const feed = document.getElementById('packing-feed');
+            if(!feed) return;
+            const filterDate = document.getElementById('packing-date-filter').value;
+            
+            let filtered = SUBMITTED_ORDERS.filter(o => o.status === 'Pending' || !o.status);
+            if (filterDate) {
+                filtered = filtered.filter(o => {
+                    const d = new Date(o.created_at);
+                    const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    return localDate === filterDate;
+                });
+            }
+            
+            if (filtered.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No pending orders to pack.</div>`;
+                return;
+            }
+
+            feed.innerHTML = filtered.map(order => {
+                const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+                return `
+                <div class="order-card">
+                    <div style="flex:1; min-width:0; padding-right: 10px;">
+                        <b style="font-size: 1.05rem; color:var(--text);">${order.id}</b><br>
+                        <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${custName}</div>
+                    </div>
+                    <button class="btn-take-order" style="flex-shrink:0;" onclick="openPackingDetail('${order.id}')">Start Packing</button>
+                </div>
+            `;
+            }).join(''); 
+        }
+
+        function openPackingDetail(orderId) {
+            currentPackOrder = JSON.parse(JSON.stringify(SUBMITTED_ORDERS.find(o => o.id === orderId))); // deep clone
+            if(!currentPackOrder) return;
+            
+            // Add packing states to items if not present
+            for(let code in currentPackOrder.items) {
+                currentPackOrder.items[code].sort_marked = false;
+                currentPackOrder.items[code].packed = false;
+            }
+            
+            const custName = CUSTOMERS.find(c => c.code === currentPackOrder.customer_code)?.name || currentPackOrder.customer_code;
+            document.getElementById('pack-cust-name').innerText = custName;
+            document.getElementById('pack-order-id').innerText = currentPackOrder.id;
+            
+            renderPackingDetailList();
+            document.getElementById('packing-detail-view').classList.remove('hidden');
+        }
+
+        function exitPacking() {
+            currentPackOrder = null;
+            document.getElementById('packing-detail-view').classList.add('hidden');
+            renderPackingOrders();
+        }
+
+        function renderPackingDetailList() {
+            const list = document.getElementById('packing-item-list');
+            
+            // Map using the key to support duplicated/split items
+            let itemsArr = Object.keys(currentPackOrder.items).map(key => {
+                return { key: key, ...currentPackOrder.items[key] };
+            });
+            
+            itemsArr.sort((a, b) => (a.sort_marked === b.sort_marked) ? 0 : a.sort_marked ? 1 : -1);
+
+            let totalItems = itemsArr.length;
+            let packedItems = itemsArr.filter(i => i.packed).length;
+            
+            document.getElementById('pack-total-count').innerText = totalItems;
+            document.getElementById('pack-done-count').innerText = packedItems;
+
+            list.innerHTML = itemsArr.map((data, index) => {
+                const realCode = data.key.split('__')[0]; // Handle splits
+                const item = INVENTORY.find(i => i.code === realCode);
+                if(!item) return '';
+
+                const cQty = parseInt(item.caseQty) || 0;
+                const totalQty = (data.c * cQty) + data.p;
+                
+                const sortClass = data.sort_marked ? 'sorted-down' : '';
+                const packClass = data.packed ? 'packed-done' : '';
+                
+                const activeMRP = data.mrp_override || item.mrp;
+                const mrpChangedClass = data.mrp_override ? 'changed' : '';
+                const newBadge = data.is_new ? `<span class="pack-new-badge">NEW</span>` : '';
+
+                return `
+                <div class="pack-row ${sortClass} ${packClass}">
+                    <input type="checkbox" class="pack-chk" ${data.sort_marked ? 'checked' : ''} onchange="togglePackSort('${data.key}')" title="Mark to sort to bottom">
+                    <div class="pack-sl">${index + 1}</div>
+                    
+                    <div class="pack-info" onclick="openPackEditModal('${data.key}')" style="cursor:pointer;" title="Click to edit quantity or MRP">
+                        <div class="pack-title">${item.name} ${newBadge}</div>
+                        <div style="display:flex; align-items:center;">
+                            <span class="pack-qty">${totalQty} Pcs</span>
+                            <span class="pack-meta">(${data.c} Cs + ${data.p} Pcs)</span>
+                        </div>
+                    </div>
+                    
+                    <div class="pack-mrp ${mrpChangedClass}" onclick="openPackEditModal('${data.key}')" title="Click to edit quantity or MRP">
+                        ₹${fmt(activeMRP)} <i class="fas fa-edit"></i>
+                    </div>
+
+                    <input type="checkbox" class="pack-chk success" ${data.packed ? 'checked' : ''} onchange="togglePacked('${data.key}')" title="Confirm packed">
+                </div>
+                `;
+            }).join('');
+        }
+
+        function togglePackSort(key) {
+            currentPackOrder.items[key].sort_marked = !currentPackOrder.items[key].sort_marked;
+            renderPackingDetailList();
+        }
+
+        function togglePacked(key) {
+            currentPackOrder.items[key].packed = !currentPackOrder.items[key].packed;
+            renderPackingDetailList();
+        }
+
+        let currentEditPackKey = null;
+
+        function openPackEditModal(key) {
+            currentEditPackKey = key;
+            const realCode = key.split('__')[0];
+            const item = INVENTORY.find(i => i.code === realCode);
+            const data = currentPackOrder.items[key];
+            
+            document.getElementById('pack-edit-name').innerText = item.name;
+            document.getElementById('pack-edit-c').value = data.c;
+            document.getElementById('pack-edit-p').value = data.p;
+            document.getElementById('pack-edit-mrp').value = data.mrp_override || item.mrp;
+            
+            const hasCases = item.has_slabs && item.caseQty && item.caseQty > 0;
+            const cInput = document.getElementById('pack-edit-c');
+            if (!hasCases) { cInput.disabled = true; cInput.parentElement.classList.add('disabled'); } 
+            else { cInput.disabled = false; cInput.parentElement.classList.remove('disabled'); }
+            
+            document.getElementById('pack-edit-modal').classList.remove('hidden');
+        }
+
+        function stepPackEdit(type, change) {
+            let current = parseInt(document.getElementById(`pack-edit-${type}`).value) || 0;
+            stepPackEditManual(type, current + change);
+        }
+
+        function stepPackEditManual(type, val) {
+            const realCode = currentEditPackKey.split('__')[0];
+            const item = INVENTORY.find(i => i.code === realCode);
+            let parsedVal = parseInt(val) || 0;
+            let currentC = parseInt(document.getElementById('pack-edit-c').value) || 0;
+            let currentP = parseInt(document.getElementById('pack-edit-p').value) || 0;
+            const hasCases = item.has_slabs && item.caseQty && item.caseQty > 0;
+
+            if (type === 'p') {
+                if (parsedVal < 0) {
+                    if (hasCases && currentC > 0) { currentC -= 1; parsedVal = item.caseQty - 1; } 
+                    else { parsedVal = 0; }
+                }
+                if (hasCases && parsedVal >= item.caseQty) {
+                    currentC += Math.floor(parsedVal / item.caseQty);
+                    parsedVal = parsedVal % item.caseQty;
+                }
+                currentP = parsedVal;
+            } else {
+                if (hasCases) currentC = parsedVal < 0 ? 0 : parsedVal;
+            }
+            
+            document.getElementById('pack-edit-c').value = currentC;
+            document.getElementById('pack-edit-p').value = currentP;
+        }
+
+        function savePackEdit() {
+            const key = currentEditPackKey;
+            const realCode = key.split('__')[0];
+            const item = INVENTORY.find(i => i.code === realCode);
+            const data = currentPackOrder.items[key];
+
+            let newC = parseInt(document.getElementById('pack-edit-c').value) || 0;
+            let newP = parseInt(document.getElementById('pack-edit-p').value) || 0;
+            let newMRP = parseFloat(document.getElementById('pack-edit-mrp').value);
+
+            // Update Quantities
+            data.c = newC;
+            data.p = newP;
+
+            // Update MRP
+            if (!isNaN(newMRP) && newMRP > 0 && newMRP !== item.mrp) {
+                data.mrp_override = newMRP;
+                data.old_mrp = item.mrp;
+            } else if (newMRP === item.mrp) {
+                delete data.mrp_override;
+                delete data.old_mrp;
+            }
+
+            closeModal('pack-edit-modal');
+            renderPackingDetailList();
+        }
+
+        function duplicatePackItem() {
+            const key = currentEditPackKey;
+            const data = currentPackOrder.items[key];
+            const realCode = key.split('__')[0];
+
+            // Create a unique key for the split item
+            const newKey = realCode + '__' + Date.now();
+            currentPackOrder.items[newKey] = {
+                c: 0,
+                p: 1, // Default 1 piece
+                sort_marked: data.sort_marked,
+                packed: false,
+                is_new: true,
+                mrp_override: data.mrp_override,
+                old_mrp: data.old_mrp
+            };
+
+            closeModal('pack-edit-modal');
+            renderPackingDetailList();
+        }
+
+        function openPackAddModal() {
+            packSearchQuery = "";
+            renderPackAddList();
+            document.getElementById('add-item-modal').classList.remove('hidden');
+        }
+
+        function handlePackAddSearch(val) {
+            packSearchQuery = val.toLowerCase();
+            renderPackAddList();
+        }
+
+        function renderPackAddList() {
+            const list = document.getElementById('pack-add-list');
+            let items = INVENTORY;
+            if(packSearchQuery) items = items.filter(i => i.name.toLowerCase().includes(packSearchQuery) || i.code.toLowerCase().includes(packSearchQuery));
+            
+            // Only show items not currently in the order
+            items = items.filter(i => !currentPackOrder.items[i.code]);
+
+            list.innerHTML = items.map(item => `
+                <div class="pack-row" style="cursor:pointer;" onclick="addItemToPackOrder('${item.code}')">
+                    <div class="pack-info">
+                        <div class="pack-title">${item.name}</div>
+                        <div class="pack-meta" style="margin:0;">MRP: ₹${item.mrp}</div>
+                    </div>
+                    <i class="fas fa-plus-circle" style="color:var(--brand); font-size:1.2rem;"></i>
+                </div>
+            `).join('');
+        }
+
+        function addItemToPackOrder(code) {
+            // Add with 1 piece default, mark as new
+            currentPackOrder.items[code] = { c: 0, p: 1, sort_marked: false, packed: false, is_new: true };
+            closeModal('add-item-modal');
+            renderPackingDetailList();
+        }
+
+        async function confirmPackingFinal() {
+            // Filter out items that are NOT packed (right checkmark)
+            const finalItems = {};
+            let packedCount = 0;
+            for(let code in currentPackOrder.items) {
+                if(currentPackOrder.items[code].packed) {
+                    finalItems[code] = currentPackOrder.items[code];
+                    packedCount++;
+                }
+            }
+
+            if(packedCount === 0) {
+                alert("You must pack at least one item to confirm.");
+                return;
+            }
+
+            if(!confirm(`Confirm packing? ${packedCount} items will be sent to Billing. Unchecked items will be removed from the order.`)) return;
+
+            currentPackOrder.items = finalItems;
+            currentPackOrder.status = 'Packed'; // Change status
+
+            try {
+                const { error } = await sbClient.from('orders').update({
+                    items: currentPackOrder.items,
+                    status: 'Packed'
+                }).eq('id', currentPackOrder.id);
+                if(error) throw error;
+                
+                const idx = SUBMITTED_ORDERS.findIndex(o => o.id === currentPackOrder.id);
+                if(idx > -1) SUBMITTED_ORDERS[idx] = currentPackOrder;
+                
+                alert("✅ Order sent to Billing successfully.");
+                exitPacking();
+            } catch(e) {
+                alert(`❌ UPDATE FAILED: Could not reach the cloud. Please try again.\n\nError: ${e.message}`);
+            }
+        }
+
+        /* ========================================== */
+        /* BILLING LOGIC                              */
+        /* ========================================== */
+        let currentBillOrder = null;
+        let currentViewedSalesmanId = null;
+        let currentViewedColList = [];
+
+        // --- PENDING VIEWS ---
+        function renderBillingOrders() {
+            const feed = document.getElementById('billing-feed');
+            if(!feed) return;
+            const filterDate = document.getElementById('billing-date-filter').value;
+            
+            let filtered = SUBMITTED_ORDERS.filter(o => o.status === 'Packed');
+            if (filterDate) {
+                filtered = filtered.filter(o => {
+                    const d = new Date(o.created_at);
+                    const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    return localDate === filterDate;
+                });
+            }
+            
+            if (filtered.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No packed orders pending for billing today.</div>`;
+                return;
+            }
+
+            feed.innerHTML = filtered.map(order => {
+                const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+                return `
+                <div class="order-card">
+                    <div style="flex:1; min-width:0; padding-right: 10px;">
+                        <b style="font-size: 1.05rem; color:var(--text);">${order.id}</b><br>
+                        <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${custName}</div>
+                    </div>
+                    <button class="btn-take-order" style="flex-shrink:0;" onclick="openBillingDetail('${order.id}', false)">Review</button>
+                </div>`;
+            }).join(''); 
+        }
+
+        // --- HISTORY VIEWS ---
+        function renderBillingHistory() {
+            const feed = document.getElementById('bill-hist-feed');
+            if(!feed) return;
+            const filterDate = document.getElementById('bill-hist-date-filter').value;
+            
+            let filtered = SUBMITTED_ORDERS.filter(o => o.status === 'Billed');
+            if (filterDate) {
+                filtered = filtered.filter(o => {
+                    const d = new Date(o.created_at);
+                    const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    return localDate === filterDate;
+                });
+            }
+            
+            if (filtered.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No billed orders found for this date.</div>`;
+                return;
+            }
+
+            feed.innerHTML = filtered.map(order => {
+                const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+                return `
+                <div class="order-card" style="background: #F0FDF4; border-color: #BBF7D0;">
+                    <div style="flex:1; min-width:0; padding-right: 10px;">
+                        <b style="font-size: 1.05rem; color:var(--success);">${order.id}</b><br>
+                        <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${custName}</div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:6px;">
+                        <button class="btn-take-order" style="background:white; color:var(--success); border-color:var(--success);" onclick="openBillingDetail('${order.id}', true)">View</button>
+                        <button class="btn-take-order" style="background:var(--success); color:white; border-color:var(--success);" onclick="exportOrderExcel('${order.id}')"><i class="fas fa-file-excel"></i></button>
+                    </div>
+                </div>`;
+            }).join(''); 
+        }
+
+        // --- SHARED DETAIL VIEW ---
+        function openBillingDetail(orderId, isHistory) {
+            currentBillOrder = SUBMITTED_ORDERS.find(o => o.id === orderId);
+            if(!currentBillOrder) return;
+            
+            const custName = CUSTOMERS.find(c => c.code === currentBillOrder.customer_code)?.name || currentBillOrder.customer_code;
+            document.getElementById('bill-cust-name').innerText = custName;
+            document.getElementById('bill-order-id').innerText = currentBillOrder.id;
+            
+            if (isHistory) {
+                document.getElementById('bill-footer-pending').classList.add('hidden');
+                document.getElementById('bill-head-excel').classList.remove('hidden');
+            } else {
+                document.getElementById('bill-footer-pending').classList.remove('hidden');
+                document.getElementById('bill-head-excel').classList.add('hidden');
+            }
+
+            renderBillingDetailList();
+            document.getElementById('billing-detail-view').classList.remove('hidden');
+        }
+
+        function exitBilling() {
+            currentBillOrder = null;
+            document.getElementById('billing-detail-view').classList.add('hidden');
+        }
+
+        function renderBillingDetailList() {
+            const list = document.getElementById('billing-item-list');
+            const itemsArr = Object.keys(currentBillOrder.items).map(code => ({ code: code, ...currentBillOrder.items[code] }));
+            document.getElementById('bill-total-count').innerText = itemsArr.length;
+
+            list.innerHTML = itemsArr.map((data, index) => {
+                const realCode = data.code.split('__')[0];
+                const item = INVENTORY.find(i => i.code === realCode);
+                if(!item) return '';
+                const cQty = parseInt(item.caseQty) || 0;
+                const totalQty = (data.c * cQty) + data.p;
+                
+                let rowClass = "bill-row";
+                let highlightTags = "";
+                
+                if (data.is_new) { rowClass += " highlight-new"; highlightTags += `<span class="pack-new-badge" style="background:var(--success);">ADDED IN PACKING</span> `; }
+                let mrpText = `₹${fmt(item.mrp)}`;
+                if (data.mrp_override) {
+                    if (!data.is_new) rowClass += " highlight-mrp";
+                    highlightTags += `<span class="pack-new-badge" style="background:var(--warning); color:#B45309;">MRP CHANGED</span> `;
+                    mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹${fmt(data.old_mrp)}</del><br>₹${fmt(data.mrp_override)}`;
+                }
+
+                return `
+                <div class="${rowClass}">
+                    <div class="pack-sl">${index + 1}</div>
+                    <div class="pack-info">
+                        <div class="pack-title">${item.name}</div>
+                        ${highlightTags ? `<div style="margin-bottom: 6px;">${highlightTags}</div>` : ''}
+                        <div style="display:flex; align-items:center;">
+                            <span class="pack-qty">${totalQty} Pcs</span>
+                            <span class="pack-meta">(${data.c} Cs + ${data.p} Pcs)</span>
+                        </div>
+                    </div>
+                    <div style="text-align: right; font-weight: 700; font-size: 0.85rem; color: var(--text);">
+                        MRP<br><span style="color: var(--brand); font-size:0.95rem;">${mrpText}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function confirmToSaleOrder() {
+            if(!currentBillOrder) return;
+            if(!confirm("Confirm and convert this to a Sale Order? This will remove it from the queue and download the Excel file.")) return;
+
+            currentBillOrder.status = 'Billed';
+
+            try {
+                const { error } = await sbClient.from('orders').update({ status: 'Billed' }).eq('id', currentBillOrder.id);
+                if(error) throw error;
+                
+                const idx = SUBMITTED_ORDERS.findIndex(o => o.id === currentBillOrder.id);
+                if(idx > -1) SUBMITTED_ORDERS[idx].status = 'Billed';
+                
+                exportOrderExcel(currentBillOrder.id);
+                exitBilling();
+                renderBillingOrders(); 
+                
+            } catch(e) {
+                alert(`❌ BILLING FAILED: Could not reach the cloud. Please check connection and try again.\n\nError: ${e.message}`);
+            } 
+        }
+
+        function exportOrderExcel(orderId) {
+            const order = SUBMITTED_ORDERS.find(o => o.id === orderId);
+            if(!order) return;
+            
+            const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+            const d = new Date(order.created_at);
+            const dateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth()+1).padStart(2, '0')}-${d.getFullYear()}`;
+            const fileName = `${custName}_${dateStr}.xls`;
+            
+            let exportData = [];
+            for(const key in order.items) {
+                const orderData = order.items[key];
+                const realCode = key.split('__')[0];
+                const item = INVENTORY.find(i => i.code === realCode) || { caseQty: 0, name: "Unknown" };
+                const cQty = parseInt(item.caseQty) || 0;
+                const totalQty = (orderData.c * cQty) + orderData.p;
+                exportData.push([realCode, item.name, totalQty]);
+            }
+            
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+            XLSX.writeFile(wb, fileName, { bookType: 'biff8' });
+        }
+
+        // --- COLLECTIONS VIEW ---
+        function renderBillingCollections() {
+            const feed = document.getElementById('bill-col-feed');
+            if(!feed) return;
+            const filterDate = document.getElementById('bill-col-date-filter').value;
+
+            // Filter collections by date
+            let filtered = ALL_COLLECTIONS.filter(c => {
+                const d = new Date(c.created_at);
+                const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                return localDate === filterDate;
+            });
+
+            if (filtered.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No collections found for this date.</div>`;
+                return;
+            }
+
+            // Group by Salesman
+            const grouped = {};
+            filtered.forEach(col => {
+                const sm = col.salesman_id || "Unknown";
+                if(!grouped[sm]) grouped[sm] = { count: 0, total: 0, collections: [] };
+                grouped[sm].count += 1;
+                grouped[sm].total += col.total_amount;
+                grouped[sm].collections.push(col);
+            });
+
+            feed.innerHTML = Object.keys(grouped).map(smId => {
+                const grp = grouped[smId];
+                // In a real app, resolve smId to name via profiles. Here we display ID/Dev Name.
+                const smName = smId === "local_dev" ? "Dev Salesman" : "Salesman " + smId.substring(0,6);
+                
+                return `
+                <div class="order-card" style="align-items: flex-start; flex-direction: column; gap: 10px;">
+                    <div style="width: 100%; display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 10px;">
+                        <div>
+                            <b style="font-size: 1rem; color:var(--text);"><i class="fas fa-user-tie" style="color:var(--brand); margin-right:6px;"></i>${smName}</b><br>
+                            <span style="font-size:0.8rem; color:var(--text-mut);">${grp.count} Receipts</span>
+                        </div>
+                        <div style="text-align: right;">
+                            <b style="color:var(--success); font-size:1.1rem;">₹${fmt(grp.total)}</b>
+                        </div>
+                    </div>
+                    <button class="btn-take-order" style="width: 100%; background: var(--brand-light); color: var(--brand); border-color: var(--brand);" onclick="openSalesmanCollections('${smId}', '${smName}', '${filterDate}')">View Details & Download</button>
+                </div>`;
+            }).join('');
+        }
+
+        function openSalesmanCollections(smId, smName, dateStr) {
+            currentViewedSalesmanId = smId;
+            document.getElementById('bill-col-sm-name').innerText = smName;
+            document.getElementById('bill-col-date-sub').innerText = dateStr;
+            
+            // Get raw list for this salesman/date
+            currentViewedColList = ALL_COLLECTIONS.filter(c => {
+                const d = new Date(c.created_at);
+                const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                return localDate === dateStr && (c.salesman_id === smId);
+            });
+
+            document.getElementById('bill-col-sort').value = 'time'; // Reset sort
+            renderBillingCollectionDetailList();
+            document.getElementById('billing-col-detail-view').classList.remove('hidden');
+        }
+
+        function exitBillingCollection() {
+            document.getElementById('billing-col-detail-view').classList.add('hidden');
+        }
+
+        function renderBillingCollectionDetailList() {
+            const list = document.getElementById('billing-col-detail-list');
+            const sortVal = document.getElementById('bill-col-sort').value;
+            
+            // Clone to avoid mutating original
+            let sorted = [...currentViewedColList];
+
+            if (sortVal === 'time') {
+                sorted.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+            } else if (sortVal === 'alpha') {
+                sorted.sort((a,b) => {
+                    const nA = CUSTOMERS.find(c => c.code === a.customer_code)?.name || a.customer_code;
+                    const nB = CUSTOMERS.find(c => c.code === b.customer_code)?.name || b.customer_code;
+                    return nA.localeCompare(nB);
+                });
+            } else if (sortVal === 'type') {
+                // Sort Cash heavy first, then Gpay heavy
+                sorted.sort((a,b) => b.amount_cash - a.amount_cash);
+            }
+
+            let grandTotal = 0;
+
+            list.innerHTML = sorted.map(item => {
+                const custName = CUSTOMERS.find(c => c.code === item.customer_code)?.name || item.customer_code;
+                const timeStr = new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                grandTotal += item.total_amount;
+
+                let badge = '';
+                if(item.amount_cash > 0 && item.amount_gpay > 0) badge = `<span style="background:#FEF08A; color:#854D0E; font-size:0.6rem; padding:2px 4px; border-radius:4px;">MIXED</span>`;
+                else if(item.amount_cash > 0) badge = `<span style="background:#BBF7D0; color:#166534; font-size:0.6rem; padding:2px 4px; border-radius:4px;">CASH</span>`;
+                else badge = `<span style="background:#BFDBFE; color:#1E3A8A; font-size:0.6rem; padding:2px 4px; border-radius:4px;">GPAY</span>`;
+
+                return `
+                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div style="flex:1; min-width:0; padding-right: 10px;">
+                        <b style="color:var(--text); font-size: 0.9rem;">${custName}</b><br>
+                        <span style="font-size: 0.75rem; color:var(--text-mut);">${timeStr} | ${item.id}</span>
+                    </div>
+                    <div style="text-align: right; flex-shrink:0;">
+                        ${badge}<br>
+                        <b style="color:var(--success); font-size: 1rem;">₹${fmt(item.total_amount)}</b>
+                    </div>
+                </div>`;
+            }).join('');
+
+            document.getElementById('bill-col-total-sum').innerText = `₹${fmt(grandTotal)}`;
+        }
+
+        function downloadCollectionPDF() {
+            if(!window.jspdf) { alert("PDF Engine Loading, please wait a second."); return; }
+            
+            const smName = document.getElementById('bill-col-sm-name').innerText;
+            const dateStr = document.getElementById('bill-col-date-sub').innerText;
+            const sortedList = [...currentViewedColList]; // Uses same sorting active on screen
+            
+            const doc = new window.jspdf.jsPDF();
+            doc.setFontSize(16);
+            doc.text(`Collection Report`, 14, 20);
+            
+            doc.setFontSize(10);
+            doc.text(`Salesman: ${smName}`, 14, 28);
+            doc.text(`Date: ${dateStr}`, 14, 34);
+
+            let tCash = 0, tGpay = 0, tTotal = 0;
+            const tableBody = sortedList.map(item => {
+                const custName = CUSTOMERS.find(c => c.code === item.customer_code)?.name || item.customer_code;
+                const timeStr = new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                tCash += item.amount_cash;
+                tGpay += item.amount_gpay;
+                tTotal += item.total_amount;
+                return [timeStr, item.id, custName, `Rs ${fmt(item.amount_cash)}`, `Rs ${fmt(item.amount_gpay)}`, `Rs ${fmt(item.total_amount)}`];
+            });
+
+            // Add Footer Row
+            tableBody.push([{ content: 'GRAND TOTAL', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } }, `Rs ${fmt(tCash)}`, `Rs ${fmt(tGpay)}`, `Rs ${fmt(tTotal)}`]);
+
+            doc.autoTable({
+                startY: 40,
+                head: [['Time', 'Receipt', 'Customer', 'Cash', 'GPay', 'Total']],
+                body: tableBody,
+                theme: 'striped',
+                headStyles: { fillColor: [10, 74, 156] },
+                styles: { fontSize: 8 }
+            });
+
+            doc.save(`Collections_${smName}_${dateStr}.pdf`);
+        }
+
+        /* ========================================== */
+        /* SHARED CATALOG (Admin & Manager)           */
+        /* ========================================== */
+        function handleCatalogSearch(val) { catalogSearchQuery = val.toLowerCase(); renderCatalogView(); }
+        function renderCatalogCats() {
+            const el = document.getElementById('catalog-cat-scroll');
+            if(el) el.innerHTML = CATEGORIES.map(cat => `<div class="cat-pill ${cat === catalogCat ? 'active' : ''}" onclick="catalogCat='${cat}'; renderCatalogCats(); renderCatalogView();">${cat}</div>`).join('');
+        }
+
+        function renderCatalogView() {
+            const feed = document.getElementById('catalog-feed');
+            if(!feed) return;
+            if (INVENTORY.length === 0) { feed.innerHTML = `<div style="text-align:center; padding: 30px; color: var(--text-mut);">No inventory data.</div>`; return; }
+
+            let items = catalogCat === "All" ? INVENTORY : INVENTORY.filter(i => i.category === catalogCat);
+            if (catalogSearchQuery) {
+                if (catalogSearchQuery.includes('.')) {
+                    const parts = catalogSearchQuery.split('.');
+                    const textQuery = parts[0].trim();
+                    const mrpQuery = parseFloat(parts[1]);
+                    items = items.filter(i => {
+                        const matchText = textQuery === "" || i.name.toLowerCase().includes(textQuery) || i.code.toLowerCase().includes(textQuery);
+                        const matchMrp = !isNaN(mrpQuery) ? i.mrp === mrpQuery : true;
+                        return matchText && matchMrp;
+                    });
+                } else {
+                    items = items.filter(i => i.name.toLowerCase().includes(catalogSearchQuery) || i.code.toLowerCase().includes(catalogSearchQuery));
+                }
+            }
+            if (items.length === 0) { feed.innerHTML = `<div style="text-align:center; padding: 20px;">No items found.</div>`; return; }
+
+            feed.innerHTML = items.map(item => {
+                let pricingUI = ''; let dropdownUI = '';
+
+                if (item.has_slabs && item.caseQty > 0) {
+                    const slabHTML = item.slabs.slice(1).map((s) => {
+                        const rate = fmt(getRate(item.cost, s.markup));
+                        const markupFmt = fmt(s.markup);
+                        const smartLabel = getSmartSlabLabel(s.min, s.max, item.caseQty);
+                        return `
+                            <div class="slab-row">
+                                <div class="sl-col-name">${smartLabel}</div>
+                                <div class="sl-col-rate">₹${rate.toFixed(2)} <span class="prof">(${markupFmt}%)</span></div>
+                                <div class="sl-col-act"></div>
+                            </div>
+                        `;
+                    }).join('');
+
+                    pricingUI = `<div class="mgr-cost-badge">Base Cost: ₹${fmt(item.cost)}</div>`;
+                    dropdownUI = `
+                        <div class="slab-toggle" onclick="toggleAccordion('cat-slabs-${item.code}', 'cat-icon-${item.code}')">
+                            <span>View Wholesale Pricing Tiers</span>
+                            <i class="fas fa-chevron-down" id="cat-icon-${item.code}"></i>
+                        </div>
+                        <div class="slab-list hidden" id="cat-slabs-${item.code}">${slabHTML}</div>
+                    `;
+                } else {
+                    pricingUI = `
+                        <div class="mgr-cost-badge">Base Cost: ₹${fmt(item.cost)}</div>
+                        <div style="font-size: 1.05rem; font-weight: 800; color: var(--brand); margin-top: 4px;">Flat Rate: ₹${fmt(item.price2)}</div>
+                    `;
+                }
+
+                const cQtyStr = item.caseQty ? `(${item.caseQty} NOS)` : '';
+                
+                // Calculate Stock and Color coding safely
+                const stockVal = parseInt(item.stock) || 0;
+                let stockColor = "var(--success)"; 
+                if (stockVal <= 0) stockColor = "var(--accent)"; 
+                else if (stockVal < (item.caseQty || 10)) stockColor = "#B45309"; 
+                const stockUI = `<span style="color: ${stockColor}; font-weight: 700; margin-left: 4px;">| Stock: ${stockVal}</span>`;
+
+                return `
+                <div class="card">
+                    <div class="c-body">
+                        <div class="c-top">
+                            <div class="c-img"><i class="fas fa-image"></i></div>
+                            <div class="c-info">
+                                <div class="c-title">${item.name}</div>
+                                ${pricingUI}
+                                <div style="font-size: 0.85rem; font-weight: 600; color: var(--text); margin-top: 2px;">
+                                    MRP: <span style="color: var(--accent);">₹${fmt(item.mrp)}</span> <span style="font-weight: 500;">${cQtyStr}</span>
+                                    ${stockUI}
+                                </div>
+                            </div>
+                        </div>
+                        ${dropdownUI}
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        /* ========================================== */
+        /* ADMIN PRICING TABLE LOGIC                  */
+        /* ========================================== */
+        function handlePricingSearch(val) { pricingSearchQuery = val.toLowerCase(); renderPricingTable(); }
+
+        async function toggleSlabMode(code, isChecked) {
+            const item = INVENTORY.find(i => i.code === code);
+            item.has_slabs = isChecked;
+            try { await sbClient.from('items').update({ has_slabs: isChecked }).eq('code', code); } catch(e) {}
+            renderPricingTable();
+        }
+
+        function renderPricingTable() {
+            const tbody = document.getElementById('pricing-table-body');
+            if(!tbody) return;
+            if (INVENTORY.length === 0) return tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 30px;">No items found.</td></tr>`;
+
+            let filteredItems = INVENTORY;
+            if (pricingSearchQuery) filteredItems = filteredItems.filter(i => i.name.toLowerCase().includes(pricingSearchQuery) || i.code.toLowerCase().includes(pricingSearchQuery));
+            if(filteredItems.length === 0) return tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 20px;">No matches found.</td></tr>`;
+
+            tbody.innerHTML = filteredItems.map(item => {
+                const disabledAttr = item.has_slabs ? '' : 'disabled';
+                const opacityClass = item.has_slabs ? '' : 'dimmed-slab';
+
+                let slabsCellsHTML = '';
+                for(let i=0; i<4; i++) {
+                    const s = item.slabs[i] || { min: 0, max: 0, markup: 0 }; 
+                    slabsCellsHTML += `
+                    <td class="slab-cell ${opacityClass}">
+                        <div class="slab-wrapper">
+                            <div class="slab-row-top">
+                                <input type="number" id="s${i}-min-${item.code}" class="slab-input" value="${s.min}" ${disabledAttr} onfocus="this.select()">
+                                <input type="number" id="s${i}-max-${item.code}" class="slab-input" value="${s.max === 99999 ? '' : s.max}" placeholder="+" ${disabledAttr} onfocus="this.select()">
+                            </div>
+                            <div class="slab-row-bot">
+                                <input type="number" id="s${i}-m-${item.code}" class="slab-input" value="${s.markup}" oninput="previewRate(this.value, ${item.cost}, 'prv-s${i}-${item.code}')" ${disabledAttr} onfocus="this.select()">
+                                <div class="slab-divider"></div>
+                                <span class="slab-rate-prev" id="prv-s${i}-${item.code}">₹${fmt(getRate(item.cost, s.markup))}</span>
+                            </div>
+                        </div>
+                    </td>
+                    `;
+                }
+
+                return `
+                <tr>
+                    <td class="pt-code">${item.code}</td>
+                    <td class="pt-name-cell"><div class="pt-name" title="${item.name}">${item.name}</div></td>
+                    <td style="text-align: center;">
+                        <label class="switch"><input type="checkbox" ${item.has_slabs ? 'checked' : ''} onchange="toggleSlabMode('${item.code}', this.checked)"><span class="slider"></span></label>
+                    </td>
+                    <td class="pt-mrp">
+                        ₹${fmt(item.mrp)}<br>
+                        <div style="display:flex; justify-content:center; margin-top:4px;">
+                            <input type="number" id="s-caseqty-${item.code}" class="slab-input" style="width:40px; font-size:0.75rem; padding: 4px;" value="${item.caseQty}" onfocus="this.select()">
+                        </div>
+                    </td>
+                    <td class="pt-cost">₹${fmt(item.cost)}</td>
+                    ${slabsCellsHTML}
+                    <td style="text-align: center;">
+                        <button class="btn-save-row" onclick="saveMarkup('${item.code}', this)" title="Save to Cloud"><i class="fas fa-save"></i></button>
+                    </td>
+                </tr>
+                `;
+            }).join('');
+        }
+
+        function previewRate(markupVal, cost, elementId) { document.getElementById(elementId).innerText = `₹${fmt(getRate(cost, parseFloat(markupVal)||0))}`; }
+
+        async function saveMarkup(code, btnElement) {
+            const item = INVENTORY.find(i => i.code === code);
+            const newCq = parseInt(document.getElementById(`s-caseqty-${code}`).value) || 0;
+            const cqChanged = newCq !== item.caseQty;
+            item.caseQty = newCq <= 0 ? null : newCq; 
+            
+            if (!item.caseQty) item.has_slabs = false; 
+
+            if (item.has_slabs) {
+                if (cqChanged && item.caseQty > 0) {
+                    if(item.caseQty > 50) {
+                        const half = Math.floor(item.caseQty / 2);
+                        item.slabs[0].min = 0; item.slabs[0].max = Math.min(12, half);
+                        item.slabs[1].min = Math.min(12, half); item.slabs[1].max = half;
+                        item.slabs[2].min = half; item.slabs[2].max = item.caseQty;
+                        item.slabs[3].min = item.caseQty; item.slabs[3].max = 99999;
+                    } else {
+                        item.slabs[0].min = 0; item.slabs[0].max = Math.min(12, item.caseQty);
+                        item.slabs[1].min = Math.min(12, item.caseQty); item.slabs[1].max = item.caseQty;
+                        item.slabs[2].min = item.caseQty; item.slabs[2].max = item.caseQty * 3;
+                        item.slabs[3].min = item.caseQty * 3; item.slabs[3].max = 99999;
+                    }
+                } else {
+                    for(let i=0; i<4; i++) {
+                        if(item.slabs[i]) {
+                            item.slabs[i].min = parseInt(document.getElementById(`s${i}-min-${code}`).value) || 0;
+                            let maxVal = document.getElementById(`s${i}-max-${code}`).value;
+                            item.slabs[i].max = maxVal === "" ? 99999 : parseInt(maxVal); 
+                            item.slabs[i].markup = parseFloat(document.getElementById(`s${i}-m-${code}`).value) || 0;
+                        }
+                    }
+                }
+            }
+
+            try {
+                const { error } = await sbClient.from('items').update({ caseQty: item.caseQty, has_slabs: item.has_slabs, slabs: item.slabs }).eq('code', code);
+                if(error) throw error;
+            } catch(e) { saveLocalState(); }
+
+            btnElement.innerHTML = `<i class="fas fa-check"></i>`; btnElement.style.background = "var(--brand)";
+            setTimeout(() => { btnElement.innerHTML = `<i class="fas fa-save"></i>`; btnElement.style.background = "var(--success)"; if (cqChanged || !item.caseQty) renderPricingTable(); }, 500);
+        }
+
+        /* --- BULK CSV ACTIONS --- */
+        function downloadItemSampleCSV() { downloadBlob("code,name,cost,mrp,price2,has_slabs\nITM01,Maggi 2-Min Noodles,10.25,14,12.50,true\nITM02,Coca Cola PET,70,95,85,false", "items_master_template.csv"); }
+        function downloadMarginSampleCSV() { downloadBlob("code,s1_markup,s2_markup,s3_markup,s4_markup,caseQty\nITM01,25,12,8,5,24\nITM02,21.4,11.4,8.5,5,9", "margins_template.csv"); }
+
+        function downloadBlob(content, filename) {
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = filename;
+            document.body.appendChild(link); link.click(); document.body.removeChild(link);
+        }
+
+        async function handleItemCSVUpload(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const rows = e.target.result.split('\n'); let upsertData = [];
+                for (let i = 1; i < rows.length; i++) {
+                    if (!rows[i].trim()) continue;
+                    const cols = rows[i].split(','); 
+                    if (cols.length >= 6) {
+                        const code = cols[0].trim();
+                        const ts = cols[5].trim().toLowerCase();
+                        const has_slabs = (ts === 'true' || ts === '1' || ts === 'yes');
+                        let newItem = { code, name: cols[1].trim(), category: "All", cost: parseFloat(cols[2])||0, mrp: parseFloat(cols[3])||0, price2: parseFloat(cols[4])||0, has_slabs, stock: 0 };
+                        let existing = INVENTORY.find(inv => inv.code === code);
+                        if(existing) { newItem.slabs = existing.slabs; newItem.caseQty = existing.caseQty; newItem.stock = existing.stock; } 
+                        else { newItem.caseQty = null; newItem.slabs = [{min:0,max:0,markup:0}, {min:0,max:0,markup:0}, {min:0,max:0,markup:0}, {min:0,max:99999,markup:0}]; }
+                        upsertData.push(newItem);
+                    }
+                }
+                try {
+                    const { error } = await sbClient.from('items').upsert(upsertData);
+                    if(error) throw error; alert(`Synced ${upsertData.length} items to cloud.`); await fetchDataFromSupabase(); 
+                } catch(err) { alert("Offline mode simulated upload."); INVENTORY = upsertData; saveLocalState(); }
+                renderPricingTable(); document.getElementById('csv-upload-items').value = ""; 
+            }; reader.readAsText(file);
+        }
+
+        async function handleMarginCSVUpload(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const rows = e.target.result.split('\n'); let upsertData = [];
+                for (let i = 1; i < rows.length; i++) {
+                    if (!rows[i].trim()) continue;
+                    const cols = rows[i].split(',');
+                    if (cols.length >= 6) {
+                        const code = cols[0].trim(); const cq = parseInt(cols[5]);
+                        const item = INVENTORY.find(inv => inv.code === code);
+                        if (item) {
+                            if(!isNaN(cq) && cq > 0) {
+                                item.caseQty = cq; item.has_slabs = true;
+                                if (cq > 50) {
+                                    const h = Math.floor(cq / 2);
+                                    item.slabs[0].min = 0; item.slabs[0].max = Math.min(12, h);
+                                    item.slabs[1].min = Math.min(12, h); item.slabs[1].max = h;
+                                    item.slabs[2].min = h; item.slabs[2].max = cq;
+                                    item.slabs[3].min = cq; item.slabs[3].max = 99999;
+                                } else {
+                                    item.slabs[0].min = 0; item.slabs[0].max = Math.min(12, cq);
+                                    item.slabs[1].min = Math.min(12, cq); item.slabs[1].max = cq;
+                                    item.slabs[2].min = cq; item.slabs[2].max = cq * 3;
+                                    item.slabs[3].min = cq * 3; item.slabs[3].max = 99999;
+                                }
+                            } else { item.caseQty = null; item.has_slabs = false; }
+                            item.slabs[0].markup = parseFloat(cols[1]) || 0; item.slabs[1].markup = parseFloat(cols[2]) || 0;
+                            item.slabs[2].markup = parseFloat(cols[3]) || 0; item.slabs[3].markup = parseFloat(cols[4]) || 0;
+                            upsertData.push(item); 
+                        }
+                    }
+                }
+                try {
+                    const { error } = await sbClient.from('items').upsert(upsertData);
+                    if(error) throw error; alert(`Updated margins for ${upsertData.length} items in cloud.`); await fetchDataFromSupabase();
+                } catch(err) { alert("Offline mode simulated update."); saveLocalState(); }
+                renderPricingTable(); document.getElementById('csv-upload-margins').value = ""; 
+            }; reader.readAsText(file);
+        }
+    </script>
+</body>
+</html>
