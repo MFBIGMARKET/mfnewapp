@@ -428,10 +428,6 @@
         <!-- ========================================== -->
         
         <div id="view-packing" class="tab-content hidden packing-view salesman-view">
-            <div class="hist-top">
-                <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
-                <input type="date" id="packing-date-filter" onchange="renderPackingOrders()">
-            </div>
             <div class="scroll-area" style="padding: 16px;" id="packing-feed"></div>
         </div>
 
@@ -440,10 +436,6 @@
         <!-- ========================================== -->
         
         <div id="view-billing" class="tab-content hidden billing-view">
-            <div class="hist-top">
-                <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
-                <input type="date" id="billing-date-filter" onchange="renderBillingOrders()">
-            </div>
             <div class="scroll-area" style="padding: 16px;" id="billing-feed"></div>
         </div>
 
@@ -765,10 +757,15 @@
 
         async function fetchDataFromSupabase() {
             try {
-                const { data: itemsData } = await sbClient.from('items').select('*');
+                const { data: itemsData, error: itemsError } = await sbClient.from('items').select('*');
+                if (itemsError) alert("Supabase DB Blocked (Items): " + itemsError.message);
+
                 if (itemsData && itemsData.length > 0) {
-                    // SANITIZE DATA: Ensure no null values crash the app
+                    // SANITIZE DATA: Bulletproof all values to prevent rendering crashes
                     INVENTORY = itemsData.map(item => {
+                        item.code = item.code || "UNKNOWN";
+                        item.name = item.name || "Unnamed Item";
+                        item.category = item.category || "All";
                         item.cost = parseFloat(item.cost) || 0;
                         item.mrp = parseFloat(item.mrp) || 0;
                         item.price2 = parseFloat(item.price2) || 0;
@@ -777,14 +774,22 @@
                         item.stock = parseInt(item.stock) || 0;
                         item.caseQty = parseInt(item.caseQty) || null;
                         
-                        // If slabs array is missing or corrupted, inject safe defaults
-                        if (!item.slabs || !Array.isArray(item.slabs) || item.slabs.length < 4) {
+                        // Guarantee slabs is a valid array of exactly 4 objects
+                        if (!item.slabs || !Array.isArray(item.slabs) || item.slabs.length < 4 || item.slabs.some(s => !s)) {
                             item.slabs = [
                                 {min: 0, max: 0, markup: 0}, 
                                 {min: 0, max: 0, markup: 0}, 
                                 {min: 0, max: 0, markup: 0}, 
                                 {min: 0, max: 99999, markup: 0}
                             ];
+                        } else {
+                            // Ensure internal properties exist so math functions don't crash
+                            item.slabs = item.slabs.map(s => ({
+                                min: parseInt(s.min) || 0,
+                                max: parseInt(s.max) || 0,
+                                markup: parseFloat(s.markup) || 0
+                            }));
+                            item.slabs[3].max = 99999;
                         }
                         return item;
                     });
@@ -793,28 +798,24 @@
                     CATEGORIES = ["All", ...new Set(rawCats)];
                 }
 
-                if (currentUserRole === 'Salesman') {
-                    const { data: custData } = await sbClient.from('customers').select('*');
-                    if (custData) CUSTOMERS = custData;
-                    
-                    const { data: myOrdData } = await sbClient.from('orders').select('*').eq('salesman_id', userSession.user.id).order('created_at', { ascending: false });
-                    if (myOrdData) MY_ORDERS = myOrdData;
+                // Fetch Master Data globally so no role gets starved of data
+                const { data: custData } = await sbClient.from('customers').select('*');
+                if (custData) CUSTOMERS = custData;
 
-                    const { data: myColData } = await sbClient.from('collections').select('*').eq('salesman_id', userSession.user.id).order('created_at', { ascending: false });
-                    if (myColData) MY_COLLECTIONS = myColData;
+                const { data: orderData } = await sbClient.from('orders').select('*').order('created_at', { ascending: false });
+                if (orderData) {
+                    SUBMITTED_ORDERS = orderData;
+                    MY_ORDERS = orderData.filter(o => o.salesman_id === (userSession ? userSession.user.id : "local_dev"));
                 }
 
-                if (currentUserRole === 'Packing' || currentUserRole === 'Billing') {
-                    const { data: orderData } = await sbClient.from('orders').select('*').order('created_at', { ascending: false });
-                    if (orderData) SUBMITTED_ORDERS = orderData;
-                    
-                    if (currentUserRole === 'Billing') {
-                        const { data: colData } = await sbClient.from('collections').select('*').order('created_at', { ascending: false });
-                        if (colData) ALL_COLLECTIONS = colData;
-                    }
+                const { data: colData } = await sbClient.from('collections').select('*').order('created_at', { ascending: false });
+                if (colData) {
+                    ALL_COLLECTIONS = colData;
+                    MY_COLLECTIONS = colData.filter(c => c.salesman_id === (userSession ? userSession.user.id : "local_dev"));
                 }
+
             } catch (e) {
-                console.warn("Using offline mock data.");
+                console.warn("Cloud Fetch Failed: ", e);
             }
         }
 
@@ -893,6 +894,8 @@
                 if (navBtn) navBtn.classList.add('active');
             }
 
+            if (tabId === 'catalog' && (currentUserRole === 'Admin' || currentUserRole === 'Manager')) renderCatalogView();
+            if (tabId === 'pricing' && currentUserRole === 'Admin') renderPricingTable();
             if (tabId === 'history' && currentUserRole === 'Salesman') renderSalesmanHistory();
             if (tabId === 'collection' && currentUserRole === 'Salesman') renderCollectionCustomers();
             if (tabId === 'packing' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman')) renderPackingOrders();
@@ -900,7 +903,6 @@
             if (tabId === 'bill-hist' && currentUserRole === 'Billing') renderBillingHistory();
             if (tabId === 'bill-col' && currentUserRole === 'Billing') renderBillingCollections();
         }
-
         /* --- HELPERS --- */
         function fmt(num) { return Number(parseFloat(num).toFixed(2)); }
         function getRate(cost, markup) { return parseFloat((cost + (cost * (markup / 100))).toFixed(2)); }
@@ -1479,14 +1481,24 @@
         async function confirmOrder() {
             if(Object.keys(cart).length === 0) return;
             
-            // Generate sequential ORD ID (ORD0001)
+            // Generate sequential ORD ID securely from the Cloud
             let nextOrdNum = 1;
-            if (SUBMITTED_ORDERS && SUBMITTED_ORDERS.length > 0) {
-                const maxId = SUBMITTED_ORDERS.reduce((max, obj) => {
-                    const num = parseInt(obj.id.replace('ORD', '').replace('-', '')) || 0;
-                    return num > max ? num : max;
-                }, 0);
-                nextOrdNum = maxId + 1;
+            try {
+                const { data: latestOrder } = await sbClient.from('orders').select('id').order('created_at', { ascending: false }).limit(1);
+                if (latestOrder && latestOrder.length > 0) {
+                    const maxId = parseInt(latestOrder[0].id.replace(/\D/g, '')) || 0;
+                    nextOrdNum = maxId + 1;
+                }
+            } catch (e) {
+                // Offline fallback
+                const allOrders = [...(SUBMITTED_ORDERS||[]), ...(MY_ORDERS||[])];
+                if (allOrders.length > 0) {
+                    const maxId = allOrders.reduce((max, obj) => {
+                        const num = parseInt(obj.id.replace(/\D/g, '')) || 0;
+                        return num > max ? num : max;
+                    }, 0);
+                    nextOrdNum = maxId + 1;
+                }
             }
             const orderId = 'ORD' + String(nextOrdNum).padStart(4, '0');
             
@@ -1653,14 +1665,23 @@
 
             if (total <= 0) { alert("Please enter an amount greater than 0"); return; }
 
-            // Generate sequential REC ID (REC0001)
+            // Generate sequential REC ID securely from the Cloud
             let nextRecNum = 1;
-            if (MY_COLLECTIONS && MY_COLLECTIONS.length > 0) {
-                const maxId = MY_COLLECTIONS.reduce((max, obj) => {
-                    const num = parseInt(obj.id.replace('REC', '').replace('-', '')) || 0;
-                    return num > max ? num : max;
-                }, 0);
-                nextRecNum = maxId + 1;
+            try {
+                const { data: latestCol } = await sbClient.from('collections').select('id').order('created_at', { ascending: false }).limit(1);
+                if (latestCol && latestCol.length > 0) {
+                    const maxId = parseInt(latestCol[0].id.replace(/\D/g, '')) || 0;
+                    nextRecNum = maxId + 1;
+                }
+            } catch (e) {
+                // Offline fallback
+                if (MY_COLLECTIONS && MY_COLLECTIONS.length > 0) {
+                    const maxId = MY_COLLECTIONS.reduce((max, obj) => {
+                        const num = parseInt(obj.id.replace(/\D/g, '')) || 0;
+                        return num > max ? num : max;
+                    }, 0);
+                    nextRecNum = maxId + 1;
+                }
             }
             const colId = 'REC' + String(nextRecNum).padStart(4, '0');
 
@@ -1687,22 +1708,11 @@
             }
         }
 
-        /* ========================================== */
-        /* PACKING LOGIC                              */
-        /* ========================================== */
         function renderPackingOrders() {
             const feed = document.getElementById('packing-feed');
             if(!feed) return;
-            const filterDate = document.getElementById('packing-date-filter').value;
             
             let filtered = SUBMITTED_ORDERS.filter(o => o.status === 'Pending' || !o.status);
-            if (filterDate) {
-                filtered = filtered.filter(o => {
-                    const d = new Date(o.created_at);
-                    const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                    return localDate === filterDate;
-                });
-            }
             
             if (filtered.length === 0) {
                 feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No pending orders to pack.</div>`;
@@ -1997,19 +2007,11 @@
         function renderBillingOrders() {
             const feed = document.getElementById('billing-feed');
             if(!feed) return;
-            const filterDate = document.getElementById('billing-date-filter').value;
             
             let filtered = SUBMITTED_ORDERS.filter(o => o.status === 'Packed');
-            if (filterDate) {
-                filtered = filtered.filter(o => {
-                    const d = new Date(o.created_at);
-                    const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                    return localDate === filterDate;
-                });
-            }
             
             if (filtered.length === 0) {
-                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No packed orders pending for billing today.</div>`;
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No packed orders pending for billing.</div>`;
                 return;
             }
 
