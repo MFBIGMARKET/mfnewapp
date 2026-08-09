@@ -1,4 +1,4 @@
-const CACHE_NAME = 'b2b-app-v1';
+const CACHE_NAME = 'mf-app-v1';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -16,7 +16,7 @@ self.addEventListener('install', event => {
     );
 });
 
-// Activate Event - Cleans up old caches
+// Activate Event - Cleans up old caches if we update the version
 self.addEventListener('activate', event => {
     event.waitUntil(
         caches.keys().then(cacheNames => {
@@ -28,7 +28,7 @@ self.addEventListener('activate', event => {
     );
 });
 
-// Fetch Event - Network First Strategy (Always tries to get latest code from internet, falls back to cache if offline)
+// Fetch Event - Network First Strategy (Always tries internet first, uses cache if offline)
 self.addEventListener('fetch', event => {
     if (event.request.method !== 'GET') return;
     

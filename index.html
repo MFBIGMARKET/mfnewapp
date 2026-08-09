@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>B2B Wholesale App</title>
+    <title>MF ORDER APP</title>
     
     <!-- PWA Links -->
     <link rel="manifest" href="manifest.json">
@@ -130,7 +130,7 @@
         .table-wrapper { border: 1px solid var(--border-dark); border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .pricing-table { width: 100%; border-collapse: collapse; background: white; min-width: 1050px; table-layout: fixed; }
         .pricing-table th, .pricing-table td { border: 1px solid var(--border-dark); }
-        .pricing-table th { background: var(--brand-dark); color: white; padding: 10px 4px; text-align: center; font-size: 0.75rem; font-weight: 600; line-height: 1.2; border-color: #0b4085;}
+        .pricing-table th { background: var(--brand-dark); color: white; padding: 10px 4px; text-align: center; font-size: 0.75rem; font-weight: 600; line-height: 1.2; border-color: #0b4085; position: sticky; top: 0; z-index: 10; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
         .pricing-table td { padding: 6px 4px; vertical-align: middle; text-align: center; }
         .pricing-table input[type="number"]::-webkit-outer-spin-button, .pricing-table input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
         .pricing-table input[type="number"] { -moz-appearance: textfield; }
@@ -155,7 +155,11 @@
         input:checked + .slider:before { transform: translateX(14px); }
 
         .btn-save-row { background: var(--success); color: white; border: none; width: 34px; height: 34px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; transition: 0.2s; margin: 0 auto;}
+        .btn-edit-row { background: var(--warning); color: white; border: none; width: 34px; height: 34px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; cursor: pointer; transition: 0.2s; margin: 0 auto;}
         .dimmed-slab { opacity: 0.3; pointer-events: none; }
+        .locked-row { pointer-events: none; }
+        .locked-row .btn-edit-row { pointer-events: auto; }
+        .low-margin { border-color: var(--accent) !important; background-color: #FEF2F2 !important; color: var(--accent) !important; }
 
         /* --- CART VIEW --- */
         .cart-view { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--bg); z-index: 2000; display: flex; flex-direction: column; }
@@ -216,8 +220,8 @@
     <!-- LOGIN SCREEN -->
     <div id="login-screen">
         <div class="login-header">
-            <i class="fas fa-bolt"></i>
-            <h2>B2B Portal</h2>
+            <img src="icon-192.png" alt="MF Logo" style="height: 64px; width: 64px; border-radius: 12px; margin-bottom: 10px; object-fit: contain;">
+            <h2>MF BIGMARKET</h2>
             <p>Sign in to continue</p>
         </div>
         <div class="login-box">
@@ -277,21 +281,13 @@
             <div class="modal-body">
                 <p id="pack-edit-name" style="font-size: 0.85rem; font-weight: 600; margin-bottom: 10px; line-height: 1.3;"></p>
                 
-                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                    <div class="step-grp" style="flex:1;">
-                        <span class="step-lbl">Cases</span>
-                        <div class="stepper">
-                            <button onclick="stepPackEdit('c', -1)">-</button>
-                            <input type="number" id="pack-edit-c" value="0" onchange="stepPackEditManual('c', this.value)" onfocus="this.select()">
-                            <button onclick="stepPackEdit('c', 1)">+</button>
-                        </div>
-                    </div>
-                    <div class="step-grp" style="flex:1;">
-                        <span class="step-lbl">Pieces</span>
-                        <div class="stepper">
-                            <button onclick="stepPackEdit('p', -1)">-</button>
-                            <input type="number" id="pack-edit-p" value="0" onchange="stepPackEditManual('p', this.value)" onfocus="this.select()">
-                            <button onclick="stepPackEdit('p', 1)">+</button>
+                <div style="display: flex; justify-content: center; margin-bottom: 15px;">
+                    <div class="step-grp" style="width: 160px;">
+                        <span class="step-lbl" style="font-size:0.75rem;">Total Quantity (NOS)</span>
+                        <div class="stepper" style="height:36px;">
+                            <button onclick="stepPackEdit(-1)" style="font-size:1.2rem;">-</button>
+                            <input type="number" id="pack-edit-p" value="0" onchange="stepPackEditManual(this.value)" onfocus="this.select()" style="font-size:1.1rem;">
+                            <button onclick="stepPackEdit(1)" style="font-size:1.2rem;">+</button>
                         </div>
                     </div>
                 </div>
@@ -305,7 +301,50 @@
         </div>
     </div>
 
-    <!-- ADD ITEM MODAL (Packing) -->
+    <!-- SPLIT ITEM MODAL (Packing) -->
+    <div id="pack-split-modal" class="modal-overlay hidden">
+        <div class="modal-content" style="max-width: 320px;">
+            <div class="modal-header">
+                <span>Split Item</span>
+                <i class="fas fa-times" onclick="closeModal('pack-split-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.85rem; color:var(--text-mut); margin-bottom: 5px;">Move pieces into a new MRP batch.</p>
+                <p id="split-max-info" style="font-size: 0.75rem; color:var(--accent); font-weight: 700; margin-bottom: 15px;"></p>
+
+                <span class="step-lbl" style="display:block;">New MRP (₹)</span>
+                <input type="number" id="split-mrp" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; text-align:center; font-weight:700; margin-bottom:15px; font-size: 1.1rem; outline:none;" onfocus="this.select()">
+                
+                <span class="step-lbl" style="display:block;">Quantity to Move (NOS)</span>
+                <input type="number" id="split-qty" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; text-align:center; font-weight:700; margin-bottom:15px; font-size: 1.1rem; outline:none;" onfocus="this.select()">
+                
+                <button onclick="confirmSplitItem()" style="width: 100%; background: var(--warning); color: white; border: none; padding: 10px; border-radius: 4px; font-weight: 600; cursor: pointer;">Confirm Split</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SUCCESS MODAL -->
+    <div id="success-modal" class="modal-overlay hidden" style="z-index: 4000;">
+        <div class="modal-content" style="max-width: 300px; text-align: center; padding: 24px 20px;">
+            <div style="font-size: 3.5rem; color: var(--success); margin-bottom: 15px;"><i class="fas fa-check-circle"></i></div>
+            <h3 style="margin-bottom: 10px; color: var(--text); font-size: 1.2rem;">Success!</h3>
+            <p id="success-modal-msg" style="font-size: 0.9rem; color: var(--text-mut); margin-bottom: 25px; line-height: 1.4;"></p>
+            <button onclick="closeModal('success-modal')" style="width: 100%; background: var(--success); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 1rem;">Done</button>
+        </div>
+    </div>
+
+    <!-- CONFIRM MODAL -->
+    <div id="confirm-modal" class="modal-overlay hidden" style="z-index: 4000;">
+        <div class="modal-content" style="max-width: 320px; text-align: center; padding: 24px 20px;">
+            <div style="font-size: 3.5rem; color: var(--warning); margin-bottom: 15px;"><i class="fas fa-exclamation-triangle"></i></div>
+            <h3 style="margin-bottom: 10px; color: var(--text); font-size: 1.2rem;" id="confirm-modal-title">Confirm</h3>
+            <p id="confirm-modal-msg" style="font-size: 0.9rem; color: var(--text-mut); margin-bottom: 25px; line-height: 1.4;"></p>
+            <div style="display: flex; gap: 10px;">
+                <button id="confirm-btn-cancel" style="flex:1; background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 12px; border-radius: 6px; font-weight: 700; cursor: pointer;">Cancel</button>
+                <button id="confirm-btn-ok" style="flex:1; background: var(--warning); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 700; cursor: pointer;">Yes</button>
+            </div>
+        </div>
+    </div>
     <div id="add-item-modal" class="modal-overlay hidden">
         <div class="modal-content" style="max-width: 500px; height: 90vh;">
             <div class="modal-header">
@@ -327,7 +366,10 @@
     <div id="main-app" class="app-view hidden">
         
         <div class="header">
-            <div class="logo"><i class="fas fa-bolt"></i> B2B Portal</div>
+            <div class="logo">
+                <img src="icon-192.png" alt="MF Logo" style="height: 24px; width: 24px; border-radius: 4px; object-fit: contain;"> 
+                MF BIGMARKET
+            </div>
             <div class="role-badge" id="hdr-role-badge">ROLE</div>
         </div>
         
@@ -400,42 +442,42 @@
                     <button class="btn-csv upload" onclick="document.getElementById('csv-upload-margins').click()"><i class="fas fa-upload"></i> Upload</button>
                     <input type="file" id="csv-upload-margins" class="hidden" accept=".csv" onchange="handleMarginCSVUpload(event)">
                 </div>
+                <div class="bulk-group">
+                    <span class="bulk-label">3. EXPORT</span>
+                    <button class="btn-csv" style="background: var(--brand-dark); color: white; border-color: var(--brand-dark);" onclick="exportPricingTableExcel()"><i class="fas fa-file-excel"></i> Master DB</button>
+                </div>
             </div>
 
-            <div class="scroll-area">
-                <div class="table-container">
-                    <div class="table-wrapper">
-                        <table class="pricing-table">
-                            <colgroup>
-                                <col style="width: 6%;">
-                                <col style="width: 20%;">
-                                <col style="width: 4%;">
-                                <col style="width: 6%;">
-                                <col style="width: 5%;">
-                                <col style="width: 13.5%;">
-                                <col style="width: 13.5%;">
-                                <col style="width: 13.5%;">
-                                <col style="width: 13.5%;">
-                                <col style="width: 5%;">
-                            </colgroup>
-                            <thead>
-                                <tr>
-                                    <th>Code</th>
-                                    <th style="text-align: center;">Item Name</th>
-                                    <th>ON</th>
-                                    <th>MRP<br><span style="font-weight:normal; font-size:0.6rem;">Case Qty</span></th>
-                                    <th>Cost</th>
-                                    <th>Slab 1<br><span style="font-weight:normal; font-size:0.65rem;">From/To | %/Rate</span></th>
-                                    <th>Slab 2<br><span style="font-weight:normal; font-size:0.65rem;">From/To | %/Rate</span></th>
-                                    <th>Slab 3<br><span style="font-weight:normal; font-size:0.65rem;">From/To | %/Rate</span></th>
-                                    <th>Slab 4<br><span style="font-weight:normal; font-size:0.65rem;">From/To | %/Rate</span></th>
-                                    <th><i class="fas fa-save" title="Save All"></i></th>
-                                </tr>
-                            </thead>
-                            <tbody id="pricing-table-body"></tbody>
-                        </table>
-                    </div>
-                </div>
+            <div style="flex: 1; overflow: auto; background: white; border-top: 1px solid var(--border-dark);">
+                <table class="pricing-table" style="border: none; border-bottom: 1px solid var(--border-dark);">
+                    <colgroup>
+                        <col style="width: 6%;">
+                        <col style="width: 20%;">
+                        <col style="width: 4%;">
+                        <col style="width: 6%;">
+                        <col style="width: 5%;">
+                        <col style="width: 13.5%;">
+                        <col style="width: 13.5%;">
+                        <col style="width: 13.5%;">
+                        <col style="width: 13.5%;">
+                        <col style="width: 5%;">
+                    </colgroup>
+                    <thead style="position: sticky; top: 0; z-index: 100; outline: 1px solid #0b4085;">
+                        <tr>
+                            <th style="position: sticky; top: 0; z-index: 100; cursor: pointer; transition: 0.2s;" onclick="sortPricingTable('code')">Code <span id="sort-code"><i class="fas fa-sort" style="opacity:0.3"></i></span></th>
+                            <th style="text-align: center; position: sticky; top: 0; z-index: 100; cursor: pointer; transition: 0.2s;" onclick="sortPricingTable('name')">Item Name <span id="sort-name"><i class="fas fa-sort" style="opacity:0.3"></i></span></th>
+                            <th style="position: sticky; top: 0; z-index: 100; cursor: pointer; transition: 0.2s;" onclick="sortPricingTable('on')">ON <span id="sort-on"><i class="fas fa-sort" style="opacity:0.3"></i></span></th>
+                            <th style="position: sticky; top: 0; z-index: 100;">MRP<br><span style="font-weight:normal; font-size:0.6rem;">Case Qty</span></th>
+                            <th style="position: sticky; top: 0; z-index: 100;">Cost</th>
+                            <th style="position: sticky; top: 0; z-index: 100;">Slab 1<br><span style="font-weight:normal; font-size:0.65rem;">From/To | %/Rate</span></th>
+                            <th style="position: sticky; top: 0; z-index: 100;">Slab 2<br><span style="font-weight:normal; font-size:0.65rem;">From/To | %/Rate</span></th>
+                            <th style="position: sticky; top: 0; z-index: 100;">Slab 3<br><span style="font-weight:normal; font-size:0.65rem;">From/To | %/Rate</span></th>
+                            <th style="position: sticky; top: 0; z-index: 100;">Slab 4<br><span style="font-weight:normal; font-size:0.65rem;">From/To | %/Rate</span></th>
+                            <th onclick="toggleBulkEdit()" id="bulk-edit-header" style="cursor:pointer; font-size:1.1rem; transition:0.2s; position: sticky; top: 0; z-index: 100;" title="Unlock All / Save All"><i class="fas fa-unlock"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody id="pricing-table-body"></tbody>
+                </table>
             </div>
         </div>
 
@@ -444,6 +486,10 @@
         <!-- ========================================== -->
         
         <div id="view-packing" class="tab-content hidden packing-view salesman-view">
+            <div class="hist-top">
+                <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
+                <input type="date" id="packing-date-filter" onchange="renderPackingOrders()">
+            </div>
             <div class="scroll-area" style="padding: 16px;" id="packing-feed"></div>
         </div>
 
@@ -563,6 +609,25 @@
         </div>
     </div>
 
+    <!-- SALESMAN: HISTORY DETAIL VIEW -->
+    <div id="salesman-history-detail-view" class="order-view hidden">
+        <div class="ov-head">
+            <i class="fas fa-arrow-left" onclick="exitSalesmanHistoryDetail()" style="cursor:pointer; padding:4px;"></i>
+            <div class="ov-center">
+                <div class="ov-title" id="sh-cust-name">Loading...</div>
+                <div class="ov-sub" id="sh-order-id">ORD-XXXX</div>
+            </div>
+            <i class="fas fa-check" style="color: transparent;"></i> <!-- Spacer -->
+        </div>
+        <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB;">
+            <span>Total Items: <span id="sh-total-count" style="color:var(--brand);">0</span></span>
+            <span id="sh-status-badge" style="font-size:0.75rem; padding:4px 10px; border-radius:12px; font-weight:800;">STATUS</span>
+        </div>
+        <div class="scroll-area" style="background: var(--bg); padding: 12px;" id="sh-item-list">
+            <!-- Injected via JS -->
+        </div>
+    </div>
+
     <!-- PACKING: DETAIL VIEW -->
     <div id="packing-detail-view" class="order-view hidden">
         <div class="ov-head">
@@ -661,6 +726,7 @@
         let catalogSearchQuery = "";
         let pricingSearchQuery = "";
 
+        let allCarts = {};
         let cart = {};  
         let draft = {}; 
 
@@ -790,22 +856,17 @@
                         item.stock = parseInt(item.stock) || 0;
                         item.caseQty = parseInt(item.caseQty) || null;
                         
-                        // Guarantee slabs is a valid array of exactly 4 objects
-                        if (!item.slabs || !Array.isArray(item.slabs) || item.slabs.length < 4 || item.slabs.some(s => !s)) {
-                            item.slabs = [
-                                {min: 0, max: 0, markup: 0}, 
-                                {min: 0, max: 0, markup: 0}, 
-                                {min: 0, max: 0, markup: 0}, 
-                                {min: 0, max: 99999, markup: 0}
-                            ];
+                        // Allow variable slabs (1 to 4). Clean missing data gracefully.
+                        if (!item.slabs || !Array.isArray(item.slabs) || item.slabs.length === 0) {
+                            item.slabs = [{min: 0, max: 99999, markup: 0}];
                         } else {
-                            // Ensure internal properties exist so math functions don't crash
                             item.slabs = item.slabs.map(s => ({
-                                min: parseInt(s.min) || 0,
-                                max: parseInt(s.max) || 0,
-                                markup: parseFloat(s.markup) || 0
+                                min: parseInt(s?.min) || 0,
+                                max: parseInt(s?.max) || 0,
+                                markup: parseFloat(s?.markup) || 0
                             }));
-                            item.slabs[3].max = 99999;
+                            // Ensure the very last slab in the array is capped at 99999
+                            item.slabs[item.slabs.length - 1].max = 99999;
                         }
                         return item;
                     });
@@ -923,6 +984,30 @@
         function fmt(num) { return Number(parseFloat(num).toFixed(2)); }
         function getRate(cost, markup) { return parseFloat((cost + (cost * (markup / 100))).toFixed(2)); }
         function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
+        
+        function showSuccess(msg) { 
+            document.getElementById('success-modal-msg').innerText = msg;
+            document.getElementById('success-modal').classList.remove('hidden');
+        }
+
+        function showConfirm(title, msgHTML, confirmText = "Yes") {
+            return new Promise((resolve) => {
+                document.getElementById('confirm-modal-title').innerText = title;
+                document.getElementById('confirm-modal-msg').innerHTML = msgHTML; // Changed to innerHTML to support tables
+                document.getElementById('confirm-btn-ok').innerText = confirmText;
+                
+                document.getElementById('confirm-modal').classList.remove('hidden');
+
+                document.getElementById('confirm-btn-cancel').onclick = () => {
+                    document.getElementById('confirm-modal').classList.add('hidden');
+                    resolve(false);
+                };
+                document.getElementById('confirm-btn-ok').onclick = () => {
+                    document.getElementById('confirm-modal').classList.add('hidden');
+                    resolve(true);
+                };
+            });
+        }
 
         function getApplicableRate(item, totalPcs, selectedRateKey = 'price2', customRate = 0) {
             if (!item.has_slabs || !item.caseQty) {
@@ -953,15 +1038,17 @@
 
         let ALL_COLLECTIONS = []; // Global collections for billing
         function loadState() {
-            // NEVER load inventory from local storage anymore to prevent data corruption.
             if (localStorage.getItem('b2b_c')) cart = JSON.parse(localStorage.getItem('b2b_c'));
             if (localStorage.getItem('b2b_u')) activeCust = JSON.parse(localStorage.getItem('b2b_u'));
+            if (localStorage.getItem('b2b_pack')) currentPackOrder = JSON.parse(localStorage.getItem('b2b_pack'));
             updateBadge();
         }
         
         function saveLocalState() {
             localStorage.setItem('b2b_c', JSON.stringify(cart));
             localStorage.setItem('b2b_u', JSON.stringify(activeCust));
+            if (currentPackOrder) localStorage.setItem('b2b_pack', JSON.stringify(currentPackOrder));
+            else localStorage.removeItem('b2b_pack');
         }
 
         /* ========================================== */
@@ -984,24 +1071,34 @@
                 return;
             }
 
-            list.innerHTML = filtered.map(c => `
+            list.innerHTML = filtered.map(c => {
+                const cartItemsCount = allCarts[c.code] ? Object.keys(allCarts[c.code]).length : 0;
+                const cartBadge = cartItemsCount > 0 ? `<span style="background:var(--warning); color:white; padding:2px 6px; border-radius:10px; font-size:0.65rem; margin-left:6px; vertical-align:middle;"><i class="fas fa-shopping-cart"></i> ${cartItemsCount}</span>` : '';
+                
+                return `
                 <div class="cust-card">
                     <div style="flex: 1; min-width: 0; padding-right: 15px;">
-                        <div class="ov-title" style="margin-bottom: 2px;">${c.name}</div>
+                        <div class="ov-title" style="margin-bottom: 2px;">${c.name} ${cartBadge}</div>
                         <span style="font-weight:700; color:var(--brand); display:inline-block;">Bal: ₹${fmt(c.bal)}</span>
                     </div>
                     <button class="btn-take-order" style="flex-shrink: 0;" onclick="startOrder('${c.code}')">Take Order</button>
                 </div>
-            `).join('');
+                `;
+            }).join('');
         }
 
         function startOrder(custCode) {
             const selectedCust = CUSTOMERS.find(c => c.code === custCode);
-            if (activeCust && activeCust.code !== custCode && Object.keys(cart).length > 0) {
-                if(!confirm(`Clear active cart for ${activeCust.name} to start order for ${selectedCust.name}?`)) return;
-                cart = {}; draft = {};
-            }
+            
+            // Save current cart before switching
+            if (activeCust) allCarts[activeCust.code] = cart;
+
             activeCust = selectedCust;
+            
+            // Load saved cart for this specific customer
+            cart = allCarts[activeCust.code] ? JSON.parse(JSON.stringify(allCarts[activeCust.code])) : {};
+            draft = JSON.parse(JSON.stringify(cart)); // Reset draft to match cart
+            
             saveLocalState();
 
             document.getElementById('ov-cust-name').innerText = activeCust.name;
@@ -1013,7 +1110,10 @@
             document.getElementById('order-view').classList.remove('hidden');
         }
 
-        function exitOrder() { document.getElementById('order-view').classList.add('hidden'); }
+        function exitOrder() { 
+            document.getElementById('order-view').classList.add('hidden'); 
+            renderCustomersView(); // Refreshes the list to instantly show the yellow cart badges
+        }
         function handleOrderSearch(val) { orderSearchQuery = val.toLowerCase(); renderOrderFeed(); }
         function setOrderCat(cat) { orderCat = cat; renderOrderCats(); renderOrderFeed(); }
         
@@ -1164,11 +1264,11 @@
                 
                 // Calculate Stock and Color coding
                 const stockVal = parseInt(item.stock) || 0;
-                let stockColor = "var(--success)"; // Green (Good Stock)
-                if (stockVal <= 0) stockColor = "var(--accent)"; // Red (Out of Stock)
-                else if (stockVal < (item.caseQty || 10)) stockColor = "#B45309"; // Dark Orange (Low Stock)
+                let stockColor = "var(--success)"; 
+                if (stockVal <= 0) stockColor = "var(--accent)"; 
+                else if (stockVal < (item.caseQty || 10)) stockColor = "#B45309"; 
                 
-                const stockStr = `<span style="color: ${stockColor}; font-weight: 700; margin-left: 4px;">| Stock: ${stockVal}</span>`;
+                const stockStr = `<span style="color: ${stockColor}; font-weight: 800; margin-left: 4px;">| ${stockVal}</span>`;
 
                 return `
                 <div class="card">
@@ -1550,12 +1650,16 @@
                 
                 // Cloud Success!
                 if (!MY_ORDERS.find(o => o.id === newOrder.id)) MY_ORDERS.unshift(newOrder);
-                alert(`✅ Order ${newOrder.id} successfully synced to the Cloud!`);
+                if (!SUBMITTED_ORDERS.find(o => o.id === newOrder.id)) SUBMITTED_ORDERS.unshift(newOrder); // Immediately share with Packing/Billing
                 
+                showSuccess(`Order ${newOrder.id} successfully synced to the Cloud!`);
+                
+                delete allCarts[activeCust.code];
                 cart = {}; draft = {}; activeCust = null;
                 saveLocalState();
                 closeCart();
                 exitOrder();
+                renderCustomersView(); // Refresh list to remove the yellow badge
 
             } catch (e) {
                 alert(`❌ ORDER FAILED: Could not connect to the cloud. Please check your internet and try again.\n\nError: ${e.message}`);
@@ -1591,16 +1695,22 @@
                 
                 if (item.type === 'order') {
                     const isPacked = item.status === 'Packed';
-                    const statusColor = isPacked ? 'var(--success)' : 'var(--warning)';
+                    const isBilled = item.status === 'Billed';
+                    let statusColor = 'var(--warning)';
+                    if(isPacked) statusColor = 'var(--success)';
+                    if(isBilled) statusColor = '#1E3A8A'; // Dark Blue for Billed
+                    
+                    const displayStatus = item.status || 'Placed';
+
                     return `
-                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; overflow:hidden;">
+                    <div onclick="openSalesmanHistoryDetail('${item.id}')" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; overflow:hidden; cursor: pointer;">
                         <div style="flex:1; min-width:0; padding-right: 10px;">
                             <b style="color:var(--text); font-size: 0.95rem;">${item.id}</b> <span style="background:var(--brand-light); color:var(--brand); font-size:0.6rem; padding: 2px 4px; border-radius:4px; font-weight:700; margin-left:4px;">ORDER</span><br>
                             <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${custName}</div>
                         </div>
                         <div style="text-align: right; flex-shrink:0;">
                             <b style="color:var(--brand)">₹${fmt(item.total_amount)}</b><br>
-                            <small style="color:${statusColor}; font-weight: 600;">${item.status || 'Submitted'}</small>
+                            <small style="color:${statusColor}; font-weight: 700;">${displayStatus}</small>
                         </div>
                     </div>
                     `;
@@ -1623,6 +1733,66 @@
                     `;
                 }
             }).join('');
+        }
+
+        function openSalesmanHistoryDetail(orderId) {
+            // Find order in memory
+            const order = MY_ORDERS.find(o => o.id === orderId) || SUBMITTED_ORDERS.find(o => o.id === orderId);
+            if(!order) return;
+
+            const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+            document.getElementById('sh-cust-name').innerText = custName;
+            document.getElementById('sh-order-id').innerText = order.id;
+
+            // Set Status Badge
+            const statusStr = order.status || 'Placed';
+            const badgeEl = document.getElementById('sh-status-badge');
+            badgeEl.innerText = statusStr.toUpperCase();
+            
+            if (statusStr === 'Packed') { badgeEl.style.background = 'var(--success-bg)'; badgeEl.style.color = 'var(--success)'; }
+            else if (statusStr === 'Billed') { badgeEl.style.background = '#DBEAFE'; badgeEl.style.color = '#1E3A8A'; }
+            else { badgeEl.style.background = '#FEF3C7'; badgeEl.style.color = '#B45309'; }
+
+            // Render Items
+            const list = document.getElementById('sh-item-list');
+            const itemsArr = Object.keys(order.items).map(k => ({ key: k, ...order.items[k] }));
+            document.getElementById('sh-total-count').innerText = itemsArr.length;
+
+            list.innerHTML = itemsArr.map((data, index) => {
+                const realCode = data.key.split('__')[0];
+                const item = INVENTORY.find(i => i.code === realCode);
+                if(!item) return '';
+
+                const cQty = parseInt(item.caseQty) || 0;
+                const totalQty = (data.c * cQty) + data.p; // Extract pure NOS count
+                
+                // Formulate Price/Overrides
+                let mrpText = `₹${fmt(item.mrp)}`;
+                if (data.mrp_override) mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹${fmt(data.old_mrp)}</del> ₹${fmt(data.mrp_override)}`;
+                
+                const newBadge = data.is_new ? `<span class="pack-new-badge" style="background:var(--success);">ADDED BY PACKER</span>` : '';
+                
+                const rate = getApplicableRate(item, totalQty, data.r || 'price2', data.cr || 0);
+                const totalItemCost = totalQty * rate;
+
+                return `
+                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                    <div style="flex:1; min-width:0; padding-right:10px;">
+                        <div style="font-weight:700; font-size:0.85rem; margin-bottom:4px; color:var(--text);">${index + 1}. ${item.name} ${newBadge}</div>
+                        <div style="font-size:0.75rem; color:var(--text-mut);">MRP: ${mrpText}</div>
+                    </div>
+                    <div style="text-align: right; flex-shrink:0;">
+                        <b style="color:var(--brand); font-size:0.95rem;">${totalQty} Pcs</b><br>
+                        <span style="font-size:0.75rem; color:var(--text-mut); font-weight:700;">₹${fmt(totalItemCost)}</span>
+                    </div>
+                </div>`;
+            }).join('');
+
+            document.getElementById('salesman-history-detail-view').classList.remove('hidden');
+        }
+
+        function exitSalesmanHistoryDetail() {
+            document.getElementById('salesman-history-detail-view').classList.add('hidden');
         }
 
         /* --- SALESMAN COLLECTION LOGIC --- */
@@ -1716,8 +1886,8 @@
                 if (error) throw error;
                 
                 MY_COLLECTIONS.unshift(payload);
-                alert(`✅ Payment of ₹${total} synced to Cloud for ${currentColCust.name}!`);
                 closeModal('collection-modal');
+                showSuccess(`Payment of ₹${total} synced to Cloud for ${currentColCust.name}!`);
                 
             } catch(e) {
                 alert(`❌ COLLECTION FAILED: Could not connect to the cloud. Please check your internet and try again.\n\nError: ${e.message}`);
@@ -1737,26 +1907,37 @@
 
             feed.innerHTML = filtered.map(order => {
                 const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+                const activeBadge = (currentPackOrder && currentPackOrder.id === order.id) ? `<span style="background:var(--warning); color:white; padding:2px 6px; border-radius:10px; font-size:0.65rem; margin-left:6px; vertical-align:middle;"><i class="fas fa-box-open"></i> Active</span>` : '';
+                const btnText = (currentPackOrder && currentPackOrder.id === order.id) ? "Resume" : "Start Packing";
+
                 return `
                 <div class="order-card">
                     <div style="flex:1; min-width:0; padding-right: 10px;">
-                        <b style="font-size: 1.05rem; color:var(--text);">${order.id}</b><br>
+                        <b style="font-size: 1.05rem; color:var(--text);">${order.id} ${activeBadge}</b><br>
                         <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${custName}</div>
                     </div>
-                    <button class="btn-take-order" style="flex-shrink:0;" onclick="openPackingDetail('${order.id}')">Start Packing</button>
+                    <button class="btn-take-order" style="flex-shrink:0;" onclick="openPackingDetail('${order.id}')">${btnText}</button>
                 </div>
             `;
             }).join(''); 
         }
 
         function openPackingDetail(orderId) {
-            currentPackOrder = JSON.parse(JSON.stringify(SUBMITTED_ORDERS.find(o => o.id === orderId))); // deep clone
-            if(!currentPackOrder) return;
-            
-            // Add packing states to items if not present
-            for(let code in currentPackOrder.items) {
-                currentPackOrder.items[code].sort_marked = false;
-                currentPackOrder.items[code].packed = false;
+            // Warn if switching active orders
+            if (currentPackOrder && currentPackOrder.id !== orderId) {
+                if(!confirm(`You are currently packing ${currentPackOrder.id}. Discard that progress to open ${orderId}?`)) return;
+            }
+
+            // Only clone from master if we aren't resuming the exact same active order
+            if (!currentPackOrder || currentPackOrder.id !== orderId) {
+                currentPackOrder = JSON.parse(JSON.stringify(SUBMITTED_ORDERS.find(o => o.id === orderId)));
+                if(!currentPackOrder) return;
+                
+                for(let code in currentPackOrder.items) {
+                    currentPackOrder.items[code].sort_marked = false;
+                    currentPackOrder.items[code].packed = false;
+                }
+                saveLocalState();
             }
             
             const custName = CUSTOMERS.find(c => c.code === currentPackOrder.customer_code)?.name || currentPackOrder.customer_code;
@@ -1768,7 +1949,7 @@
         }
 
         function exitPacking() {
-            currentPackOrder = null;
+            // DO NOT clear currentPackOrder here. Keep it saved.
             document.getElementById('packing-detail-view').classList.add('hidden');
             renderPackingOrders();
         }
@@ -1812,8 +1993,7 @@
                     <div class="pack-info" onclick="openPackEditModal('${data.key}')" style="cursor:pointer;" title="Click to edit quantity or MRP">
                         <div class="pack-title">${item.name} ${newBadge}</div>
                         <div style="display:flex; align-items:center;">
-                            <span class="pack-qty">${totalQty} Pcs</span>
-                            <span class="pack-meta">(${data.c} Cs + ${data.p} Pcs)</span>
+                            <span class="pack-qty">${totalQty} NOS</span>
                         </div>
                     </div>
                     
@@ -1829,12 +2009,12 @@
 
         function togglePackSort(key) {
             currentPackOrder.items[key].sort_marked = !currentPackOrder.items[key].sort_marked;
-            renderPackingDetailList();
+            saveLocalState(); renderPackingDetailList();
         }
 
         function togglePacked(key) {
             currentPackOrder.items[key].packed = !currentPackOrder.items[key].packed;
-            renderPackingDetailList();
+            saveLocalState(); renderPackingDetailList();
         }
 
         let currentEditPackKey = null;
@@ -1846,47 +2026,23 @@
             const data = currentPackOrder.items[key];
             
             document.getElementById('pack-edit-name').innerText = item.name;
-            document.getElementById('pack-edit-c').value = data.c;
-            document.getElementById('pack-edit-p').value = data.p;
-            document.getElementById('pack-edit-mrp').value = data.mrp_override || item.mrp;
+            const cQty = parseInt(item.caseQty) || 0;
+            const totalPcs = (data.c * cQty) + data.p;
             
-            const hasCases = item.has_slabs && item.caseQty && item.caseQty > 0;
-            const cInput = document.getElementById('pack-edit-c');
-            if (!hasCases) { cInput.disabled = true; cInput.parentElement.classList.add('disabled'); } 
-            else { cInput.disabled = false; cInput.parentElement.classList.remove('disabled'); }
+            document.getElementById('pack-edit-p').value = totalPcs;
+            document.getElementById('pack-edit-mrp').value = data.mrp_override || item.mrp;
             
             document.getElementById('pack-edit-modal').classList.remove('hidden');
         }
 
-        function stepPackEdit(type, change) {
-            let current = parseInt(document.getElementById(`pack-edit-${type}`).value) || 0;
-            stepPackEditManual(type, current + change);
+        function stepPackEdit(change) {
+            let current = parseInt(document.getElementById(`pack-edit-p`).value) || 0;
+            document.getElementById(`pack-edit-p`).value = Math.max(0, current + change);
         }
 
-        function stepPackEditManual(type, val) {
-            const realCode = currentEditPackKey.split('__')[0];
-            const item = INVENTORY.find(i => i.code === realCode);
+        function stepPackEditManual(val) {
             let parsedVal = parseInt(val) || 0;
-            let currentC = parseInt(document.getElementById('pack-edit-c').value) || 0;
-            let currentP = parseInt(document.getElementById('pack-edit-p').value) || 0;
-            const hasCases = item.has_slabs && item.caseQty && item.caseQty > 0;
-
-            if (type === 'p') {
-                if (parsedVal < 0) {
-                    if (hasCases && currentC > 0) { currentC -= 1; parsedVal = item.caseQty - 1; } 
-                    else { parsedVal = 0; }
-                }
-                if (hasCases && parsedVal >= item.caseQty) {
-                    currentC += Math.floor(parsedVal / item.caseQty);
-                    parsedVal = parsedVal % item.caseQty;
-                }
-                currentP = parsedVal;
-            } else {
-                if (hasCases) currentC = parsedVal < 0 ? 0 : parsedVal;
-            }
-            
-            document.getElementById('pack-edit-c').value = currentC;
-            document.getElementById('pack-edit-p').value = currentP;
+            document.getElementById(`pack-edit-p`).value = Math.max(0, parsedVal);
         }
 
         function savePackEdit() {
@@ -1895,45 +2051,78 @@
             const item = INVENTORY.find(i => i.code === realCode);
             const data = currentPackOrder.items[key];
 
-            let newC = parseInt(document.getElementById('pack-edit-c').value) || 0;
-            let newP = parseInt(document.getElementById('pack-edit-p').value) || 0;
+            let newTotalPcs = parseInt(document.getElementById('pack-edit-p').value) || 0;
             let newMRP = parseFloat(document.getElementById('pack-edit-mrp').value);
 
-            // Update Quantities
-            data.c = newC;
-            data.p = newP;
+            data.c = 0; data.p = newTotalPcs;
 
-            // Update MRP
             if (!isNaN(newMRP) && newMRP > 0 && newMRP !== item.mrp) {
-                data.mrp_override = newMRP;
-                data.old_mrp = item.mrp;
+                data.mrp_override = newMRP; data.old_mrp = item.mrp;
             } else if (newMRP === item.mrp) {
-                delete data.mrp_override;
-                delete data.old_mrp;
+                delete data.mrp_override; delete data.old_mrp;
             }
 
+            saveLocalState();
             closeModal('pack-edit-modal');
             renderPackingDetailList();
         }
 
+        // Native Modal Split Engine
         function duplicatePackItem() {
             const key = currentEditPackKey;
             const data = currentPackOrder.items[key];
             const realCode = key.split('__')[0];
+            const item = INVENTORY.find(i => i.code === realCode);
+            
+            const cQty = parseInt(item.caseQty) || 0;
+            const currentTotal = (data.c * cQty) + data.p;
 
-            // Create a unique key for the split item
+            if (currentTotal <= 1) {
+                alert("Cannot split an item with only 1 piece.");
+                return;
+            }
+
+            // Close Edit modal, Open Split Modal
+            closeModal('pack-edit-modal');
+            
+            document.getElementById('split-max-info').innerText = `Max pieces you can move: ${currentTotal - 1}`;
+            document.getElementById('split-mrp').value = item.mrp;
+            document.getElementById('split-qty').value = 1;
+            document.getElementById('pack-split-modal').classList.remove('hidden');
+        }
+
+        function confirmSplitItem() {
+            const key = currentEditPackKey;
+            const data = currentPackOrder.items[key];
+            const realCode = key.split('__')[0];
+            const item = INVENTORY.find(i => i.code === realCode);
+            
+            const cQty = parseInt(item.caseQty) || 0;
+            const currentTotal = (data.c * cQty) + data.p;
+
+            const newMrp = parseFloat(document.getElementById('split-mrp').value);
+            const splitQty = parseInt(document.getElementById('split-qty').value);
+
+            if (isNaN(newMrp) || newMrp <= 0) { alert("Invalid MRP."); return; }
+            if (isNaN(splitQty) || splitQty <= 0 || splitQty >= currentTotal) { alert("Invalid split quantity. Check Max limits."); return; }
+
+            // Apply Math
+            data.c = 0;
+            data.p = currentTotal - splitQty;
+
             const newKey = realCode + '__' + Date.now();
             currentPackOrder.items[newKey] = {
                 c: 0,
-                p: 1, // Default 1 piece
-                sort_marked: data.sort_marked,
+                p: splitQty,
+                sort_marked: false,
                 packed: false,
                 is_new: true,
-                mrp_override: data.mrp_override,
-                old_mrp: data.old_mrp
+                mrp_override: newMrp !== item.mrp ? newMrp : undefined,
+                old_mrp: newMrp !== item.mrp ? item.mrp : undefined
             };
 
-            closeModal('pack-edit-modal');
+            saveLocalState();
+            closeModal('pack-split-modal');
             renderPackingDetailList();
         }
 
@@ -1953,7 +2142,6 @@
             let items = INVENTORY;
             if(packSearchQuery) items = items.filter(i => i.name.toLowerCase().includes(packSearchQuery) || i.code.toLowerCase().includes(packSearchQuery));
             
-            // Only show items not currently in the order
             items = items.filter(i => !currentPackOrder.items[i.code]);
 
             list.innerHTML = items.map(item => `
@@ -1968,8 +2156,8 @@
         }
 
         function addItemToPackOrder(code) {
-            // Add with 1 piece default, mark as new
             currentPackOrder.items[code] = { c: 0, p: 1, sort_marked: false, packed: false, is_new: true };
+            saveLocalState();
             closeModal('add-item-modal');
             renderPackingDetailList();
         }
@@ -2005,8 +2193,8 @@
                 const idx = SUBMITTED_ORDERS.findIndex(o => o.id === currentPackOrder.id);
                 if(idx > -1) SUBMITTED_ORDERS[idx] = currentPackOrder;
                 
-                alert("✅ Order sent to Billing successfully.");
-                exitPacking();
+                currentPackOrder = null; saveLocalState(); exitPacking();
+                showSuccess("Order packed and sent to Billing successfully!");
             } catch(e) {
                 alert(`❌ UPDATE FAILED: Could not reach the cloud. Please try again.\n\nError: ${e.message}`);
             }
@@ -2422,7 +2610,7 @@
                 let stockColor = "var(--success)"; 
                 if (stockVal <= 0) stockColor = "var(--accent)"; 
                 else if (stockVal < (item.caseQty || 10)) stockColor = "#B45309"; 
-                const stockUI = `<span style="color: ${stockColor}; font-weight: 700; margin-left: 4px;">| Stock: ${stockVal}</span>`;
+                const stockUI = `<span style="color: ${stockColor}; font-weight: 800; margin-left: 4px;">| ${stockVal}</span>`;
 
                 return `
                 <div class="card">
@@ -2450,40 +2638,101 @@
         /* ========================================== */
         function handlePricingSearch(val) { pricingSearchQuery = val.toLowerCase(); renderPricingTable(); }
 
-        async function toggleSlabMode(code, isChecked) {
-            const item = INVENTORY.find(i => i.code === code);
-            item.has_slabs = isChecked;
-            try { await sbClient.from('items').update({ has_slabs: isChecked }).eq('code', code); } catch(e) {}
+        let isBulkEditMode = false;
+        let pricingSortCol = '';
+        let pricingSortAsc = true;
+
+        function sortPricingTable(col) {
+            if (pricingSortCol === col) pricingSortAsc = !pricingSortAsc;
+            else { pricingSortCol = col; pricingSortAsc = true; }
             renderPricingTable();
         }
 
+        function toggleBulkEdit() {
+            const headerBtn = document.getElementById('bulk-edit-header');
+            if (!isBulkEditMode) {
+                isBulkEditMode = true;
+                headerBtn.innerHTML = `<i class="fas fa-save" style="color:var(--success);"></i>`;
+                const allRows = document.querySelectorAll('#pricing-table-body tr.locked-row');
+                allRows.forEach(row => {
+                    const code = row.id.replace('tr-', '');
+                    unlockRow(code);
+                });
+            } else {
+                bulkSaveMarkup();
+            }
+        }
+
+        function toggleDim(code, isChecked) {
+            const row = document.getElementById(`tr-${code}`);
+            if (row) {
+                const cells = row.querySelectorAll('.slab-cell');
+                cells.forEach(c => isChecked ? c.classList.remove('dimmed-slab') : c.classList.add('dimmed-slab'));
+            }
+        }
+
         function renderPricingTable() {
+            isBulkEditMode = false;
+            const headerBtn = document.getElementById('bulk-edit-header');
+            if (headerBtn) headerBtn.innerHTML = `<i class="fas fa-unlock"></i>`;
+
             const tbody = document.getElementById('pricing-table-body');
             if(!tbody) return;
             if (INVENTORY.length === 0) return tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 30px;">No items found.</td></tr>`;
 
-            let filteredItems = INVENTORY;
+            let filteredItems = [...INVENTORY]; // Clone to prevent sorting global memory
             if (pricingSearchQuery) filteredItems = filteredItems.filter(i => i.name.toLowerCase().includes(pricingSearchQuery) || i.code.toLowerCase().includes(pricingSearchQuery));
+            
+            // Execute Sort
+            if (pricingSortCol) {
+                filteredItems.sort((a, b) => {
+                    let valA, valB;
+                    if (pricingSortCol === 'code') { valA = a.code; valB = b.code; }
+                    else if (pricingSortCol === 'name') { valA = a.name; valB = b.name; }
+                    else if (pricingSortCol === 'on') { valA = a.has_slabs ? 1 : 0; valB = b.has_slabs ? 1 : 0; }
+                    
+                    if (valA < valB) return pricingSortAsc ? -1 : 1;
+                    if (valA > valB) return pricingSortAsc ? 1 : -1;
+                    return 0;
+                });
+            }
+
+            // Update Header Sort Icons visually
+            ['code', 'name', 'on'].forEach(c => {
+                const iconSpan = document.getElementById(`sort-${c}`);
+                if (iconSpan) {
+                    if (pricingSortCol === c) iconSpan.innerHTML = pricingSortAsc ? '<i class="fas fa-sort-up"></i>' : '<i class="fas fa-sort-down"></i>';
+                    else iconSpan.innerHTML = '<i class="fas fa-sort" style="opacity:0.3"></i>';
+                }
+            });
+
             if(filteredItems.length === 0) return tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding: 20px;">No matches found.</td></tr>`;
 
             tbody.innerHTML = filteredItems.map(item => {
-                const disabledAttr = item.has_slabs ? '' : 'disabled';
                 const opacityClass = item.has_slabs ? '' : 'dimmed-slab';
 
                 let slabsCellsHTML = '';
                 for(let i=0; i<4; i++) {
-                    const s = item.slabs[i] || { min: 0, max: 0, markup: 0 }; 
+                    const s = item.slabs[i]; 
+                    const isActive = s && (s.max > 0 || s.markup > 0 || s.min > 0);
+                    
+                    const minVal = isActive ? s.min : '';
+                    const maxVal = isActive ? (s.max >= 99999 ? '' : s.max) : '';
+                    const mVal = isActive ? Number(parseFloat(s.markup).toFixed(5)) : '';
+                    const ratePrev = isActive ? `₹${fmt(getRate(item.cost, s.markup))}` : '';
+                    const dangerClass = (isActive && mVal !== '' && parseFloat(mVal) < 1) ? 'low-margin' : '';
+
                     slabsCellsHTML += `
                     <td class="slab-cell ${opacityClass}">
                         <div class="slab-wrapper">
                             <div class="slab-row-top">
-                                <input type="number" id="s${i}-min-${item.code}" class="slab-input" value="${s.min}" ${disabledAttr} onfocus="this.select()">
-                                <input type="number" id="s${i}-max-${item.code}" class="slab-input" value="${s.max === 99999 ? '' : s.max}" placeholder="+" ${disabledAttr} onfocus="this.select()">
+                                <input type="number" id="s${i}-min-${item.code}" class="slab-input" value="${minVal}" onfocus="this.select()">
+                                <input type="number" id="s${i}-max-${item.code}" class="slab-input" value="${maxVal}" placeholder="+" onfocus="this.select()">
                             </div>
                             <div class="slab-row-bot">
-                                <input type="number" id="s${i}-m-${item.code}" class="slab-input" value="${s.markup}" oninput="previewRate(this.value, ${item.cost}, 'prv-s${i}-${item.code}')" ${disabledAttr} onfocus="this.select()">
+                                <input type="number" id="s${i}-m-${item.code}" class="slab-input ${dangerClass}" value="${mVal}" oninput="previewRate(this, ${item.cost}, 'prv-s${i}-${item.code}')" onfocus="this.select()">
                                 <div class="slab-divider"></div>
-                                <span class="slab-rate-prev" id="prv-s${i}-${item.code}">₹${fmt(getRate(item.cost, s.markup))}</span>
+                                <span class="slab-rate-prev" id="prv-s${i}-${item.code}">${ratePrev}</span>
                             </div>
                         </div>
                     </td>
@@ -2491,76 +2740,276 @@
                 }
 
                 return `
-                <tr>
+                <tr id="tr-${item.code}" class="locked-row">
                     <td class="pt-code">${item.code}</td>
                     <td class="pt-name-cell"><div class="pt-name" title="${item.name}">${item.name}</div></td>
                     <td style="text-align: center;">
-                        <label class="switch"><input type="checkbox" ${item.has_slabs ? 'checked' : ''} onchange="toggleSlabMode('${item.code}', this.checked)"><span class="slider"></span></label>
+                        <label class="switch"><input type="checkbox" id="switch-${item.code}" ${item.has_slabs ? 'checked' : ''} onchange="toggleDim('${item.code}', this.checked)"><span class="slider"></span></label>
                     </td>
                     <td class="pt-mrp">
                         ₹${fmt(item.mrp)}<br>
                         <div style="display:flex; justify-content:center; margin-top:4px;">
-                            <input type="number" id="s-caseqty-${item.code}" class="slab-input" style="width:40px; font-size:0.75rem; padding: 4px;" value="${item.caseQty}" onfocus="this.select()">
+                            <input type="number" id="s-caseqty-${item.code}" class="slab-input" style="width:40px; font-size:0.75rem; padding: 4px;" value="${item.caseQty || ''}" oninput="autoGenSlabs('${item.code}', this.value)" onfocus="this.select()">
                         </div>
                     </td>
-                    <td class="pt-cost">₹${fmt(item.cost)}</td>
+                    <td class="pt-cost">
+                        ₹${fmt(item.cost)}<br>
+                        <div style="margin-top: 6px; font-size: 0.8rem; font-weight: 800; color: ${
+                            (parseInt(item.stock) || 0) <= 0 ? 'var(--accent)' : 
+                            ((parseInt(item.stock) || 0) < (item.caseQty || 10)) ? '#B45309' : 
+                            'var(--success)'
+                        };">${parseInt(item.stock) || 0}</div>
+                    </td>
                     ${slabsCellsHTML}
                     <td style="text-align: center;">
-                        <button class="btn-save-row" onclick="saveMarkup('${item.code}', this)" title="Save to Cloud"><i class="fas fa-save"></i></button>
+                        <button class="btn-edit-row" id="btn-edit-${item.code}" onclick="unlockRow('${item.code}')" title="Edit Pricing"><i class="fas fa-edit"></i></button>
+                        <button class="btn-save-row hidden" id="btn-save-${item.code}" onclick="saveMarkup('${item.code}')" title="Save to Cloud"><i class="fas fa-save"></i></button>
                     </td>
                 </tr>
                 `;
             }).join('');
         }
 
-        function previewRate(markupVal, cost, elementId) { document.getElementById(elementId).innerText = `₹${fmt(getRate(cost, parseFloat(markupVal)||0))}`; }
+        function unlockRow(code) {
+            document.getElementById(`tr-${code}`).classList.remove('locked-row');
+            document.getElementById(`btn-edit-${code}`).classList.add('hidden');
+            document.getElementById(`btn-save-${code}`).classList.remove('hidden');
+        }
 
-        async function saveMarkup(code, btnElement) {
-            const item = INVENTORY.find(i => i.code === code);
-            const newCq = parseInt(document.getElementById(`s-caseqty-${code}`).value) || 0;
-            const cqChanged = newCq !== item.caseQty;
-            item.caseQty = newCq <= 0 ? null : newCq; 
+        function previewRate(inputEl, cost, elementId) { 
+            const val = parseFloat(inputEl.value);
+            document.getElementById(elementId).innerText = `₹${fmt(getRate(cost, val || 0))}`; 
             
-            if (!item.caseQty) item.has_slabs = false; 
+            if (inputEl.value !== '' && val < 1) inputEl.classList.add('low-margin');
+            else inputEl.classList.remove('low-margin');
+        }
+
+        function autoGenSlabs(code, qtyVal) {
+            const cq = parseInt(qtyVal) || 0;
+            if (cq <= 0) {
+                document.getElementById(`s0-min-${code}`).value = 0; document.getElementById(`s0-max-${code}`).value = 12;
+                document.getElementById(`s1-min-${code}`).value = 12; document.getElementById(`s1-max-${code}`).value = 50;
+                document.getElementById(`s2-min-${code}`).value = 50; document.getElementById(`s2-max-${code}`).value = 100;
+                document.getElementById(`s3-min-${code}`).value = 100; document.getElementById(`s3-max-${code}`).value = ""; // +
+                return;
+            }
+            const h = Math.floor(cq / 2) || 1;
+
+            // Instantly fill the inputs in the UI
+            if (cq > 50) {
+                document.getElementById(`s0-min-${code}`).value = 0; document.getElementById(`s0-max-${code}`).value = Math.min(12, h);
+                document.getElementById(`s1-min-${code}`).value = Math.min(12, h); document.getElementById(`s1-max-${code}`).value = h;
+                document.getElementById(`s2-min-${code}`).value = h; document.getElementById(`s2-max-${code}`).value = cq;
+                document.getElementById(`s3-min-${code}`).value = cq; document.getElementById(`s3-max-${code}`).value = ""; // +
+            } else {
+                document.getElementById(`s0-min-${code}`).value = 0; document.getElementById(`s0-max-${code}`).value = Math.min(12, cq);
+                document.getElementById(`s1-min-${code}`).value = Math.min(12, cq); document.getElementById(`s1-max-${code}`).value = cq;
+                document.getElementById(`s2-min-${code}`).value = cq; document.getElementById(`s2-max-${code}`).value = cq * 3;
+                document.getElementById(`s3-min-${code}`).value = cq * 3; document.getElementById(`s3-max-${code}`).value = ""; // +
+            }
+        }
+
+        async function saveMarkup(code) {
+            const btnElement = document.getElementById(`btn-save-${code}`);
+            btnElement.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+            
+            const item = INVENTORY.find(i => i.code === code);
+            const newCqStr = document.getElementById(`s-caseqty-${code}`).value;
+            const newCq = parseInt(newCqStr) || 0;
+            item.caseQty = newCq <= 0 ? null : newCq; 
+            item.has_slabs = document.getElementById(`switch-${code}`).checked;
 
             if (item.has_slabs) {
-                if (cqChanged && item.caseQty > 0) {
-                    if(item.caseQty > 50) {
-                        const half = Math.floor(item.caseQty / 2);
-                        item.slabs[0].min = 0; item.slabs[0].max = Math.min(12, half);
-                        item.slabs[1].min = Math.min(12, half); item.slabs[1].max = half;
-                        item.slabs[2].min = half; item.slabs[2].max = item.caseQty;
-                        item.slabs[3].min = item.caseQty; item.slabs[3].max = 99999;
-                    } else {
-                        item.slabs[0].min = 0; item.slabs[0].max = Math.min(12, item.caseQty);
-                        item.slabs[1].min = Math.min(12, item.caseQty); item.slabs[1].max = item.caseQty;
-                        item.slabs[2].min = item.caseQty; item.slabs[2].max = item.caseQty * 3;
-                        item.slabs[3].min = item.caseQty * 3; item.slabs[3].max = 99999;
-                    }
-                } else {
-                    for(let i=0; i<4; i++) {
-                        if(item.slabs[i]) {
-                            item.slabs[i].min = parseInt(document.getElementById(`s${i}-min-${code}`).value) || 0;
-                            let maxVal = document.getElementById(`s${i}-max-${code}`).value;
-                            item.slabs[i].max = maxVal === "" ? 99999 : parseInt(maxVal); 
-                            item.slabs[i].markup = parseFloat(document.getElementById(`s${i}-m-${code}`).value) || 0;
-                        }
+                let parsedSlabs = [];
+                let hasLowMargin = false;
+
+                for(let i=0; i<4; i++) {
+                    const minStr = document.getElementById(`s${i}-min-${code}`).value;
+                    const maxStr = document.getElementById(`s${i}-max-${code}`).value;
+                    const mStr = document.getElementById(`s${i}-m-${code}`).value;
+                    
+                    if (minStr === '' && maxStr === '' && mStr === '') continue; 
+                    
+                    const min = parseInt(minStr) || 0;
+                    const max = (maxStr === "" || maxStr === "+") ? 99999 : parseInt(maxStr);
+                    const markup = parseFloat(mStr) || 0;
+                    
+                    if (markup < 2) hasLowMargin = true;
+
+                    parsedSlabs.push({ min, max, markup });
+                    if (max >= 99999) break; 
+                }
+                
+                if (hasLowMargin) {
+                    const isConfirmed = await showConfirm(
+                        "Low Margin Warning", 
+                        "One or more slabs have a margin below 2%. Are you sure you want to save this pricing?", 
+                        "Save Anyway"
+                    );
+                    
+                    if (!isConfirmed) {
+                        btnElement.innerHTML = `<i class="fas fa-save"></i>`; // Reset button UI
+                        return; // Abort saving
                     }
                 }
+
+                if (parsedSlabs.length === 0) parsedSlabs.push({min:0, max:99999, markup:0});
+                item.slabs = parsedSlabs;
             }
 
             try {
                 const { error } = await sbClient.from('items').update({ caseQty: item.caseQty, has_slabs: item.has_slabs, slabs: item.slabs }).eq('code', code);
                 if(error) throw error;
-            } catch(e) { saveLocalState(); }
+            } catch(e) { 
+                alert("Could not reach cloud. Reverting.");
+                renderPricingTable();
+                return;
+            }
 
-            btnElement.innerHTML = `<i class="fas fa-check"></i>`; btnElement.style.background = "var(--brand)";
-            setTimeout(() => { btnElement.innerHTML = `<i class="fas fa-save"></i>`; btnElement.style.background = "var(--success)"; if (cqChanged || !item.caseQty) renderPricingTable(); }, 500);
+            // Lock row upon success
+            document.getElementById(`tr-${code}`).classList.add('locked-row');
+            document.getElementById(`btn-edit-${code}`).classList.remove('hidden');
+            document.getElementById(`btn-save-${code}`).classList.add('hidden');
+            
+            // Re-render to clean up UI (removes dropped slabs)
+            renderPricingTable();
+        }
+
+        async function bulkSaveMarkup() {
+            const headerBtn = document.getElementById('bulk-edit-header');
+            headerBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
+
+            const unlockedRows = document.querySelectorAll('#pricing-table-body tr:not(.locked-row)');
+            if (unlockedRows.length === 0) {
+                isBulkEditMode = false; headerBtn.innerHTML = `<i class="fas fa-unlock"></i>`; return;
+            }
+
+            let upsertData = [];
+            let lowMarginItems = [];
+
+            unlockedRows.forEach(row => {
+                const code = row.id.replace('tr-', '');
+                const item = INVENTORY.find(i => i.code === code);
+                if (!item) return;
+
+                let updatedItem = { ...item };
+                const newCqStr = document.getElementById(`s-caseqty-${code}`).value;
+                updatedItem.caseQty = (parseInt(newCqStr) || 0) <= 0 ? null : parseInt(newCqStr); 
+                updatedItem.has_slabs = document.getElementById(`switch-${code}`).checked;
+
+                if (updatedItem.has_slabs) {
+                    let parsedSlabs = [];
+                    let hasLowMargin = false;
+                    let m1, m2, m3, m4;
+
+                    for(let i=0; i<4; i++) {
+                        const minStr = document.getElementById(`s${i}-min-${code}`).value;
+                        const maxStr = document.getElementById(`s${i}-max-${code}`).value;
+                        const mStr = document.getElementById(`s${i}-m-${code}`).value;
+                        
+                        if (minStr === '' && maxStr === '' && mStr === '') continue; 
+                        
+                        const min = parseInt(minStr) || 0;
+                        const max = (maxStr === "" || maxStr === "+") ? 99999 : parseInt(maxStr);
+                        const markup = parseFloat(mStr) || 0;
+                        
+                        if (markup < 2) hasLowMargin = true;
+                        if(i===0) m1 = markup; if(i===1) m2 = markup; if(i===2) m3 = markup; if(i===3) m4 = markup;
+
+                        parsedSlabs.push({ min, max, markup });
+                        if (max >= 99999) break; 
+                    }
+                    
+                    if (parsedSlabs.length === 0) parsedSlabs.push({min:0, max:99999, markup:0});
+                    updatedItem.slabs = parsedSlabs;
+
+                    if (hasLowMargin) lowMarginItems.push({ code: code, m1, m2, m3, m4 });
+                }
+                upsertData.push(updatedItem);
+            });
+
+            if (lowMarginItems.length > 0) {
+                let tableRows = lowMarginItems.map(i => {
+                    const fmtCell = (val) => (val === undefined || isNaN(val)) ? '-' : (val < 2 ? `<span style="color:var(--accent); font-weight:800;">${val}%</span>` : `${val}%`);
+                    return `<tr>
+                        <td style="padding:6px; border-bottom:1px solid var(--border); font-weight:700;">${i.code}</td>
+                        <td style="padding:6px; border-bottom:1px solid var(--border);">${fmtCell(i.m1)}</td>
+                        <td style="padding:6px; border-bottom:1px solid var(--border);">${fmtCell(i.m2)}</td>
+                        <td style="padding:6px; border-bottom:1px solid var(--border);">${fmtCell(i.m3)}</td>
+                        <td style="padding:6px; border-bottom:1px solid var(--border);">${fmtCell(i.m4)}</td>
+                    </tr>`;
+                }).join('');
+
+                const previewHTML = `
+                    <div style="text-align:left; margin-bottom: 10px;">You are saving ${upsertData.length} items. <b>${lowMarginItems.length}</b> have slabs below 2% margin:</div>
+                    <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 15px;">
+                        <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: center;">
+                            <thead style="background: var(--bg); position: sticky; top: 0;">
+                                <tr>
+                                    <th style="padding:6px; border-bottom:1px solid var(--border);">Code</th>
+                                    <th style="padding:6px; border-bottom:1px solid var(--border);">S1</th>
+                                    <th style="padding:6px; border-bottom:1px solid var(--border);">S2</th>
+                                    <th style="padding:6px; border-bottom:1px solid var(--border);">S3</th>
+                                    <th style="padding:6px; border-bottom:1px solid var(--border);">S4</th>
+                                </tr>
+                            </thead>
+                            <tbody>${tableRows}</tbody>
+                        </table>
+                    </div>
+                    <div style="text-align:left; font-size:0.85rem; font-weight:600;">Proceed and save?</div>`;
+
+                const isConfirmed = await showConfirm("Low Margin Warning", previewHTML, "Save Anyway");
+                if (!isConfirmed) {
+                    headerBtn.innerHTML = `<i class="fas fa-save" style="color:var(--success);"></i>`;
+                    return; 
+                }
+            }
+
+            try {
+                const { error } = await sbClient.from('items').upsert(upsertData);
+                if(error) throw error;
+                showSuccess(`Successfully saved ${upsertData.length} items!`);
+                await fetchDataFromSupabase(); 
+            } catch(err) {
+                showConfirm("Save Failed", "Could not reach the cloud.", "OK");
+            }
+            renderPricingTable();
         }
 
         /* --- BULK CSV ACTIONS --- */
         function downloadItemSampleCSV() { downloadBlob("code,name,cost,mrp,price2,has_slabs\nITM01,Maggi 2-Min Noodles,10.25,14,12.50,true\nITM02,Coca Cola PET,70,95,85,false", "items_master_template.csv"); }
         function downloadMarginSampleCSV() { downloadBlob("code,s1_markup,s2_markup,s3_markup,s4_markup,caseQty\nITM01,25,12,8,5,24\nITM02,21.4,11.4,8.5,5,9", "margins_template.csv"); }
+
+        function exportPricingTableExcel() {
+            if (INVENTORY.length === 0) return;
+            
+            let exportData = [
+                ["Item Code", "Item Name", "Slab Status", "MRP", "Cost", "Stock", "Slab 1 Rate", "Slab 1 Margin (%)", "Slab 2 Rate", "Slab 2 Margin (%)", "Slab 3 Rate", "Slab 3 Margin (%)", "Slab 4 Rate", "Slab 4 Margin (%)"]
+            ];
+            
+            INVENTORY.forEach(item => {
+                const slabStatus = item.has_slabs ? "ON" : "OFF";
+                let row = [ item.code, item.name, slabStatus, item.mrp, item.cost, item.stock ];
+                
+                for (let i = 0; i < 4; i++) {
+                    if (item.has_slabs && item.slabs && item.slabs[i]) {
+                        const rate = fmt(getRate(item.cost, item.slabs[i].markup));
+                        row.push(rate > 0 ? rate : "", item.slabs[i].markup > 0 ? item.slabs[i].markup : "");
+                    } else {
+                        row.push("", "");
+                    }
+                }
+                exportData.push(row);
+            });
+            
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.aoa_to_sheet(exportData);
+            XLSX.utils.book_append_sheet(wb, ws, "Master_DB");
+            
+            const d = new Date();
+            const dateStr = `${String(d.getDate()).padStart(2, '0')}-${String(d.getMonth()+1).padStart(2, '0')}-${d.getFullYear()}`;
+            XLSX.writeFile(wb, `Pricing_Master_${dateStr}.xls`, { bookType: 'biff8' });
+        }
 
         function downloadBlob(content, filename) {
             const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
@@ -2580,17 +3029,25 @@
                         const code = cols[0].trim();
                         const ts = cols[5].trim().toLowerCase();
                         const has_slabs = (ts === 'true' || ts === '1' || ts === 'yes');
-                        let newItem = { code, name: cols[1].trim(), category: "All", cost: parseFloat(cols[2])||0, mrp: parseFloat(cols[3])||0, price2: parseFloat(cols[4])||0, has_slabs, stock: 0 };
+                        let newItem = { code, name: cols[1].trim(), category: "All", cost: parseFloat(cols[2])||0, mrp: parseFloat(cols[3])||0, price2: parseFloat(cols[4])||0, price3: 0, price4: 0, has_slabs, stock: 0 };
                         let existing = INVENTORY.find(inv => inv.code === code);
-                        if(existing) { newItem.slabs = existing.slabs; newItem.caseQty = existing.caseQty; newItem.stock = existing.stock; } 
-                        else { newItem.caseQty = null; newItem.slabs = [{min:0,max:0,markup:0}, {min:0,max:0,markup:0}, {min:0,max:0,markup:0}, {min:0,max:99999,markup:0}]; }
+                        if(existing) { 
+                            newItem.slabs = existing.slabs; newItem.caseQty = existing.caseQty; newItem.stock = existing.stock; 
+                            newItem.price3 = existing.price3; newItem.price4 = existing.price4;
+                        } else { 
+                            newItem.caseQty = null; newItem.slabs = [{min:0,max:99999,markup:0}]; 
+                        }
                         upsertData.push(newItem);
                     }
                 }
                 try {
                     const { error } = await sbClient.from('items').upsert(upsertData);
-                    if(error) throw error; alert(`Synced ${upsertData.length} items to cloud.`); await fetchDataFromSupabase(); 
-                } catch(err) { alert("Offline mode simulated upload."); INVENTORY = upsertData; saveLocalState(); }
+                    if(error) throw error; 
+                    showSuccess(`Successfully synced ${upsertData.length} items to the cloud!`); 
+                    await fetchDataFromSupabase(); 
+                } catch(err) { 
+                    showConfirm("Upload Failed", "Could not reach the cloud. Please check your internet connection.", "OK");
+                }
                 renderPricingTable(); document.getElementById('csv-upload-items').value = ""; 
             }; reader.readAsText(file);
         }
@@ -2599,7 +3056,10 @@
             const file = event.target.files[0]; if (!file) return;
             const reader = new FileReader();
             reader.onload = async function(e) {
-                const rows = e.target.result.split('\n'); let upsertData = [];
+                const rows = e.target.result.split('\n'); 
+                let upsertData = [];
+                let lowMarginItems = []; // Track dangerous margins
+
                 for (let i = 1; i < rows.length; i++) {
                     if (!rows[i].trim()) continue;
                     const cols = rows[i].split(',');
@@ -2607,32 +3067,118 @@
                         const code = cols[0].trim(); const cq = parseInt(cols[5]);
                         const item = INVENTORY.find(inv => inv.code === code);
                         if (item) {
-                            if(!isNaN(cq) && cq > 0) {
-                                item.caseQty = cq; item.has_slabs = true;
-                                if (cq > 50) {
-                                    const h = Math.floor(cq / 2);
-                                    item.slabs[0].min = 0; item.slabs[0].max = Math.min(12, h);
-                                    item.slabs[1].min = Math.min(12, h); item.slabs[1].max = h;
-                                    item.slabs[2].min = h; item.slabs[2].max = cq;
-                                    item.slabs[3].min = cq; item.slabs[3].max = 99999;
+                            const m1 = parseFloat(cols[1]); const m2 = parseFloat(cols[2]);
+                            const m3 = parseFloat(cols[3]); const m4 = parseFloat(cols[4]);
+
+                            let parsedSlabs = [];
+                            let hasLowMargin = false;
+
+                            if (!isNaN(m1)) { parsedSlabs.push({ min: 0, max: 12, markup: m1 }); if (m1 < 2) hasLowMargin = true; }
+                            if (!isNaN(m2)) { parsedSlabs.push({ min: 12, max: 50, markup: m2 }); if (m2 < 2) hasLowMargin = true; }
+                            if (!isNaN(m3)) { parsedSlabs.push({ min: 50, max: 100, markup: m3 }); if (m3 < 2) hasLowMargin = true; }
+                            if (!isNaN(m4)) { parsedSlabs.push({ min: 100, max: 99999, markup: m4 }); if (m4 < 2) hasLowMargin = true; }
+
+                            if (parsedSlabs.length > 0) {
+                                parsedSlabs[parsedSlabs.length - 1].max = 99999; // Cap the final slab
+                                item.has_slabs = true;
+                                item.slabs = parsedSlabs;
+                                
+                                // Store the actual values so we can draw them in the table
+                                if (hasLowMargin) lowMarginItems.push({ code: item.code, m1, m2, m3, m4 });
+
+                                if (!isNaN(cq) && cq > 0) {
+                                    item.caseQty = cq;
+                                    const h = Math.floor(cq / 2) || 1;
+                                    
+                                    if (parsedSlabs.length === 2) {
+                                        item.slabs[0].min = 0; item.slabs[0].max = h;
+                                        item.slabs[1].min = h; item.slabs[1].max = 99999;
+                                    } else if (parsedSlabs.length === 3) {
+                                        item.slabs[0].min = 0; item.slabs[0].max = h;
+                                        item.slabs[1].min = h; item.slabs[1].max = cq;
+                                        item.slabs[2].min = cq; item.slabs[2].max = 99999;
+                                    } else if (parsedSlabs.length >= 4) {
+                                        if (cq > 50) {
+                                            item.slabs[0].min = 0; item.slabs[0].max = Math.min(12, h);
+                                            item.slabs[1].min = Math.min(12, h); item.slabs[1].max = h;
+                                            item.slabs[2].min = h; item.slabs[2].max = cq;
+                                            item.slabs[3].min = cq; item.slabs[3].max = 99999;
+                                        } else {
+                                            item.slabs[0].min = 0; item.slabs[0].max = Math.min(12, cq);
+                                            item.slabs[1].min = Math.min(12, cq); item.slabs[1].max = cq;
+                                            item.slabs[2].min = cq; item.slabs[2].max = cq * 3;
+                                            item.slabs[3].min = cq * 3; item.slabs[3].max = 99999;
+                                        }
+                                    }
                                 } else {
-                                    item.slabs[0].min = 0; item.slabs[0].max = Math.min(12, cq);
-                                    item.slabs[1].min = Math.min(12, cq); item.slabs[1].max = cq;
-                                    item.slabs[2].min = cq; item.slabs[2].max = cq * 3;
-                                    item.slabs[3].min = cq * 3; item.slabs[3].max = 99999;
+                                    item.caseQty = null;
                                 }
-                            } else { item.caseQty = null; item.has_slabs = false; }
-                            item.slabs[0].markup = parseFloat(cols[1]) || 0; item.slabs[1].markup = parseFloat(cols[2]) || 0;
-                            item.slabs[2].markup = parseFloat(cols[3]) || 0; item.slabs[3].markup = parseFloat(cols[4]) || 0;
+                            } else {
+                                item.has_slabs = false;
+                                item.caseQty = null;
+                            }
                             upsertData.push(item); 
                         }
                     }
                 }
+
+                // Show visual table preview if any items are dangerous
+                if (lowMarginItems.length > 0) {
+                    let tableRows = lowMarginItems.map(i => {
+                        const fmtCell = (val) => {
+                            if (isNaN(val)) return '-';
+                            return val < 2 ? `<span style="color:var(--accent); font-weight:800;">${val}%</span>` : `${val}%`;
+                        };
+                        return `<tr>
+                            <td style="padding:6px; border-bottom:1px solid var(--border); font-weight:700;">${i.code}</td>
+                            <td style="padding:6px; border-bottom:1px solid var(--border);">${fmtCell(i.m1)}</td>
+                            <td style="padding:6px; border-bottom:1px solid var(--border);">${fmtCell(i.m2)}</td>
+                            <td style="padding:6px; border-bottom:1px solid var(--border);">${fmtCell(i.m3)}</td>
+                            <td style="padding:6px; border-bottom:1px solid var(--border);">${fmtCell(i.m4)}</td>
+                        </tr>`;
+                    }).join('');
+
+                    const previewHTML = `
+                        <div style="text-align:left; margin-bottom: 10px;">
+                            You are uploading ${upsertData.length} items. <b>${lowMarginItems.length}</b> have slabs below 2% margin:
+                        </div>
+                        <div style="max-height: 200px; overflow-y: auto; border: 1px solid var(--border); border-radius: 6px; margin-bottom: 15px;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem; text-align: center;">
+                                <thead style="background: var(--bg); position: sticky; top: 0;">
+                                    <tr>
+                                        <th style="padding:6px; border-bottom:1px solid var(--border);">Code</th>
+                                        <th style="padding:6px; border-bottom:1px solid var(--border);">S1</th>
+                                        <th style="padding:6px; border-bottom:1px solid var(--border);">S2</th>
+                                        <th style="padding:6px; border-bottom:1px solid var(--border);">S3</th>
+                                        <th style="padding:6px; border-bottom:1px solid var(--border);">S4</th>
+                                    </tr>
+                                </thead>
+                                <tbody>${tableRows}</tbody>
+                            </table>
+                        </div>
+                        <div style="text-align:left; font-size:0.85rem; font-weight:600;">Do you want to proceed and overwrite the pricing?</div>
+                    `;
+
+                    const isConfirmed = await showConfirm("Low Margin Warning", previewHTML, "Upload Anyway");
+
+                    if (!isConfirmed) {
+                        document.getElementById('csv-upload-margins').value = "";
+                        return; // Abort the upload
+                    }
+                }
+
+                // Proceed with upload
                 try {
                     const { error } = await sbClient.from('items').upsert(upsertData);
-                    if(error) throw error; alert(`Updated margins for ${upsertData.length} items in cloud.`); await fetchDataFromSupabase();
-                } catch(err) { alert("Offline mode simulated update."); saveLocalState(); }
-                renderPricingTable(); document.getElementById('csv-upload-margins').value = ""; 
+                    if(error) throw error; 
+                    showSuccess(`Successfully updated margins for ${upsertData.length} items in the cloud!`); 
+                    await fetchDataFromSupabase();
+                } catch(err) { 
+                    showConfirm("Upload Failed", "Could not reach the cloud. Please check your internet connection.", "OK"); 
+                }
+                
+                renderPricingTable(); 
+                document.getElementById('csv-upload-margins').value = ""; 
             }; reader.readAsText(file);
         }
     </script>
