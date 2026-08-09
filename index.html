@@ -189,7 +189,7 @@
         .pack-chk.success { accent-color: var(--success); }
         .pack-sl { font-weight: 700; color: var(--text-mut); width: 20px; font-size: 0.8rem; text-align: center;}
         .pack-info { flex: 1; min-width: 0; }
-        .pack-title { font-weight: 600; font-size: 0.85rem; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 4px; }
+        .pack-title { font-weight: 600; font-size: 0.85rem; color: var(--text); line-height: 1.3; margin-bottom: 4px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; }
         .pack-qty { font-weight: 800; color: var(--brand); font-size: 0.95rem; }
         .pack-meta { font-size: 0.7rem; color: var(--text-mut); margin-left: 6px;}
         .pack-mrp { display: inline-flex; align-items: center; gap: 4px; background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 0.75rem; border: 1px solid var(--border); cursor: pointer;}
@@ -336,7 +336,7 @@
     <!-- CONFIRM MODAL -->
     <div id="confirm-modal" class="modal-overlay hidden" style="z-index: 4000;">
         <div class="modal-content" style="max-width: 320px; text-align: center; padding: 24px 20px;">
-            <div style="font-size: 3.5rem; color: var(--warning); margin-bottom: 15px;"><i class="fas fa-exclamation-triangle"></i></div>
+            <div id="confirm-icon" style="font-size: 3.5rem; color: var(--warning); margin-bottom: 15px;"><i class="fas fa-exclamation-triangle"></i></div>
             <h3 style="margin-bottom: 10px; color: var(--text); font-size: 1.2rem;" id="confirm-modal-title">Confirm</h3>
             <p id="confirm-modal-msg" style="font-size: 0.9rem; color: var(--text-mut); margin-bottom: 25px; line-height: 1.4;"></p>
             <div style="display: flex; gap: 10px;">
@@ -345,6 +345,18 @@
             </div>
         </div>
     </div>
+
+    <!-- WARNING MODAL -->
+    <div id="warning-modal" class="modal-overlay hidden" style="z-index: 4100;">
+        <div class="modal-content" style="max-width: 300px; text-align: center; padding: 24px 20px;">
+            <div style="font-size: 3.5rem; color: var(--warning); margin-bottom: 15px;"><i class="fas fa-exclamation-triangle"></i></div>
+            <h3 style="margin-bottom: 10px; color: var(--text); font-size: 1.2rem;" id="warning-modal-title">Warning</h3>
+            <p id="warning-modal-msg" style="font-size: 0.9rem; color: var(--text-mut); margin-bottom: 25px; line-height: 1.4;"></p>
+            <button onclick="closeModal('warning-modal')" style="width: 100%; background: var(--warning); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 1rem;">OK</button>
+        </div>
+    </div>
+
+    <!-- SHARED MODALS -->
     <div id="add-item-modal" class="modal-overlay hidden">
         <div class="modal-content" style="max-width: 500px; height: 90vh;">
             <div class="modal-header">
@@ -388,6 +400,17 @@
         </div>
 
         <div id="view-collection" class="tab-content hidden salesman-view">
+            <div style="background: white; border-bottom: 1px solid var(--border); padding: 12px; cursor: pointer;" onclick="openSalesmanColHistory()">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <span style="font-weight: 800; font-size: 0.95rem; color: var(--text);">Today's Collection</span>
+                    <span style="font-weight: 800; font-size: 1.1rem; color: var(--success);" id="col-today-total">₹0</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-mut); font-weight: 600;">
+                    <span>Cash: <span id="col-today-cash" style="color: var(--text);">₹0</span></span>
+                    <span>UPI: <span id="col-today-upi" style="color: var(--text);">₹0</span></span>
+                    <span style="color: var(--brand);">View Details <i class="fas fa-chevron-right" style="margin-left: 4px;"></i></span>
+                </div>
+            </div>
             <div class="search-bar" style="border-bottom: none;">
                 <i class="fas fa-search" style="color:var(--text-mut);"></i>
                 <input type="text" placeholder="Search customer name or code..." id="col-search-input" oninput="handleCollectionSearch(this.value)">
@@ -609,6 +632,29 @@
         </div>
     </div>
 
+    <!-- SALESMAN: COLLECTION HISTORY VIEW -->
+    <div id="salesman-col-history-view" class="order-view hidden">
+        <div class="ov-head">
+            <i class="fas fa-arrow-left" onclick="exitSalesmanColHistory()" style="cursor:pointer; padding:4px;"></i>
+            <div class="ov-center">
+                <div class="ov-title">Collection History</div>
+            </div>
+            <i class="fas fa-check" style="color: transparent;"></i> <!-- Spacer -->
+        </div>
+        <div class="hist-top" style="border-bottom: none;">
+            <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
+            <input type="date" id="sm-col-date-filter" onchange="renderSalesmanColHistory()">
+        </div>
+        <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB; border-top: 1px solid var(--border);">
+            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-mut);">Cash: <span id="sm-col-hist-cash" style="color:var(--text);">₹0</span></span>
+            <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-mut);">UPI: <span id="sm-col-hist-upi" style="color:var(--text);">₹0</span></span>
+            <span style="font-size: 0.9rem; font-weight: 800; color: var(--success);">Total: <span id="sm-col-hist-total">₹0</span></span>
+        </div>
+        <div class="scroll-area" style="background: var(--bg); padding: 12px;" id="sm-col-hist-list">
+            <!-- Injected via JS -->
+        </div>
+    </div>
+
     <!-- SALESMAN: HISTORY DETAIL VIEW -->
     <div id="salesman-history-detail-view" class="order-view hidden">
         <div class="ov-head">
@@ -709,6 +755,7 @@
         let userSession = null;
         let INVENTORY = [];
         let CUSTOMERS = [];
+        let PROFILES = []; // Used to map Salesman UUIDs to real names
         let SUBMITTED_ORDERS = []; 
         let MY_ORDERS = []; 
         let MY_COLLECTIONS = []; 
@@ -839,6 +886,10 @@
 
         async function fetchDataFromSupabase() {
             try {
+                // Fetch profiles globally to map names cleanly
+                const { data: profData } = await sbClient.from('profiles').select('*');
+                if (profData) PROFILES = profData;
+
                 const { data: itemsData, error: itemsError } = await sbClient.from('items').select('*');
                 if (itemsError) alert("Supabase DB Blocked (Items): " + itemsError.message);
 
@@ -990,11 +1041,31 @@
             document.getElementById('success-modal').classList.remove('hidden');
         }
 
-        function showConfirm(title, msgHTML, confirmText = "Yes") {
+        function showWarning(title, msgHTML) {
+            document.getElementById('warning-modal-title').innerText = title;
+            document.getElementById('warning-modal-msg').innerHTML = msgHTML;
+            document.getElementById('warning-modal').classList.remove('hidden');
+        }
+
+        function showConfirm(title, msgHTML, confirmText = "Yes", isSuccessType = false) {
             return new Promise((resolve) => {
                 document.getElementById('confirm-modal-title').innerText = title;
-                document.getElementById('confirm-modal-msg').innerHTML = msgHTML; // Changed to innerHTML to support tables
-                document.getElementById('confirm-btn-ok').innerText = confirmText;
+                document.getElementById('confirm-modal-msg').innerHTML = msgHTML; 
+                
+                const btnOk = document.getElementById('confirm-btn-ok');
+                const icon = document.getElementById('confirm-icon');
+                
+                btnOk.innerText = confirmText;
+
+                if (isSuccessType) {
+                    btnOk.style.background = 'var(--success)';
+                    icon.style.color = 'var(--success)';
+                    icon.innerHTML = '<i class="fas fa-box"></i>';
+                } else {
+                    btnOk.style.background = 'var(--warning)';
+                    icon.style.color = 'var(--warning)';
+                    icon.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+                }
                 
                 document.getElementById('confirm-modal').classList.remove('hidden');
 
@@ -1002,7 +1073,7 @@
                     document.getElementById('confirm-modal').classList.add('hidden');
                     resolve(false);
                 };
-                document.getElementById('confirm-btn-ok').onclick = () => {
+                btnOk.onclick = () => {
                     document.getElementById('confirm-modal').classList.add('hidden');
                     resolve(true);
                 };
@@ -1671,14 +1742,9 @@
             if(!feed) return;
             const filterDate = document.getElementById('salesman-date-filter').value;
             
-            const combinedHistory = [
-                ...MY_ORDERS.map(o => ({ ...o, type: 'order' })),
-                ...MY_COLLECTIONS.map(c => ({ ...c, type: 'collection' }))
-            ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-            let filtered = combinedHistory;
+            let filtered = MY_ORDERS;
             if (filterDate) {
-                filtered = combinedHistory.filter(item => {
+                filtered = filtered.filter(item => {
                     const d = new Date(item.created_at);
                     const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
                     return localDate === filterDate;
@@ -1686,52 +1752,36 @@
             }
             
             if (filtered.length === 0) {
-                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No activity found for this date.</div>`;
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No orders found for this date.</div>`;
                 return;
             }
 
             feed.innerHTML = filtered.map(item => {
                 const custName = CUSTOMERS.find(c => c.code === item.customer_code)?.name || item.customer_code;
                 
-                if (item.type === 'order') {
-                    const isPacked = item.status === 'Packed';
-                    const isBilled = item.status === 'Billed';
-                    let statusColor = 'var(--warning)';
-                    if(isPacked) statusColor = 'var(--success)';
-                    if(isBilled) statusColor = '#1E3A8A'; // Dark Blue for Billed
-                    
-                    const displayStatus = item.status || 'Placed';
+                const isPacked = item.status === 'Packed';
+                const isBilled = item.status === 'Billed';
+                let statusColor = 'var(--warning)';
+                if(isPacked) statusColor = 'var(--success)';
+                if(isBilled) statusColor = '#1E3A8A'; 
+                
+                const displayStatus = item.status || 'Placed';
 
-                    return `
-                    <div onclick="openSalesmanHistoryDetail('${item.id}')" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; overflow:hidden; cursor: pointer;">
-                        <div style="flex:1; min-width:0; padding-right: 10px;">
-                            <b style="color:var(--text); font-size: 0.95rem;">${item.id}</b> <span style="background:var(--brand-light); color:var(--brand); font-size:0.6rem; padding: 2px 4px; border-radius:4px; font-weight:700; margin-left:4px;">ORDER</span><br>
-                            <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${custName}</div>
-                        </div>
-                        <div style="text-align: right; flex-shrink:0;">
-                            <b style="color:var(--brand)">₹${fmt(item.total_amount)}</b><br>
-                            <small style="color:${statusColor}; font-weight: 700;">${displayStatus}</small>
+                return `
+                <div onclick="openSalesmanHistoryDetail('${item.id}')" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; overflow:hidden; cursor: pointer;">
+                    <div style="flex:1; min-width:0; padding-right: 10px;">
+                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
+                        <div style="font-size: 0.75rem; color:var(--text-mut); display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                            <span style="font-weight: 700; color: var(--brand);"><i class="fas fa-receipt" style="margin-right:2px;"></i>${item.id}</span>
+                            <span style="background:var(--brand-light); color:var(--brand); font-size:0.6rem; padding: 2px 4px; border-radius:4px; font-weight:700;">ORDER</span>
                         </div>
                     </div>
-                    `;
-                } else {
-                    let breakdown = [];
-                    if (item.amount_cash > 0) breakdown.push(`Cash: ₹${item.amount_cash}`);
-                    if (item.amount_gpay > 0) breakdown.push(`GPay: ₹${item.amount_gpay}`);
-                    
-                    return `
-                    <div style="background: #F0FDF4; padding: 12px; border-radius: 6px; border: 1px solid #BBF7D0; display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; overflow:hidden;">
-                        <div style="flex:1; min-width:0; padding-right: 10px;">
-                            <b style="color:var(--success); font-size: 0.95rem;">${item.id}</b> <span style="background:#DCFCE7; color:var(--success); font-size:0.6rem; padding: 2px 4px; border-radius:4px; font-weight:700; margin-left:4px;">PAYMENT</span><br>
-                            <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${custName}</div>
-                        </div>
-                        <div style="text-align: right; flex-shrink:0;">
-                            <b style="color:var(--success)">₹${fmt(item.total_amount)}</b><br>
-                            <small style="color:var(--success); font-weight: 600; font-size:0.7rem;">${breakdown.join(' | ')}</small>
-                        </div>
+                    <div style="text-align: right; flex-shrink:0;">
+                        <b style="color:var(--brand)">₹${fmt(item.total_amount)}</b><br>
+                        <small style="color:${statusColor}; font-weight: 700;">${displayStatus}</small>
                     </div>
-                    `;
-                }
+                </div>
+                `;
             }).join('');
         }
 
@@ -1801,7 +1851,85 @@
 
         function handleCollectionSearch(val) { colSearchQuery = val.toLowerCase(); renderCollectionCustomers(); }
 
+        function updateTodayCollectionTile() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            let tCash = 0, tUpi = 0, tTotal = 0;
+
+            MY_COLLECTIONS.forEach(c => {
+                const d = new Date(c.created_at);
+                const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                if (localDate === todayStr) {
+                    tCash += c.amount_cash;
+                    tUpi += c.amount_gpay;
+                    tTotal += c.total_amount;
+                }
+            });
+
+            const elTotal = document.getElementById('col-today-total');
+            if (elTotal) {
+                elTotal.innerText = `₹${fmt(tTotal)}`;
+                document.getElementById('col-today-cash').innerText = `₹${fmt(tCash)}`;
+                document.getElementById('col-today-upi').innerText = `₹${fmt(tUpi)}`;
+            }
+        }
+
+        function openSalesmanColHistory() {
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('sm-col-date-filter').value = today;
+            renderSalesmanColHistory();
+            document.getElementById('salesman-col-history-view').classList.remove('hidden');
+        }
+
+        function exitSalesmanColHistory() {
+            document.getElementById('salesman-col-history-view').classList.add('hidden');
+        }
+
+        function renderSalesmanColHistory() {
+            const filterDate = document.getElementById('sm-col-date-filter').value;
+            const list = document.getElementById('sm-col-hist-list');
+            
+            let filtered = MY_COLLECTIONS.filter(c => {
+                const d = new Date(c.created_at);
+                const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                return localDate === filterDate;
+            });
+
+            let tCash = 0, tUpi = 0, tTotal = 0;
+
+            if (filtered.length === 0) {
+                list.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No collections found for this date.</div>`;
+            } else {
+                list.innerHTML = filtered.map(item => {
+                    const custName = CUSTOMERS.find(c => c.code === item.customer_code)?.name || item.customer_code;
+                    tCash += item.amount_cash;
+                    tUpi += item.amount_gpay;
+                    tTotal += item.total_amount;
+
+                    let breakdown = [];
+                    if (item.amount_cash > 0) breakdown.push(`Cash: ₹${item.amount_cash}`);
+                    if (item.amount_gpay > 0) breakdown.push(`UPI: ₹${item.amount_gpay}`);
+                    
+                    return `
+                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="flex:1; min-width:0; padding-right: 10px;">
+                            <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 4px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
+                            <div style="font-size: 0.75rem; color:var(--text-mut); font-weight: 700;">${item.id}</div>
+                        </div>
+                        <div style="text-align: right; flex-shrink:0;">
+                            <b style="color:var(--success); font-size: 1.05rem;">₹${fmt(item.total_amount)}</b><br>
+                            <small style="color:var(--text-mut); font-weight: 600; font-size:0.75rem;">${breakdown.join(' | ')}</small>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+
+            document.getElementById('sm-col-hist-cash').innerText = `₹${fmt(tCash)}`;
+            document.getElementById('sm-col-hist-upi').innerText = `₹${fmt(tUpi)}`;
+            document.getElementById('sm-col-hist-total').innerText = `₹${fmt(tTotal)}`;
+        }
+
         function renderCollectionCustomers() {
+            updateTodayCollectionTile(); // Ensure the top tile is always updated when you open the tab
             const list = document.getElementById('collection-cust-list');
             if(!list) return;
 
@@ -1887,6 +2015,7 @@
                 
                 MY_COLLECTIONS.unshift(payload);
                 closeModal('collection-modal');
+                updateTodayCollectionTile();
                 showSuccess(`Payment of ₹${total} synced to Cloud for ${currentColCust.name}!`);
                 
             } catch(e) {
@@ -1907,25 +2036,40 @@
 
             feed.innerHTML = filtered.map(order => {
                 const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
-                const activeBadge = (currentPackOrder && currentPackOrder.id === order.id) ? `<span style="background:var(--warning); color:white; padding:2px 6px; border-radius:10px; font-size:0.65rem; margin-left:6px; vertical-align:middle;"><i class="fas fa-box-open"></i> Active</span>` : '';
+                const activeBadge = (currentPackOrder && currentPackOrder.id === order.id) ? `<i class="fas fa-box-open" style="color:var(--warning); font-size:0.9rem;" title="Active"></i>` : '';
                 const btnText = (currentPackOrder && currentPackOrder.id === order.id) ? "Resume" : "Start Packing";
+                
+                // Resolve Salesman Name from Profiles DB
+                let smName = "Unknown";
+                if (order.salesman_id === "local_dev") smName = "Dev Salesman";
+                else {
+                    const prof = PROFILES.find(p => p.id === order.salesman_id);
+                    if (prof && prof.full_name) smName = prof.full_name.split(' ')[0]; // Use first name for space
+                    else smName = "ID: " + (order.salesman_id || "").substring(0, 4).toUpperCase();
+                }
 
                 return `
-                <div class="order-card">
+                <div class="order-card" style="align-items: center;">
                     <div style="flex:1; min-width:0; padding-right: 10px;">
-                        <b style="font-size: 1.05rem; color:var(--text);">${order.id} ${activeBadge}</b><br>
-                        <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${custName}</div>
+                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
+                        <div style="font-size: 0.75rem; color:var(--text-mut); display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                            <span style="font-weight: 700; color: var(--brand);"><i class="fas fa-receipt" style="margin-right:2px;"></i>${order.id}</span>
+                            <span style="opacity: 0.4;">•</span>
+                            <span><i class="fas fa-user-tie" style="margin-right:2px;"></i>${smName}</span>
+                            ${activeBadge}
+                        </div>
                     </div>
-                    <button class="btn-take-order" style="flex-shrink:0;" onclick="openPackingDetail('${order.id}')">${btnText}</button>
+                    <button class="btn-take-order" style="flex-shrink:0; font-size:0.75rem; padding: 6px 10px;" onclick="openPackingDetail('${order.id}')">${btnText}</button>
                 </div>
             `;
             }).join(''); 
         }
 
-        function openPackingDetail(orderId) {
-            // Warn if switching active orders
+        async function openPackingDetail(orderId) {
+            // Warn if switching active orders using Modern Modal
             if (currentPackOrder && currentPackOrder.id !== orderId) {
-                if(!confirm(`You are currently packing ${currentPackOrder.id}. Discard that progress to open ${orderId}?`)) return;
+                const isConfirmed = await showConfirm("Discard Progress?", `You are currently packing <b>${currentPackOrder.id}</b>.<br><br>Discard that progress to open ${orderId}?`, "Yes, Discard");
+                if(!isConfirmed) return;
             }
 
             // Only clone from master if we aren't resuming the exact same active order
@@ -1959,10 +2103,21 @@
             
             // Map using the key to support duplicated/split items
             let itemsArr = Object.keys(currentPackOrder.items).map(key => {
-                return { key: key, ...currentPackOrder.items[key] };
+                return { key: key, baseCode: key.split('__')[0], ...currentPackOrder.items[key] };
             });
             
-            itemsArr.sort((a, b) => (a.sort_marked === b.sort_marked) ? 0 : a.sort_marked ? 1 : -1);
+            // Sort Logic: Keep families (splits) together, then sort marked to bottom
+            itemsArr.sort((a, b) => {
+                if (a.sort_marked !== b.sort_marked) return a.sort_marked ? 1 : -1;
+                if (a.baseCode === b.baseCode) {
+                    if (a.key === a.baseCode) return -1; // Parent first
+                    if (b.key === b.baseCode) return 1;
+                    return a.key.localeCompare(b.key); // Then splits by time
+                }
+                const nameA = (INVENTORY.find(i => i.code === a.baseCode)?.name || "").toLowerCase();
+                const nameB = (INVENTORY.find(i => i.code === b.baseCode)?.name || "").toLowerCase();
+                return nameA.localeCompare(nameB);
+            });
 
             let totalItems = itemsArr.length;
             let packedItems = itemsArr.filter(i => i.packed).length;
@@ -1971,8 +2126,7 @@
             document.getElementById('pack-done-count').innerText = packedItems;
 
             list.innerHTML = itemsArr.map((data, index) => {
-                const realCode = data.key.split('__')[0]; // Handle splits
-                const item = INVENTORY.find(i => i.code === realCode);
+                const item = INVENTORY.find(i => i.code === data.baseCode);
                 if(!item) return '';
 
                 const cQty = parseInt(item.caseQty) || 0;
@@ -1983,7 +2137,13 @@
                 
                 const activeMRP = data.mrp_override || item.mrp;
                 const mrpChangedClass = data.mrp_override ? 'changed' : '';
-                const newBadge = data.is_new ? `<span class="pack-new-badge">NEW</span>` : '';
+                
+                let badgeHTML = '';
+                if (data.is_new) {
+                    const isSplit = data.key.includes('__');
+                    if (isSplit) badgeHTML = `<span class="pack-new-badge" style="background:#B45309;">SPLIT</span>`;
+                    else badgeHTML = `<span class="pack-new-badge">NEW</span>`;
+                }
 
                 return `
                 <div class="pack-row ${sortClass} ${packClass}">
@@ -1991,9 +2151,10 @@
                     <div class="pack-sl">${index + 1}</div>
                     
                     <div class="pack-info" onclick="openPackEditModal('${data.key}')" style="cursor:pointer;" title="Click to edit quantity or MRP">
-                        <div class="pack-title">${item.name} ${newBadge}</div>
+                        <div class="pack-title">${item.name}</div>
                         <div style="display:flex; align-items:center;">
                             <span class="pack-qty">${totalQty} NOS</span>
+                            ${badgeHTML}
                         </div>
                     </div>
                     
@@ -2001,14 +2162,21 @@
                         ₹${fmt(activeMRP)} <i class="fas fa-edit"></i>
                     </div>
 
-                    <input type="checkbox" class="pack-chk success" ${data.packed ? 'checked' : ''} onchange="togglePacked('${data.key}')" title="Confirm packed">
+                    <input type="checkbox" class="pack-chk success" style="${!data.sort_marked ? 'opacity:0.3;' : ''}" ${data.packed ? 'checked' : ''} ${!data.sort_marked ? 'disabled' : ''} onchange="togglePacked('${data.key}')" title="Confirm packed">
                 </div>
                 `;
             }).join('');
         }
 
         function togglePackSort(key) {
-            currentPackOrder.items[key].sort_marked = !currentPackOrder.items[key].sort_marked;
+            const item = currentPackOrder.items[key];
+            item.sort_marked = !item.sort_marked;
+            
+            // If the left box is unchecked, force the right box to uncheck as well
+            if (!item.sort_marked) {
+                item.packed = false;
+            }
+            
             saveLocalState(); renderPackingDetailList();
         }
 
@@ -2078,7 +2246,7 @@
             const currentTotal = (data.c * cQty) + data.p;
 
             if (currentTotal <= 1) {
-                alert("Cannot split an item with only 1 piece.");
+                showWarning("Invalid Split", "Cannot split an item with only 1 piece.");
                 return;
             }
 
@@ -2103,8 +2271,18 @@
             const newMrp = parseFloat(document.getElementById('split-mrp').value);
             const splitQty = parseInt(document.getElementById('split-qty').value);
 
-            if (isNaN(newMrp) || newMrp <= 0) { alert("Invalid MRP."); return; }
-            if (isNaN(splitQty) || splitQty <= 0 || splitQty >= currentTotal) { alert("Invalid split quantity. Check Max limits."); return; }
+            if (isNaN(newMrp) || newMrp <= 0) { 
+                showWarning("Invalid Input", "Please enter a valid MRP greater than 0."); 
+                return; 
+            }
+            if (newMrp === (data.mrp_override || item.mrp)) {
+                showWarning("Duplicate MRP", "You cannot split an item into the exact same MRP. Please enter a different MRP."); 
+                return; 
+            }
+            if (isNaN(splitQty) || splitQty <= 0 || splitQty >= currentTotal) { 
+                showWarning("Invalid Quantity", "Please enter a valid quantity. Check the maximum limit."); 
+                return; 
+            }
 
             // Apply Math
             data.c = 0;
@@ -2163,22 +2341,44 @@
         }
 
         async function confirmPackingFinal() {
+            // Strict Validation: Prevent confirming if any item is half-ticked (left tick only)
+            let hasHalfTicked = false;
+            for(let key in currentPackOrder.items) {
+                if(currentPackOrder.items[key].sort_marked && !currentPackOrder.items[key].packed) {
+                    hasHalfTicked = true;
+                    break;
+                }
+            }
+
+            if (hasHalfTicked) {
+                showWarning("Incomplete Packing", "You have items with only the left tick.<br><br>Items must either have <b>BOTH</b> ticks (to pack) or <b>NO</b> ticks (to remove).");
+                return;
+            }
+
             // Filter out items that are NOT packed (right checkmark)
             const finalItems = {};
             let packedCount = 0;
-            for(let code in currentPackOrder.items) {
-                if(currentPackOrder.items[code].packed) {
-                    finalItems[code] = currentPackOrder.items[code];
+            for(let key in currentPackOrder.items) {
+                if(currentPackOrder.items[key].packed) {
+                    finalItems[key] = currentPackOrder.items[key];
                     packedCount++;
                 }
             }
 
             if(packedCount === 0) {
-                alert("You must pack at least one item to confirm.");
+                showWarning("Empty Order", "You must completely pack at least one item to confirm.");
                 return;
             }
 
-            if(!confirm(`Confirm packing? ${packedCount} items will be sent to Billing. Unchecked items will be removed from the order.`)) return;
+            // Pass 'true' to trigger the Green Success-style Confirm Modal
+            const isConfirmed = await showConfirm(
+                "Confirm Packing", 
+                `You are about to pack <b>${packedCount}</b> items.<br><br>Unchecked items will be permanently removed from this order. Do you want to proceed?`, 
+                "Yes, Pack Order",
+                true 
+            );
+
+            if (!isConfirmed) return;
 
             currentPackOrder.items = finalItems;
             currentPackOrder.status = 'Packed'; // Change status
@@ -2196,7 +2396,7 @@
                 currentPackOrder = null; saveLocalState(); exitPacking();
                 showSuccess("Order packed and sent to Billing successfully!");
             } catch(e) {
-                alert(`❌ UPDATE FAILED: Could not reach the cloud. Please try again.\n\nError: ${e.message}`);
+                await showConfirm("Update Failed", `Could not reach the cloud. Please try again.<br><br>Error: ${e.message}`, "OK");
             }
         }
 
