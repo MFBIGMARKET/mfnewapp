@@ -2979,26 +2979,45 @@
 
         function autoGenSlabs(code, qtyVal) {
             const cq = parseInt(qtyVal) || 0;
+            
+            // Count how many slabs actually have margins entered
+            let activeCount = 0;
+            for(let i=0; i<4; i++) {
+                if(document.getElementById(`s${i}-m-${code}`).value !== '') activeCount++;
+            }
+            if(activeCount === 0) activeCount = 1;
+
+            const setS = (i, min, max) => {
+                const minEl = document.getElementById(`s${i}-min-${code}`);
+                const maxEl = document.getElementById(`s${i}-max-${code}`);
+                if(minEl) minEl.value = min;
+                if(maxEl) maxEl.value = (max >= 99999) ? '' : max;
+            };
+
+            // Clear empty row bounds to prevent phantom slabs
+            for(let i=activeCount; i<4; i++) setS(i, '', '');
+
             if (cq <= 0) {
-                document.getElementById(`s0-min-${code}`).value = 0; document.getElementById(`s0-max-${code}`).value = 12;
-                document.getElementById(`s1-min-${code}`).value = 12; document.getElementById(`s1-max-${code}`).value = 50;
-                document.getElementById(`s2-min-${code}`).value = 50; document.getElementById(`s2-max-${code}`).value = 100;
-                document.getElementById(`s3-min-${code}`).value = 100; document.getElementById(`s3-max-${code}`).value = ""; // +
+                if (activeCount === 1) { setS(0, 0, 99999); }
+                else if (activeCount === 2) { setS(0, 0, 12); setS(1, 12, 99999); }
+                else if (activeCount === 3) { setS(0, 0, 12); setS(1, 12, 50); setS(2, 50, 99999); }
+                else { setS(0, 0, 12); setS(1, 12, 50); setS(2, 50, 100); setS(3, 100, 99999); }
                 return;
             }
-            const h = Math.floor(cq / 2) || 1;
 
-            // Instantly fill the inputs in the UI
-            if (cq > 50) {
-                document.getElementById(`s0-min-${code}`).value = 0; document.getElementById(`s0-max-${code}`).value = Math.min(12, h);
-                document.getElementById(`s1-min-${code}`).value = Math.min(12, h); document.getElementById(`s1-max-${code}`).value = h;
-                document.getElementById(`s2-min-${code}`).value = h; document.getElementById(`s2-max-${code}`).value = cq;
-                document.getElementById(`s3-min-${code}`).value = cq; document.getElementById(`s3-max-${code}`).value = ""; // +
+            const h = Math.floor(cq / 2) || 1;
+            if (activeCount === 1) {
+                setS(0, 0, 99999);
+            } else if (activeCount === 2) {
+                setS(0, 0, h); setS(1, h, 99999);
+            } else if (activeCount === 3) {
+                setS(0, 0, h); setS(1, h, cq); setS(2, cq, 99999);
             } else {
-                document.getElementById(`s0-min-${code}`).value = 0; document.getElementById(`s0-max-${code}`).value = Math.min(12, cq);
-                document.getElementById(`s1-min-${code}`).value = Math.min(12, cq); document.getElementById(`s1-max-${code}`).value = cq;
-                document.getElementById(`s2-min-${code}`).value = cq; document.getElementById(`s2-max-${code}`).value = cq * 3;
-                document.getElementById(`s3-min-${code}`).value = cq * 3; document.getElementById(`s3-max-${code}`).value = ""; // +
+                if (cq > 50) {
+                    setS(0, 0, Math.min(12, h)); setS(1, Math.min(12, h), h); setS(2, h, cq); setS(3, cq, 99999);
+                } else {
+                    setS(0, 0, Math.min(12, cq)); setS(1, Math.min(12, cq), cq); setS(2, cq, cq * 3); setS(3, cq * 3, 99999);
+                }
             }
         }
 
@@ -3262,55 +3281,70 @@
                         if (item) {
                             const m1 = parseFloat(cols[1]); const m2 = parseFloat(cols[2]);
                             const m3 = parseFloat(cols[3]); const m4 = parseFloat(cols[4]);
+                            const cqRaw = cols[5] !== undefined ? cols[5].trim() : '';
+                            const cq = parseInt(cqRaw);
 
                             let parsedSlabs = [];
                             let hasLowMargin = false;
+                            let marginsProvided = false;
 
-                            if (!isNaN(m1)) { parsedSlabs.push({ min: 0, max: 12, markup: m1 }); if (m1 < 2) hasLowMargin = true; }
-                            if (!isNaN(m2)) { parsedSlabs.push({ min: 12, max: 50, markup: m2 }); if (m2 < 2) hasLowMargin = true; }
-                            if (!isNaN(m3)) { parsedSlabs.push({ min: 50, max: 100, markup: m3 }); if (m3 < 2) hasLowMargin = true; }
-                            if (!isNaN(m4)) { parsedSlabs.push({ min: 100, max: 99999, markup: m4 }); if (m4 < 2) hasLowMargin = true; }
+                            if (!isNaN(m1)) { parsedSlabs.push({ min: 0, max: 12, markup: m1 }); if (m1 < 2) hasLowMargin = true; marginsProvided = true; }
+                            if (!isNaN(m2)) { parsedSlabs.push({ min: 12, max: 50, markup: m2 }); if (m2 < 2) hasLowMargin = true; marginsProvided = true; }
+                            if (!isNaN(m3)) { parsedSlabs.push({ min: 50, max: 100, markup: m3 }); if (m3 < 2) hasLowMargin = true; marginsProvided = true; }
+                            if (!isNaN(m4)) { parsedSlabs.push({ min: 100, max: 99999, markup: m4 }); if (m4 < 2) hasLowMargin = true; marginsProvided = true; }
+
+                            // If margins are missing from Excel, keep existing slabs
+                            if (!marginsProvided) parsedSlabs = [...(item.slabs || [])];
+                            else { parsedSlabs[parsedSlabs.length - 1].max = 99999; item.has_slabs = true; }
+
+                            // Update case qty (allow 0 to clear it)
+                            if (cqRaw !== '') item.caseQty = (!isNaN(cq) && cq > 0) ? cq : null;
+                            const activeCq = parseInt(item.caseQty) || 0;
 
                             if (parsedSlabs.length > 0) {
-                                parsedSlabs[parsedSlabs.length - 1].max = 99999; // Cap the final slab
-                                item.has_slabs = true;
-                                item.slabs = parsedSlabs;
-                                
-                                // Store the actual values so we can draw them in the table
                                 if (hasLowMargin) lowMarginItems.push({ code: item.code, m1, m2, m3, m4 });
 
-                                if (!isNaN(cq) && cq > 0) {
-                                    item.caseQty = cq;
-                                    const h = Math.floor(cq / 2) || 1;
-                                    
+                                if (activeCq > 0) {
+                                    const h = Math.floor(activeCq / 2) || 1;
                                     if (parsedSlabs.length === 2) {
-                                        item.slabs[0].min = 0; item.slabs[0].max = h;
-                                        item.slabs[1].min = h; item.slabs[1].max = 99999;
+                                        parsedSlabs[0].min = 0; parsedSlabs[0].max = h;
+                                        parsedSlabs[1].min = h; parsedSlabs[1].max = 99999;
                                     } else if (parsedSlabs.length === 3) {
-                                        item.slabs[0].min = 0; item.slabs[0].max = h;
-                                        item.slabs[1].min = h; item.slabs[1].max = cq;
-                                        item.slabs[2].min = cq; item.slabs[2].max = 99999;
+                                        parsedSlabs[0].min = 0; parsedSlabs[0].max = h;
+                                        parsedSlabs[1].min = h; parsedSlabs[1].max = activeCq;
+                                        parsedSlabs[2].min = activeCq; parsedSlabs[2].max = 99999;
                                     } else if (parsedSlabs.length >= 4) {
-                                        if (cq > 50) {
-                                            item.slabs[0].min = 0; item.slabs[0].max = Math.min(12, h);
-                                            item.slabs[1].min = Math.min(12, h); item.slabs[1].max = h;
-                                            item.slabs[2].min = h; item.slabs[2].max = cq;
-                                            item.slabs[3].min = cq; item.slabs[3].max = 99999;
+                                        if (activeCq > 50) {
+                                            parsedSlabs[0].min = 0; parsedSlabs[0].max = Math.min(12, h);
+                                            parsedSlabs[1].min = Math.min(12, h); parsedSlabs[1].max = h;
+                                            parsedSlabs[2].min = h; parsedSlabs[2].max = activeCq;
+                                            parsedSlabs[3].min = activeCq; parsedSlabs[3].max = 99999;
                                         } else {
-                                            item.slabs[0].min = 0; item.slabs[0].max = Math.min(12, cq);
-                                            item.slabs[1].min = Math.min(12, cq); item.slabs[1].max = cq;
-                                            item.slabs[2].min = cq; item.slabs[2].max = cq * 3;
-                                            item.slabs[3].min = cq * 3; item.slabs[3].max = 99999;
+                                            parsedSlabs[0].min = 0; parsedSlabs[0].max = Math.min(12, activeCq);
+                                            parsedSlabs[1].min = Math.min(12, activeCq); parsedSlabs[1].max = activeCq;
+                                            parsedSlabs[2].min = activeCq; parsedSlabs[2].max = activeCq * 3;
+                                            parsedSlabs[3].min = activeCq * 3; parsedSlabs[3].max = 99999;
                                         }
                                     }
                                 } else {
-                                    item.caseQty = null;
+                                    // If NO case qty, set safe defaults based on slab length
+                                    if (parsedSlabs.length === 2) {
+                                        parsedSlabs[0].min = 0; parsedSlabs[0].max = 12;
+                                        parsedSlabs[1].min = 12; parsedSlabs[1].max = 99999;
+                                    } else if (parsedSlabs.length === 3) {
+                                        parsedSlabs[0].min = 0; parsedSlabs[0].max = 12;
+                                        parsedSlabs[1].min = 12; parsedSlabs[1].max = 50;
+                                        parsedSlabs[2].min = 50; parsedSlabs[2].max = 99999;
+                                    } else if (parsedSlabs.length >= 4) {
+                                        parsedSlabs[0].min = 0; parsedSlabs[0].max = 12;
+                                        parsedSlabs[1].min = 12; parsedSlabs[1].max = 50;
+                                        parsedSlabs[2].min = 50; parsedSlabs[2].max = 100;
+                                        parsedSlabs[3].min = 100; parsedSlabs[3].max = 99999;
+                                    }
                                 }
-                            } else {
-                                item.has_slabs = false;
-                                item.caseQty = null;
                             }
-                            upsertData.push(item); 
+                            item.slabs = parsedSlabs;
+                            upsertData.push(item);
                         }
                     }
                 }
