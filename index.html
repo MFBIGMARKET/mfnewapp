@@ -2894,8 +2894,8 @@
                     const minVal = isActive ? s.min : '';
                     const maxVal = isActive ? (s.max >= 99999 ? '' : s.max) : '';
                     const mVal = isActive ? Number(parseFloat(s.markup).toFixed(5)) : '';
-                    const ratePrev = isActive ? `₹${fmt(getRate(item.cost, s.markup))}` : '';
-                    const dangerClass = (isActive && mVal !== '' && parseFloat(mVal) < 1) ? 'low-margin' : '';
+                    const rateVal = isActive ? Number(getRate(item.cost, s.markup).toFixed(2)) : '';
+                    const dangerClass = (isActive && mVal !== '' && parseFloat(mVal) < 2) ? 'low-margin' : '';
 
                     slabsCellsHTML += `
                     <td class="slab-cell ${opacityClass}">
@@ -2905,9 +2905,9 @@
                                 <input type="number" id="s${i}-max-${item.code}" class="slab-input" value="${maxVal}" placeholder="+" onfocus="this.select()">
                             </div>
                             <div class="slab-row-bot">
-                                <input type="number" id="s${i}-m-${item.code}" class="slab-input ${dangerClass}" value="${mVal}" oninput="previewRate(this, ${item.cost}, 'prv-s${i}-${item.code}')" onfocus="this.select()">
+                                <input type="number" id="s${i}-m-${item.code}" class="slab-input ${dangerClass}" value="${mVal}" placeholder="%" oninput="updateRateFromMargin(this, ${item.cost}, 's${i}-r-${item.code}')" onfocus="this.select()">
                                 <div class="slab-divider"></div>
-                                <span class="slab-rate-prev" id="prv-s${i}-${item.code}">${ratePrev}</span>
+                                <input type="number" id="s${i}-r-${item.code}" class="slab-input" value="${rateVal}" placeholder="₹" oninput="updateMarginFromRate(this, ${item.cost}, 's${i}-m-${item.code}')" onfocus="this.select()">
                             </div>
                         </div>
                     </td>
@@ -2951,12 +2951,30 @@
             document.getElementById(`btn-save-${code}`).classList.remove('hidden');
         }
 
-        function previewRate(inputEl, cost, elementId) { 
-            const val = parseFloat(inputEl.value);
-            document.getElementById(elementId).innerText = `₹${fmt(getRate(cost, val || 0))}`; 
+        function updateRateFromMargin(marginInput, cost, rateInputId) {
+            const margin = parseFloat(marginInput.value);
+            const rateInput = document.getElementById(rateInputId);
             
-            if (inputEl.value !== '' && val < 1) inputEl.classList.add('low-margin');
-            else inputEl.classList.remove('low-margin');
+            if (isNaN(margin) || marginInput.value === '') { rateInput.value = ''; }
+            else { rateInput.value = getRate(cost, margin).toFixed(2); }
+            
+            if (marginInput.value !== '' && margin < 2) marginInput.classList.add('low-margin');
+            else marginInput.classList.remove('low-margin');
+        }
+
+        function updateMarginFromRate(rateInput, cost, marginInputId) {
+            const rate = parseFloat(rateInput.value);
+            const marginInput = document.getElementById(marginInputId);
+            
+            if (isNaN(rate) || rateInput.value === '' || cost <= 0) { 
+                marginInput.value = ''; 
+                marginInput.classList.remove('low-margin'); 
+            } else { 
+                const margin = ((rate - cost) / cost) * 100;
+                marginInput.value = Number(margin.toFixed(5)); 
+                if (margin < 2) marginInput.classList.add('low-margin');
+                else marginInput.classList.remove('low-margin');
+            }
         }
 
         function autoGenSlabs(code, qtyVal) {
