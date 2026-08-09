@@ -400,18 +400,11 @@
         </div>
 
         <div id="view-collection" class="tab-content hidden salesman-view">
-            <div style="background: white; border-bottom: 1px solid var(--border); padding: 12px; cursor: pointer;" onclick="openSalesmanColHistory()">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                    <span style="font-weight: 800; font-size: 0.95rem; color: var(--text);">Today's Collection</span>
-                    <span style="font-weight: 800; font-size: 1.1rem; color: var(--success);" id="col-today-total">₹0</span>
-                </div>
-                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-mut); font-weight: 600;">
-                    <span>Cash: <span id="col-today-cash" style="color: var(--text);">₹0</span></span>
-                    <span>UPI: <span id="col-today-upi" style="color: var(--text);">₹0</span></span>
-                    <span style="color: var(--brand);">View Details <i class="fas fa-chevron-right" style="margin-left: 4px;"></i></span>
-                </div>
+            <div style="background: var(--brand-light); border-bottom: 1px solid var(--border); padding: 8px 14px; height: 42px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="openSalesmanColHistory()">
+                <span style="font-weight: 700; font-size: 0.9rem; color: var(--brand);"><i class="fas fa-history" style="margin-right: 8px;"></i>Show Today's Collection</span>
+                <i class="fas fa-chevron-right" style="color: var(--brand); font-size: 0.85rem;"></i>
             </div>
-            <div class="search-bar" style="border-bottom: none;">
+            <div class="search-bar" style="border-bottom: 1px solid var(--border); height: 42px;">
                 <i class="fas fa-search" style="color:var(--text-mut);"></i>
                 <input type="text" placeholder="Search customer name or code..." id="col-search-input" oninput="handleCollectionSearch(this.value)">
             </div>
@@ -1852,25 +1845,7 @@
         function handleCollectionSearch(val) { colSearchQuery = val.toLowerCase(); renderCollectionCustomers(); }
 
         function updateTodayCollectionTile() {
-            const todayStr = new Date().toISOString().split('T')[0];
-            let tCash = 0, tUpi = 0, tTotal = 0;
-
-            MY_COLLECTIONS.forEach(c => {
-                const d = new Date(c.created_at);
-                const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                if (localDate === todayStr) {
-                    tCash += c.amount_cash;
-                    tUpi += c.amount_gpay;
-                    tTotal += c.total_amount;
-                }
-            });
-
-            const elTotal = document.getElementById('col-today-total');
-            if (elTotal) {
-                elTotal.innerText = `₹${fmt(tTotal)}`;
-                document.getElementById('col-today-cash').innerText = `₹${fmt(tCash)}`;
-                document.getElementById('col-today-upi').innerText = `₹${fmt(tUpi)}`;
-            }
+            // Function deprecated: UI replaced with a clean navigation strip
         }
 
         function openSalesmanColHistory() {
