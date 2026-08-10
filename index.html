@@ -502,15 +502,19 @@
         <!-- ========================================== -->
         
         <div id="view-packing" class="tab-content hidden packing-view salesman-view">
-            <div class="hist-top">
-                <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
-                <input type="date" id="packing-date-filter" onchange="renderPackingOrders()">
-            </div>
             <div class="scroll-area" style="padding: 16px;" id="packing-feed"></div>
         </div>
 
+        <div id="view-pack-hist" class="tab-content hidden packing-view salesman-view">
+            <div class="hist-top">
+                <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
+                <input type="date" id="pack-hist-date-filter" onchange="renderPackerHistory()">
+            </div>
+            <div class="scroll-area" style="padding: 16px;" id="pack-hist-feed"></div>
+        </div>
+
        <!-- ========================================== -->
-        <!-- BILLING VIEWS                              -->
+        <!-- BILLING VIEWS                              -->                              -->
         <!-- ========================================== -->
         
         <div id="view-billing" class="tab-content hidden billing-view">
@@ -570,6 +574,7 @@
         
         <div class="bottom-nav packing-nav hidden">
             <div class="nav-item active" onclick="switchTab('packing')" data-target="packing"><i class="fas fa-box"></i>To Pack</div>
+            <div class="nav-item" onclick="switchTab('pack-hist')" data-target="pack-hist"><i class="fas fa-history"></i>History</div>
             <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
         </div>
 
@@ -667,8 +672,44 @@
         </div>
     </div>
 
+    <!-- PACKING: HISTORY DETAIL VIEW -->
+    <div id="pack-history-detail-view" class="order-view hidden">
+        <div class="ov-head">
+            <i class="fas fa-arrow-left" onclick="exitPackerHistoryDetail()" style="cursor:pointer; padding:4px;"></i>
+            <div class="ov-center">
+                <div class="ov-title" id="ph-cust-name">Loading...</div>
+                <div class="ov-sub" id="ph-order-id">ORD-XXXX</div>
+            </div>
+            <i class="fas fa-check" style="color: transparent;"></i> <!-- Spacer -->
+        </div>
+        <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB;">
+            <span>Total Items: <span id="ph-total-count" style="color:var(--brand);">0</span></span>
+        </div>
+        <div class="scroll-area" style="background: var(--bg); padding: 12px;" id="ph-item-list"></div>
+    </div>
+
     <!-- PACKING: DETAIL VIEW -->
     <div id="packing-detail-view" class="order-view hidden">
+        <div class="ov-head">
+            <i class="fas fa-arrow-left" onclick="exitPacking()"></i>
+            <div class="ov-center">
+                <div class="ov-title" id="pack-cust-name">Loading...</div>
+                <div class="ov-sub" id="pack-order-id">ORD-XXXX</div>
+            </div>
+            <i class="fas fa-check" style="color: transparent;"></i> <!-- Spacer -->
+        </div>
+        <div class="pack-top-bar">
+            <div class="pack-summary">
+                <span>Total: <span id="pack-total-count" style="color:var(--brand);">0</span></span>
+                <span>Packed: <span id="pack-done-count" style="color:var(--success);">0</span></span>
+            </div>
+            <button class="btn-pack-add" onclick="openPackAddModal()">+ Add Item</button>
+        </div>
+        <div class="scroll-area" style="background: var(--bg);" id="packing-item-list"></div>
+        <div style="padding: 14px; background: white; border-top: 1px solid var(--border);">
+            <button class="btn-checkout" onclick="confirmPackingFinal()">Confirm Packing</button>
+        </div>
+    </div>
         <div class="ov-head">
             <i class="fas fa-arrow-left" onclick="exitPacking()"></i>
             <div class="ov-center">
@@ -780,7 +821,7 @@
         /* --- AUTH & INIT --- */
         window.onload = async () => {
             const today = new Date().toISOString().split('T')[0];
-            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter'].forEach(id => {
+            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.value = today;
             });
@@ -1027,6 +1068,7 @@
             if (tabId === 'history' && currentUserRole === 'Salesman') renderSalesmanHistory();
             if (tabId === 'collection' && currentUserRole === 'Salesman') renderCollectionCustomers();
             if (tabId === 'packing' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman')) renderPackingOrders();
+            if (tabId === 'pack-hist' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman')) renderPackerHistory();
             if (tabId === 'billing' && currentUserRole === 'Billing') renderBillingOrders();
             if (tabId === 'bill-hist' && currentUserRole === 'Billing') renderBillingHistory();
             if (tabId === 'bill-col' && currentUserRole === 'Billing') renderBillingCollections();
@@ -1799,8 +1841,13 @@
                 if (data.mrp_override) mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹${fmt(data.old_mrp)}</del> ₹${fmt(data.mrp_override)}`;
                 
                 const isRemoved = (order.status === 'Packed' || order.status === 'Billed') && data.packed === false;
-                let newBadge = data.is_new ? `<span class="pack-new-badge" style="background:var(--success);">ADDED BY PACKER</span>` : '';
-                if (isRemoved) newBadge = `<span class="pack-new-badge" style="background:var(--accent);">REMOVED</span>`;
+                let badgeHTML = '';
+                if (isRemoved) {
+                    badgeHTML = `<span class="pack-new-badge" style="background:var(--accent);">REMOVED</span>`;
+                } else if (data.is_new) {
+                    const isSplit = data.key.includes('__');
+                    badgeHTML = isSplit ? `<span class="pack-new-badge" style="background:#B45309;">SPLIT</span>` : `<span class="pack-new-badge" style="background:var(--success);">ADDED</span>`;
+                }
                 
                 const rate = getApplicableRate(item, totalQty, data.r || 'price2', data.cr || 0);
                 const totalItemCost = isRemoved ? 0 : (totalQty * rate);
@@ -2055,6 +2102,106 @@
             document.getElementById('packing-detail-view').classList.remove('hidden');
         }
 
+        function renderPackerHistory() {
+            const feed = document.getElementById('pack-hist-feed');
+            if(!feed) return;
+            const filterDate = document.getElementById('pack-hist-date-filter').value;
+            
+            let filtered = SUBMITTED_ORDERS.filter(o => o.status === 'Packed' || o.status === 'Billed');
+            if (filterDate) {
+                filtered = filtered.filter(o => {
+                    const d = new Date(o.created_at);
+                    const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    return localDate === filterDate;
+                });
+            }
+            
+            if (filtered.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No packed orders found for this date.</div>`;
+                return;
+            }
+
+            feed.innerHTML = filtered.map(order => {
+                const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+                return `
+                <div class="order-card">
+                    <div style="flex:1; min-width:0; padding-right: 10px;">
+                        <b style="font-size: 1.05rem; color:var(--success);">${order.id}</b><br>
+                        <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${custName}</div>
+                    </div>
+                    <button class="btn-take-order" style="flex-shrink:0; background:white; border-color:var(--success); color:var(--success);" onclick="openPackerHistoryDetail('${order.id}')">View</button>
+                </div>
+            `;
+            }).join(''); 
+        }
+
+        function openPackerHistoryDetail(orderId) {
+            const order = SUBMITTED_ORDERS.find(o => o.id === orderId);
+            if(!order) return;
+            
+            const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+            document.getElementById('ph-cust-name').innerText = custName;
+            document.getElementById('ph-order-id').innerText = order.id;
+
+            const list = document.getElementById('ph-item-list');
+            const itemsArr = Object.keys(order.items).map(k => ({ key: k, ...order.items[k] }));
+            
+            // Sort parent/split together
+            itemsArr.sort((a, b) => {
+                const baseA = a.key.split('__')[0]; const baseB = b.key.split('__')[0];
+                if (baseA === baseB) {
+                    if (a.key === baseA) return -1;
+                    if (b.key === baseB) return 1;
+                    return a.key.localeCompare(b.key);
+                }
+                const nA = (INVENTORY.find(i => i.code === baseA)?.name || "").toLowerCase();
+                const nB = (INVENTORY.find(i => i.code === baseB)?.name || "").toLowerCase();
+                return nA.localeCompare(nB);
+            });
+
+            document.getElementById('ph-total-count').innerText = itemsArr.length;
+
+            list.innerHTML = itemsArr.map((data, index) => {
+                const realCode = data.key.split('__')[0];
+                const item = INVENTORY.find(i => i.code === realCode);
+                if(!item) return '';
+
+                const cQty = parseInt(item.caseQty) || 0;
+                const totalQty = (data.c * cQty) + data.p; 
+                
+                let mrpText = `₹${fmt(item.mrp)}`;
+                if (data.mrp_override) mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹${fmt(data.old_mrp)}</del> ₹${fmt(data.mrp_override)}`;
+                
+                const isRemoved = data.packed === false;
+                let badgeHTML = '';
+                if (isRemoved) {
+                    badgeHTML = `<span class="pack-new-badge" style="background:var(--accent);">REMOVED</span>`;
+                } else if (data.is_new) {
+                    const isSplit = data.key.includes('__');
+                    badgeHTML = isSplit ? `<span class="pack-new-badge" style="background:#B45309;">SPLIT</span>` : `<span class="pack-new-badge" style="background:var(--success);">ADDED</span>`;
+                }
+                
+                const dimStyle = isRemoved ? "opacity: 0.5; text-decoration: line-through;" : "";
+
+                return `
+                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; ${isRemoved ? 'background: #FEF2F2; border-color: #FEE2E2;' : ''}">
+                    <div style="flex:1; min-width:0; padding-right:10px;">
+                        <div style="font-weight:700; font-size:0.85rem; margin-bottom:4px; color:var(--text); ${dimStyle}">${index + 1}. ${item.name}</div>
+                        <div style="font-size:0.75rem; color:var(--text-mut); margin-top:4px;">MRP: ${mrpText} ${badgeHTML}</div>
+                    </div>
+                    <div style="text-align: right; flex-shrink:0; ${dimStyle}">
+                        <b style="color:var(--brand); font-size:0.95rem;">${totalQty} NOS</b>
+                    </div>
+                </div>`;
+            }).join('');
+
+            document.getElementById('pack-history-detail-view').classList.remove('hidden');
+        }
+
+        function exitPackerHistoryDetail() {
+            document.getElementById('pack-history-detail-view').classList.add('hidden');
+        }
+
         function exitPacking() {
             // DO NOT clear currentPackOrder here. Keep it saved.
             document.getElementById('packing-detail-view').classList.add('hidden');
@@ -2100,12 +2247,19 @@
                 
                 const activeMRP = data.mrp_override || item.mrp;
                 const mrpChangedClass = data.mrp_override ? 'changed' : '';
+
+                // Stock Calculation & Coloring
+                const stockVal = parseInt(item.stock) || 0;
+                let stockColor = "var(--success)"; 
+                if (stockVal <= 0) stockColor = "var(--accent)"; 
+                else if (stockVal < (item.caseQty || 10)) stockColor = "#B45309"; 
+                const stockStr = `<span style="color: ${stockColor}; font-weight: 800; font-size: 0.75rem; margin-left: 6px;">| ${stockVal}</span>`;
                 
                 let badgeHTML = '';
                 if (data.is_new) {
                     const isSplit = data.key.includes('__');
-                    if (isSplit) badgeHTML = `<span class="pack-new-badge" style="background:#B45309;">SPLIT</span>`;
-                    else badgeHTML = `<span class="pack-new-badge">NEW</span>`;
+                    if (isSplit) badgeHTML = `<span class="pack-new-badge" style="background:#B45309; margin-left:6px;">SPLIT</span>`;
+                    else badgeHTML = `<span class="pack-new-badge" style="margin-left:6px;">NEW</span>`;
                 }
 
                 return `
@@ -2115,8 +2269,9 @@
                     
                     <div class="pack-info" onclick="openPackEditModal('${data.key}')" style="cursor:pointer;" title="Click to edit quantity or MRP">
                         <div class="pack-title">${item.name}</div>
-                        <div style="display:flex; align-items:center;">
+                        <div style="display:flex; align-items:center; flex-wrap:wrap;">
                             <span class="pack-qty">${totalQty} NOS</span>
+                            ${stockStr}
                             ${badgeHTML}
                         </div>
                     </div>
@@ -2467,8 +2622,14 @@
                 let highlightTags = "";
                 let isRemoved = !data.packed;
                 
-                if (isRemoved) { rowClass += " highlight-mrp"; highlightTags += `<span class="pack-new-badge" style="background:var(--accent);">REMOVED</span> `; }
-                else if (data.is_new) { rowClass += " highlight-new"; highlightTags += `<span class="pack-new-badge" style="background:var(--success);">ADDED IN PACKING</span> `; }
+                if (isRemoved) { 
+                    rowClass += " highlight-mrp"; 
+                    highlightTags += `<span class="pack-new-badge" style="background:var(--accent);">REMOVED</span> `; 
+                } else if (data.is_new) { 
+                    rowClass += " highlight-new"; 
+                    const isSplit = data.code.includes('__');
+                    highlightTags += isSplit ? `<span class="pack-new-badge" style="background:#B45309;">SPLIT</span> ` : `<span class="pack-new-badge" style="background:var(--success);">ADDED</span> `; 
+                }
                 
                 let mrpText = `₹${fmt(item.mrp)}`;
                 if (data.mrp_override) {
