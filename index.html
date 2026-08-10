@@ -910,8 +910,15 @@
                                 markup: parseFloat(s?.markup) || 0
                             }));
                             // Ensure the very last slab in the array is capped at 99999
-                            item.slabs[item.slabs.length - 1].max = 99999;
+                            if (item.slabs.length > 0) item.slabs[item.slabs.length - 1].max = 99999;
                         }
+
+                        // STRICT TOGGLE FIX: Force switch OFF if there are no valid multi-slabs
+                        const realSlabs = item.slabs.filter(s => s.markup > 0 || (s.max > 0 && s.max < 99999));
+                        if (realSlabs.length <= 1) {
+                            item.has_slabs = false;
+                        }
+
                         return item;
                     });
 
@@ -1199,10 +1206,11 @@
 
         function applySlab(code, minQty) {
             const item = INVENTORY.find(i => i.code === code);
-            const cases = Math.floor(minQty / item.caseQty);
-            const pcs = minQty % item.caseQty;
+            const hasCases = item.caseQty > 0;
+            const cases = hasCases ? Math.floor(minQty / item.caseQty) : 0;
+            const pcs = hasCases ? (minQty % item.caseQty) : minQty;
             
-            if(!draft[code]) draft[code] = {c:0, p:0};
+            if(!draft[code]) draft[code] = {c:0, p:0, r: 'price2', cr: 0};
             draft[code].c = cases;
             draft[code].p = pcs;
             
@@ -1386,7 +1394,7 @@
             const item = INVENTORY.find(i => i.code === code);
             let d = draft[code];
             let parsedVal = parseInt(val) || 0;
-            const hasCases = item.has_slabs && item.caseQty && item.caseQty > 0;
+            const hasCases = item.caseQty > 0; // Fixed: Slabs have nothing to do with whether an item uses Cases
 
             if (type === 'p') {
                 if (parsedVal < 0) {
@@ -1402,8 +1410,10 @@
                 if (hasCases) d.c = parsedVal < 0 ? 0 : parsedVal;
             }
             
-            document.getElementById(`dc-${code}`).value = d.c;
+            const dcEl = document.getElementById(`dc-${code}`);
+            if (dcEl) dcEl.value = d.c;
             document.getElementById(`dp-${code}`).value = d.p;
+            
             updateSavingsStrip(code, 'sav', d);
         }
 
@@ -1483,8 +1493,9 @@
 
         function applyCartSlab(code, minQty) {
             const item = INVENTORY.find(i => i.code === code);
-            const cases = Math.floor(minQty / item.caseQty);
-            const pcs = minQty % item.caseQty;
+            const hasCases = item.caseQty > 0;
+            const cases = hasCases ? Math.floor(minQty / item.caseQty) : 0;
+            const pcs = hasCases ? (minQty % item.caseQty) : minQty;
             
             cart[code].c = cases;
             cart[code].p = pcs;
@@ -1606,7 +1617,7 @@
             const item = INVENTORY.find(i => i.code === code);
             let c = cart[code];
             let parsedVal = parseInt(val) || 0;
-            const hasCases = item.has_slabs && item.caseQty && item.caseQty > 0;
+            const hasCases = item.caseQty > 0;
 
             if(type === 'p') {
                 if(parsedVal < 0) {
@@ -2869,7 +2880,10 @@
                 let slabsCellsHTML = '';
                 for(let i=0; i<4; i++) {
                     const s = item.slabs[i]; 
-                    const isActive = s && (s.max > 0 || s.markup > 0 || s.min > 0);
+                    
+                    // Strict Check: Don't show ghost slabs (0 bounds, 0 margin)
+                    const isGhost = s && s.min === 0 && s.max >= 99999 && parseFloat(s.markup) === 0;
+                    const isActive = s && !isGhost && (s.max > 0 || s.markup > 0 || s.min > 0);
                     
                     const minVal = isActive ? s.min : '';
                     const maxVal = isActive ? (s.max >= 99999 ? '' : s.max) : '';
@@ -3045,8 +3059,16 @@
                     }
                 }
 
-                if (parsedSlabs.length === 0) parsedSlabs.push({min:0, max:99999, markup:0});
-                item.slabs = parsedSlabs;
+                // STRICT RULE: If there is only 1 slab, disable slab mode and fall back to P2/Flat Rate
+                if (parsedSlabs.length <= 1) {
+                    item.has_slabs = false;
+                    item.slabs = [{min:0, max:99999, markup:0}];
+                    document.getElementById(`switch-${code}`).checked = false; // Turn switch off visually
+                } else {
+                    item.slabs = parsedSlabs;
+                }
+            } else {
+                item.slabs = [{min:0, max:99999, markup:0}]; // Ensure safe default if turned off
             }
 
             try {
@@ -3112,10 +3134,16 @@
                         if (max >= 99999) break; 
                     }
                     
-                    if (parsedSlabs.length === 0) parsedSlabs.push({min:0, max:99999, markup:0});
-                    updatedItem.slabs = parsedSlabs;
-
-                    if (hasLowMargin) lowMarginItems.push({ code: code, m1, m2, m3, m4 });
+                    // STRICT RULE: If only 1 slab, disable slab mode
+                    if (parsedSlabs.length <= 1) {
+                        updatedItem.has_slabs = false;
+                        updatedItem.slabs = [{min:0, max:99999, markup:0}];
+                    } else {
+                        updatedItem.slabs = parsedSlabs;
+                        if (hasLowMargin) lowMarginItems.push({ code: code, m1, m2, m3, m4 });
+                    }
+                } else {
+                    updatedItem.slabs = [{min:0, max:99999, markup:0}]; // Safe default
                 }
                 upsertData.push(updatedItem);
             });
