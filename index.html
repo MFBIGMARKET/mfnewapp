@@ -1074,7 +1074,8 @@
         }
 
         function getApplicableRate(item, totalPcs, selectedRateKey = 'price2', customRate = 0) {
-            if (!item.has_slabs || !item.caseQty) {
+            // Allow slabs to run even if caseQty is null/0
+            if (!item.has_slabs) {
                 if (selectedRateKey === 'custom') return parseFloat(customRate) || 0;
                 return item[selectedRateKey] || item.price2; 
             }
@@ -1250,7 +1251,7 @@
                 let dropdownUI = '';
                 let isCaseDisabled = false;
 
-                if (item.has_slabs && item.caseQty > 0) {
+                if (item.has_slabs) {
                     const slabHTML = item.slabs.slice(1).map((s) => {
                         const rate = fmt(getRate(item.cost, s.markup));
                         const retailerMargin = rate > 0 ? (((item.mrp - rate) / rate) * 100) : 0;
@@ -1272,7 +1273,7 @@
 
                     pricingUI = `
                         <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
-                            <div class="quick-price">Base Rate: ₹${baseRate.toFixed(2)}</div>
+                            <div class="quick-price">Rate: ₹${baseRate.toFixed(2)}</div>
                             ${bestRate < baseRate ? `<div class="quick-price" style="background: var(--success-bg); color: var(--success);">Best Rate: ₹${bestRate.toFixed(2)}</div>` : ''}
                         </div>
                     `;
@@ -1285,42 +1286,15 @@
                         <div class="slab-list hidden" id="slabs-${item.code}">${slabHTML}</div>
                     `;
                 } else {
-                    isCaseDisabled = true;
-                    if(!d.r) d.r = 'price2';
-                    const activeRateKey = d.r;
-                    const customVal = d.cr || '';
-                    const p2 = fmt(item.price2);
-                    const p3 = fmt(item.price3);
-                    const p4 = fmt(item.price4);
+                    isCaseDisabled = (!item.caseQty || item.caseQty <= 0);
+                    const flatRate = fmt(item.price2);
+                    const retailerMargin = flatRate > 0 ? (((item.mrp - flatRate) / flatRate) * 100) : 0;
                     
-                    const getBoxStyle = (key) => activeRateKey === key 
-                        ? `background:var(--brand); color:white; border:1px solid var(--brand);` 
-                        : `background:white; color:var(--text); border:1px solid var(--border);`;
-
-                    let rateSelectionUI = `
-                        <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:6px; margin-top:8px;">
-                            <div onclick="selectFlatRate('${item.code}', 'price2')" style="${getBoxStyle('price2')} text-align:center; padding:6px 2px; border-radius:4px; cursor:pointer;">
-                                <div style="font-size:0.65rem; font-weight:600; opacity:0.8;">P1</div>
-                                <div style="font-size:0.85rem; font-weight:700;">₹${p2 > 0 ? p2 : '-'}</div>
-                            </div>
-                            <div onclick="selectFlatRate('${item.code}', 'price3')" style="${getBoxStyle('price3')} text-align:center; padding:6px 2px; border-radius:4px; cursor:pointer; pointer-events:${p3>0?'auto':'none'}; opacity:${p3>0?1:0.4};">
-                                <div style="font-size:0.65rem; font-weight:600; opacity:0.8;">P2</div>
-                                <div style="font-size:0.85rem; font-weight:700;">₹${p3 > 0 ? p3 : '-'}</div>
-                            </div>
-                            <div onclick="selectFlatRate('${item.code}', 'price4')" style="${getBoxStyle('price4')} text-align:center; padding:6px 2px; border-radius:4px; cursor:pointer; pointer-events:${p4>0?'auto':'none'}; opacity:${p4>0?1:0.4};">
-                                <div style="font-size:0.65rem; font-weight:600; opacity:0.8;">P3</div>
-                                <div style="font-size:0.85rem; font-weight:700;">₹${p4 > 0 ? p4 : '-'}</div>
-                            </div>
-                            <div style="${getBoxStyle('custom')} text-align:center; padding:6px 2px; border-radius:4px; cursor:pointer;" onclick="document.getElementById('cr-${item.code}').focus();">
-                                <div style="font-size:0.65rem; font-weight:600; opacity:0.8;">Custom</div>
-                                <input type="number" id="cr-${item.code}" value="${customVal}" placeholder="₹0" oninput="handleCustomRate('${item.code}', this.value)" onfocus="selectFlatRate('${item.code}', 'custom'); this.select();" style="width:100%; border:none; background:transparent; text-align:center; font-size:0.85rem; font-weight:700; outline:none; color:inherit; padding:0;">
-                            </div>
-                        </div>
-                    `;
-
                     pricingUI = `
-                        <div style="font-size: 0.75rem; font-weight: 600; color: var(--text-mut); margin-top: 6px;">Select Rate:</div>
-                        ${rateSelectionUI}
+                        <div style="font-size: 1.05rem; font-weight: 800; color: var(--brand); margin-top: 4px;">
+                            Rate: ₹${flatRate.toFixed(2)}
+                            <span style="color: var(--success); font-size: 0.8rem; font-weight: 600; margin-left: 4px;">(${retailerMargin.toFixed(2)}%)</span>
+                        </div>
                     `;
                 }
 
@@ -1557,7 +1531,7 @@
                 
                 // Calculate next slab upsell
                 let upsellUI = '';
-                if (item.has_slabs && item.caseQty > 0) {
+                if (item.has_slabs) {
                     const nextSlab = item.slabs.find(s => s.min > totalPcs);
                     if (nextSlab && nextSlab.min < 99999) {
                         const diff = nextSlab.min - totalPcs;
@@ -1813,18 +1787,21 @@
                 let mrpText = `₹${fmt(item.mrp)}`;
                 if (data.mrp_override) mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹${fmt(data.old_mrp)}</del> ₹${fmt(data.mrp_override)}`;
                 
-                const newBadge = data.is_new ? `<span class="pack-new-badge" style="background:var(--success);">ADDED BY PACKER</span>` : '';
+                const isRemoved = (order.status === 'Packed' || order.status === 'Billed') && data.packed === false;
+                let newBadge = data.is_new ? `<span class="pack-new-badge" style="background:var(--success);">ADDED BY PACKER</span>` : '';
+                if (isRemoved) newBadge = `<span class="pack-new-badge" style="background:var(--accent);">REMOVED</span>`;
                 
                 const rate = getApplicableRate(item, totalQty, data.r || 'price2', data.cr || 0);
-                const totalItemCost = totalQty * rate;
+                const totalItemCost = isRemoved ? 0 : (totalQty * rate);
+                const dimStyle = isRemoved ? "opacity: 0.5; text-decoration: line-through;" : "";
 
                 return `
-                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; ${isRemoved ? 'background: #FEF2F2; border-color: #FEE2E2;' : ''}">
                     <div style="flex:1; min-width:0; padding-right:10px;">
-                        <div style="font-weight:700; font-size:0.85rem; margin-bottom:4px; color:var(--text);">${index + 1}. ${item.name} ${newBadge}</div>
-                        <div style="font-size:0.75rem; color:var(--text-mut);">MRP: ${mrpText}</div>
+                        <div style="font-weight:700; font-size:0.85rem; margin-bottom:4px; color:var(--text); ${dimStyle}">${index + 1}. ${item.name}</div>
+                        <div style="font-size:0.75rem; color:var(--text-mut); margin-top:4px;">MRP: ${mrpText} ${newBadge}</div>
                     </div>
-                    <div style="text-align: right; flex-shrink:0;">
+                    <div style="text-align: right; flex-shrink:0; ${dimStyle}">
                         <b style="color:var(--brand); font-size:0.95rem;">${totalQty} Pcs</b><br>
                         <span style="font-size:0.75rem; color:var(--text-mut); font-weight:700;">₹${fmt(totalItemCost)}</span>
                     </div>
@@ -2330,14 +2307,10 @@
                 return;
             }
 
-            // Filter out items that are NOT packed (right checkmark)
-            const finalItems = {};
+            // Keep ALL items, but count the packed ones
             let packedCount = 0;
             for(let key in currentPackOrder.items) {
-                if(currentPackOrder.items[key].packed) {
-                    finalItems[key] = currentPackOrder.items[key];
-                    packedCount++;
-                }
+                if(currentPackOrder.items[key].packed) packedCount++;
             }
 
             if(packedCount === 0) {
@@ -2348,14 +2321,12 @@
             // Pass 'true' to trigger the Green Success-style Confirm Modal
             const isConfirmed = await showConfirm(
                 "Confirm Packing", 
-                `You are about to pack <b>${packedCount}</b> items.<br><br>Unchecked items will be permanently removed from this order. Do you want to proceed?`, 
+                `You are about to pack <b>${packedCount}</b> items.<br><br>Unchecked items will be marked as REMOVED. Do you want to proceed?`, 
                 "Yes, Pack Order",
                 true 
             );
 
             if (!isConfirmed) return;
-
-            currentPackOrder.items = finalItems;
             currentPackOrder.status = 'Packed'; // Change status
 
             try {
@@ -2483,11 +2454,14 @@
                 
                 let rowClass = "bill-row";
                 let highlightTags = "";
+                let isRemoved = !data.packed;
                 
-                if (data.is_new) { rowClass += " highlight-new"; highlightTags += `<span class="pack-new-badge" style="background:var(--success);">ADDED IN PACKING</span> `; }
+                if (isRemoved) { rowClass += " highlight-mrp"; highlightTags += `<span class="pack-new-badge" style="background:var(--accent);">REMOVED</span> `; }
+                else if (data.is_new) { rowClass += " highlight-new"; highlightTags += `<span class="pack-new-badge" style="background:var(--success);">ADDED IN PACKING</span> `; }
+                
                 let mrpText = `₹${fmt(item.mrp)}`;
                 if (data.mrp_override) {
-                    if (!data.is_new) rowClass += " highlight-mrp";
+                    if (!data.is_new && !isRemoved) rowClass += " highlight-mrp";
                     highlightTags += `<span class="pack-new-badge" style="background:var(--warning); color:#B45309;">MRP CHANGED</span> `;
                     mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹${fmt(data.old_mrp)}</del><br>₹${fmt(data.mrp_override)}`;
                 }
@@ -2496,9 +2470,9 @@
                 <div class="${rowClass}">
                     <div class="pack-sl">${index + 1}</div>
                     <div class="pack-info">
-                        <div class="pack-title">${item.name}</div>
+                        <div class="pack-title" style="${isRemoved ? 'text-decoration: line-through; opacity: 0.5;' : ''}">${item.name}</div>
                         ${highlightTags ? `<div style="margin-bottom: 6px;">${highlightTags}</div>` : ''}
-                        <div style="display:flex; align-items:center;">
+                        <div style="display:flex; align-items:center; ${isRemoved ? 'text-decoration: line-through; opacity: 0.5;' : ''}">
                             <span class="pack-qty">${totalQty} Pcs</span>
                             <span class="pack-meta">(${data.c} Cs + ${data.p} Pcs)</span>
                         </div>
@@ -2544,10 +2518,16 @@
             let exportData = [];
             for(const key in order.items) {
                 const orderData = order.items[key];
+                
+                // STRICTLY skip items that were removed during packing
+                if (orderData.packed === false) continue;
+
                 const realCode = key.split('__')[0];
                 const item = INVENTORY.find(i => i.code === realCode) || { caseQty: 0, name: "Unknown" };
                 const cQty = parseInt(item.caseQty) || 0;
                 const totalQty = (orderData.c * cQty) + orderData.p;
+                
+                // Push clean data: Only Code, Exact Name, and Qty
                 exportData.push([realCode, item.name, totalQty]);
             }
             
@@ -2749,7 +2729,7 @@
             feed.innerHTML = items.map(item => {
                 let pricingUI = ''; let dropdownUI = '';
 
-                if (item.has_slabs && item.caseQty > 0) {
+                if (item.has_slabs) {
                     const slabHTML = item.slabs.slice(1).map((s) => {
                         const rate = fmt(getRate(item.cost, s.markup));
                         const markupFmt = fmt(s.markup);
@@ -2774,7 +2754,7 @@
                 } else {
                     pricingUI = `
                         <div class="mgr-cost-badge">Base Cost: ₹${fmt(item.cost)}</div>
-                        <div style="font-size: 1.05rem; font-weight: 800; color: var(--brand); margin-top: 4px;">Flat Rate: ₹${fmt(item.price2)}</div>
+                        <div style="font-size: 1.05rem; font-weight: 800; color: var(--brand); margin-top: 4px;">Rate: ₹${fmt(item.price2)}</div>
                     `;
                 }
 
@@ -3196,12 +3176,12 @@
             if (INVENTORY.length === 0) return;
             
             let exportData = [
-                ["Item Code", "Item Name", "Slab Status", "MRP", "Cost", "Stock", "Slab 1 Rate", "Slab 1 Margin (%)", "Slab 2 Rate", "Slab 2 Margin (%)", "Slab 3 Rate", "Slab 3 Margin (%)", "Slab 4 Rate", "Slab 4 Margin (%)"]
+                ["Item Code", "Item Name", "Slab Status", "MRP", "Cost", "Stock", "Price 2", "Slab 1 Rate", "Slab 1 Margin (%)", "Slab 2 Rate", "Slab 2 Margin (%)", "Slab 3 Rate", "Slab 3 Margin (%)", "Slab 4 Rate", "Slab 4 Margin (%)"]
             ];
             
             INVENTORY.forEach(item => {
                 const slabStatus = item.has_slabs ? "ON" : "OFF";
-                let row = [ item.code, item.name, slabStatus, item.mrp, item.cost, item.stock ];
+                let row = [ item.code, item.name, slabStatus, item.mrp, item.cost, item.stock, item.price2 || "" ];
                 
                 for (let i = 0; i < 4; i++) {
                     if (item.has_slabs && item.slabs && item.slabs[i]) {
