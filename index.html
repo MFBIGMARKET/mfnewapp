@@ -333,6 +333,16 @@
         </div>
     </div>
 
+    <!-- PHOTO VIEWER MODAL -->
+    <div id="photo-modal" class="modal-overlay hidden" style="z-index: 5000; background: rgba(0,0,0,0.9);">
+        <div style="width: 100%; max-width: 500px; display:flex; flex-direction:column; align-items:center;">
+            <div style="width: 100%; text-align: right; padding: 10px;">
+                <i class="fas fa-times" onclick="closeModal('photo-modal')" style="color: white; font-size: 2rem; cursor: pointer;"></i>
+            </div>
+            <img id="photo-modal-img" src="" style="width: 100%; border-radius: 8px;">
+        </div>
+    </div>
+
     <!-- CONFIRM MODAL -->
     <div id="confirm-modal" class="modal-overlay hidden" style="z-index: 4000;">
         <div class="modal-content" style="max-width: 320px; text-align: center; padding: 24px 20px;">
@@ -502,6 +512,8 @@
         <!-- ========================================== -->
         
         <div id="view-packing" class="tab-content hidden packing-view salesman-view">
+            <!-- This strip will be injected dynamically by JS only for the Salesman -->
+            <div id="salesman-pack-hist-strip"></div>
             <div class="scroll-area" style="padding: 16px;" id="packing-feed"></div>
         </div>
 
@@ -511,6 +523,43 @@
                 <input type="date" id="pack-hist-date-filter" onchange="renderPackerHistory()">
             </div>
             <div class="scroll-area" style="padding: 16px;" id="pack-hist-feed"></div>
+        </div>
+
+        <!-- ========================================== -->
+        <!-- DELIVERY VIEWS                             -->
+        <!-- ========================================== -->
+        <div id="view-batching" class="tab-content hidden delivery-view">
+            <div class="hist-top" style="gap: 10px;">
+                <div style="display:flex; flex-direction:column; flex:1;">
+                    <span style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-bottom:4px;">From:</span>
+                    <input type="date" id="batch-from-date" onchange="renderBatching()">
+                </div>
+                <div style="display:flex; flex-direction:column; flex:1;">
+                    <span style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-bottom:4px;">To:</span>
+                    <input type="date" id="batch-to-date" onchange="renderBatching()">
+                </div>
+            </div>
+            <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB; padding: 8px 16px;">
+                <span style="font-size: 0.85rem; font-weight: 600;">Selected: <span id="batch-sel-count" style="color:var(--brand);">0</span></span>
+                <button class="btn-pack-add" onclick="confirmBatchCreation()" style="background:var(--brand); color:white;">Create Batch</button>
+            </div>
+            <div class="scroll-area" style="padding: 16px;" id="batching-feed"></div>
+        </div>
+
+        <div id="view-delivery" class="tab-content hidden delivery-view">
+            <div class="hist-top">
+                <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
+                <input type="date" id="del-date-filter" onchange="renderDelivery()">
+            </div>
+            <div class="scroll-area" style="padding: 16px;" id="delivery-feed"></div>
+        </div>
+
+        <div id="view-del-hist" class="tab-content hidden delivery-view">
+            <div class="hist-top">
+                <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
+                <input type="date" id="del-hist-date-filter" onchange="renderDelHistory()">
+            </div>
+            <div class="scroll-area" style="padding: 16px;" id="del-hist-feed"></div>
         </div>
 
        <!-- ========================================== -->
@@ -575,6 +624,14 @@
         <div class="bottom-nav packing-nav hidden">
             <div class="nav-item active" onclick="switchTab('packing')" data-target="packing"><i class="fas fa-box"></i>To Pack</div>
             <div class="nav-item" onclick="switchTab('pack-hist')" data-target="pack-hist"><i class="fas fa-history"></i>History</div>
+            <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
+        </div>
+
+        <div class="bottom-nav delivery-nav hidden">
+            <div class="nav-item active" onclick="switchTab('packing')" data-target="packing"><i class="fas fa-box"></i>Pack</div>
+            <div class="nav-item" onclick="switchTab('batching')" data-target="batching"><i class="fas fa-layer-group"></i>Batch</div>
+            <div class="nav-item" onclick="switchTab('delivery')" data-target="delivery"><i class="fas fa-truck"></i>Deliver</div>
+            <div class="nav-item" onclick="switchTab('del-hist')" data-target="del-hist"><i class="fas fa-history"></i>History</div>
             <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
         </div>
 
@@ -733,6 +790,20 @@
         </div>
     </div>
 
+    <!-- DELIVERY: DETAIL VIEW -->
+    <div id="delivery-detail-view" class="order-view hidden">
+        <div class="ov-head">
+            <i class="fas fa-arrow-left" onclick="exitDeliveryDetail()" style="cursor:pointer; padding:4px;"></i>
+            <div class="ov-center">
+                <div class="ov-title" id="del-batch-id">BAT-XXXX</div>
+                <div class="ov-sub" id="del-batch-count">0 Orders</div>
+            </div>
+            <i class="fas fa-check" style="color: transparent;"></i>
+        </div>
+        <div class="scroll-area" style="background: var(--bg); padding: 12px;" id="delivery-detail-list"></div>
+        <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoCapture(event)">
+    </div>
+
     <!-- BILLING: DETAIL VIEW -->
     <div id="billing-detail-view" class="order-view hidden">
         <div class="ov-head">
@@ -812,6 +883,7 @@
         let draft = {}; 
 
         // Packing State
+        let allPacks = {}; 
         let currentPackOrder = null;
         let packSearchQuery = "";
 
@@ -821,7 +893,7 @@
         /* --- AUTH & INIT --- */
         window.onload = async () => {
             const today = new Date().toISOString().split('T')[0];
-            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter'].forEach(id => {
+            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter', 'batch-from-date', 'batch-to-date', 'del-date-filter', 'del-hist-date-filter'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.value = today;
             });
@@ -1017,6 +1089,21 @@
             
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             
+            // Build the Salesman Packing History Strip
+            const smPackStrip = document.getElementById('salesman-pack-hist-strip');
+            if (smPackStrip) {
+                if (currentUserRole === 'Salesman') {
+                    smPackStrip.innerHTML = `
+                        <div style="background: var(--brand-light); border-bottom: 1px solid var(--border); padding: 8px 14px; height: 42px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="switchTab('pack-hist')">
+                            <span style="font-weight: 700; font-size: 0.9rem; color: var(--brand);"><i class="fas fa-history" style="margin-right: 8px;"></i>Show Packing History</span>
+                            <i class="fas fa-chevron-right" style="color: var(--brand); font-size: 0.85rem;"></i>
+                        </div>
+                    `;
+                } else {
+                    smPackStrip.innerHTML = ''; // Hide for everyone else
+                }
+            }
+
             if(currentUserRole === 'Salesman') {
                 if(sNav) sNav.classList.remove('hidden');
                 if(typeof renderCustomersView === 'function') renderCustomersView();
@@ -1036,6 +1123,11 @@
                 switchTab('pricing'); 
             } else if (currentUserRole === 'Packing') {
                 if(pNav) pNav.classList.remove('hidden');
+                if(typeof renderPackingOrders === 'function') renderPackingOrders();
+                switchTab('packing');
+            } else if (currentUserRole === 'Delivery') {
+                const dNav = document.querySelector('.delivery-nav');
+                if(dNav) dNav.classList.remove('hidden');
                 if(typeof renderPackingOrders === 'function') renderPackingOrders();
                 switchTab('packing');
             } else if (currentUserRole === 'Billing') {
@@ -1072,6 +1164,9 @@
             if (tabId === 'billing' && currentUserRole === 'Billing') renderBillingOrders();
             if (tabId === 'bill-hist' && currentUserRole === 'Billing') renderBillingHistory();
             if (tabId === 'bill-col' && currentUserRole === 'Billing') renderBillingCollections();
+            if (tabId === 'batching' && currentUserRole === 'Delivery') renderBatching();
+            if (tabId === 'delivery' && currentUserRole === 'Delivery') renderDelivery();
+            if (tabId === 'del-hist' && currentUserRole === 'Delivery') renderDelHistory();
         }
         /* --- HELPERS --- */
         function fmt(num) { return Number(parseFloat(num).toFixed(2)); }
@@ -1152,17 +1247,24 @@
 
         let ALL_COLLECTIONS = []; // Global collections for billing
         function loadState() {
-            if (localStorage.getItem('b2b_c')) cart = JSON.parse(localStorage.getItem('b2b_c'));
+            if (localStorage.getItem('b2b_carts')) allCarts = JSON.parse(localStorage.getItem('b2b_carts'));
             if (localStorage.getItem('b2b_u')) activeCust = JSON.parse(localStorage.getItem('b2b_u'));
-            if (localStorage.getItem('b2b_pack')) currentPackOrder = JSON.parse(localStorage.getItem('b2b_pack'));
+            
+            if (activeCust && allCarts[activeCust.code]) cart = allCarts[activeCust.code];
+            else cart = {};
+            
+            if (localStorage.getItem('b2b_packs')) allPacks = JSON.parse(localStorage.getItem('b2b_packs'));
+            
             updateBadge();
         }
         
         function saveLocalState() {
-            localStorage.setItem('b2b_c', JSON.stringify(cart));
+            if (activeCust) allCarts[activeCust.code] = cart;
+            localStorage.setItem('b2b_carts', JSON.stringify(allCarts));
             localStorage.setItem('b2b_u', JSON.stringify(activeCust));
-            if (currentPackOrder) localStorage.setItem('b2b_pack', JSON.stringify(currentPackOrder));
-            else localStorage.removeItem('b2b_pack');
+            
+            if (currentPackOrder) allPacks[currentPackOrder.id] = currentPackOrder;
+            localStorage.setItem('b2b_packs', JSON.stringify(allPacks));
         }
 
         /* ========================================== */
@@ -1854,14 +1956,23 @@
                 const dimStyle = isRemoved ? "opacity: 0.5; text-decoration: line-through;" : "";
 
                 return `
-                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; ${isRemoved ? 'background: #FEF2F2; border-color: #FEE2E2;' : ''}">
-                    <div style="flex:1; min-width:0; padding-right:10px;">
-                        <div style="font-weight:700; font-size:0.85rem; margin-bottom:4px; color:var(--text); ${dimStyle}">${index + 1}. ${item.name}</div>
-                        <div style="font-size:0.75rem; color:var(--text-mut); margin-top:4px;">MRP: ${mrpText} ${newBadge}</div>
+                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; ${isRemoved ? 'background: #FEF2F2; border-color: #FEE2E2;' : ''}">
+                    <div style="display:flex; justify-content:space-between; margin-bottom: 8px; ${dimStyle}">
+                        <div style="font-weight:700; font-size:0.85rem; color:var(--text); line-height: 1.3; flex:1; padding-right:10px;">
+                            ${index + 1}. ${item.name}
+                        </div>
+                        <div style="font-weight:800; font-size:1rem; color:var(--text); flex-shrink:0;">
+                            ₹${fmt(totalItemCost)}
+                        </div>
                     </div>
-                    <div style="text-align: right; flex-shrink:0; ${dimStyle}">
-                        <b style="color:var(--brand); font-size:0.95rem;">${totalQty} Pcs</b><br>
-                        <span style="font-size:0.75rem; color:var(--text-mut); font-weight:700;">₹${fmt(totalItemCost)}</span>
+                    <div style="display:flex; justify-content:space-between; align-items:center; ${dimStyle}">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span style="font-size:0.75rem; color:var(--text-mut); font-weight:600;">MRP: ${mrpText}</span>
+                            ${badgeHTML}
+                        </div>
+                        <span style="background: var(--brand-light); color: var(--brand); padding: 3px 8px; border-radius: 4px; font-size:0.75rem; font-weight:700;">
+                            ₹${fmt(rate)} × ${totalQty} NOS
+                        </span>
                     </div>
                 </div>`;
             }).join('');
@@ -2046,8 +2157,11 @@
 
             feed.innerHTML = filtered.map(order => {
                 const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
-                const activeBadge = (currentPackOrder && currentPackOrder.id === order.id) ? `<i class="fas fa-box-open" style="color:var(--warning); font-size:0.9rem;" title="Active"></i>` : '';
-                const btnText = (currentPackOrder && currentPackOrder.id === order.id) ? "Resume" : "Start Packing";
+                
+                // Check if this order exists in our local allPacks memory
+                const isStarted = !!allPacks[order.id];
+                const activeBadge = isStarted ? `<i class="fas fa-box-open" style="color:var(--warning); font-size:0.9rem;" title="Active"></i>` : '';
+                const btnText = isStarted ? "Resume" : "Start Packing";
                 
                 // Resolve Salesman Name from Profiles DB
                 let smName = "Unknown";
@@ -2075,15 +2189,14 @@
             }).join(''); 
         }
 
-        async function openPackingDetail(orderId) {
-            // Warn if switching active orders using Modern Modal
-            if (currentPackOrder && currentPackOrder.id !== orderId) {
-                const isConfirmed = await showConfirm("Discard Progress?", `You are currently packing <b>${currentPackOrder.id}</b>.<br><br>Discard that progress to open ${orderId}?`, "Yes, Discard");
-                if(!isConfirmed) return;
-            }
+        function openPackingDetail(orderId) {
+            // Save current pack progress before switching
+            if (currentPackOrder) allPacks[currentPackOrder.id] = currentPackOrder;
 
-            // Only clone from master if we aren't resuming the exact same active order
-            if (!currentPackOrder || currentPackOrder.id !== orderId) {
+            // Restore saved progress OR clone fresh from cloud
+            if (allPacks[orderId]) {
+                currentPackOrder = JSON.parse(JSON.stringify(allPacks[orderId]));
+            } else {
                 currentPackOrder = JSON.parse(JSON.stringify(SUBMITTED_ORDERS.find(o => o.id === orderId)));
                 if(!currentPackOrder) return;
                 
@@ -2091,8 +2204,9 @@
                     currentPackOrder.items[code].sort_marked = false;
                     currentPackOrder.items[code].packed = false;
                 }
-                saveLocalState();
             }
+            
+            saveLocalState();
             
             const custName = CUSTOMERS.find(c => c.code === currentPackOrder.customer_code)?.name || currentPackOrder.customer_code;
             document.getElementById('pack-cust-name').innerText = custName;
@@ -2123,13 +2237,29 @@
 
             feed.innerHTML = filtered.map(order => {
                 const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+                
+                // Resolve Packer Name from Profiles DB
+                let packerName = "Unknown";
+                if (order.packer_id === "local_dev") packerName = "Dev Packer";
+                else if (order.packer_id) {
+                    const prof = PROFILES.find(p => p.id === order.packer_id);
+                    if (prof && prof.full_name) packerName = prof.full_name.split(' ')[0]; // First name only
+                    else packerName = "ID: " + order.packer_id.substring(0, 4).toUpperCase();
+                } else {
+                    packerName = "Packer"; // Fallback for very old orders
+                }
+                
                 return `
-                <div class="order-card">
+                <div class="order-card" style="align-items: center; border-left: 4px solid var(--success);">
                     <div style="flex:1; min-width:0; padding-right: 10px;">
-                        <b style="font-size: 1.05rem; color:var(--success);">${order.id}</b><br>
-                        <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${custName}</div>
+                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
+                        <div style="font-size: 0.75rem; color:var(--text-mut); display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                            <span style="font-weight: 700; color: var(--success);"><i class="fas fa-check-circle" style="margin-right:2px;"></i>${order.id}</span>
+                            <span style="opacity: 0.4;">•</span>
+                            <span><i class="fas fa-box" style="margin-right:2px;"></i>${packerName}</span>
+                        </div>
                     </div>
-                    <button class="btn-take-order" style="flex-shrink:0; background:white; border-color:var(--success); color:var(--success);" onclick="openPackerHistoryDetail('${order.id}')">View</button>
+                    <button class="btn-take-order" style="flex-shrink:0; background:white; border-color:var(--success); color:var(--success); font-size:0.75rem; padding: 6px 10px;" onclick="openPackerHistoryDetail('${order.id}')">View</button>
                 </div>
             `;
             }).join(''); 
@@ -2493,23 +2623,280 @@
             );
 
             if (!isConfirmed) return;
+
+            currentPackOrder.items = finalItems;
             currentPackOrder.status = 'Packed'; // Change status
+            currentPackOrder.packer_id = userSession ? userSession.user.id : "local_dev"; // Record who packed it
 
             try {
                 const { error } = await sbClient.from('orders').update({
                     items: currentPackOrder.items,
-                    status: 'Packed'
+                    status: 'Packed',
+                    packer_id: currentPackOrder.packer_id
                 }).eq('id', currentPackOrder.id);
                 if(error) throw error;
                 
                 const idx = SUBMITTED_ORDERS.findIndex(o => o.id === currentPackOrder.id);
                 if(idx > -1) SUBMITTED_ORDERS[idx] = currentPackOrder;
                 
-                currentPackOrder = null; saveLocalState(); exitPacking();
+                // Clear from memory upon success
+                delete allPacks[currentPackOrder.id];
+                currentPackOrder = null; 
+                saveLocalState(); 
+                exitPacking();
+                
                 showSuccess("Order packed and sent to Billing successfully!");
             } catch(e) {
                 await showConfirm("Update Failed", `Could not reach the cloud. Please try again.<br><br>Error: ${e.message}`, "OK");
             }
+        }
+
+        /* ========================================== */
+        /* DELIVERY & BATCHING LOGIC                  */
+        /* ========================================== */
+        let batchSelections = new Set();
+        let currentActiveBatchId = null;
+        let currentPhotoOrderId = null;
+
+        function renderBatching() {
+            const feed = document.getElementById('batching-feed');
+            if(!feed) return;
+            const fromDate = document.getElementById('batch-from-date').value;
+            const toDate = document.getElementById('batch-to-date').value;
+            
+            let filtered = SUBMITTED_ORDERS.filter(o => o.status === 'Billed');
+            if (fromDate && toDate) {
+                filtered = filtered.filter(o => {
+                    const localDate = new Date(new Date(o.created_at).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    return localDate >= fromDate && localDate <= toDate;
+                });
+            }
+
+            document.getElementById('batch-sel-count').innerText = batchSelections.size;
+
+            if (filtered.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No billed orders found for this range.</div>`;
+                return;
+            }
+
+            feed.innerHTML = filtered.map(order => {
+                const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+                const isSelected = batchSelections.has(order.id);
+                
+                return `
+                <div class="pack-row" style="cursor:pointer; border-radius:6px; margin-bottom:10px; border: 1px solid var(--border);" onclick="toggleBatchOrder('${order.id}')">
+                    <input type="checkbox" class="pack-chk" style="pointer-events:none;" ${isSelected ? 'checked' : ''}>
+                    <div class="pack-info">
+                        <div class="pack-title" style="white-space:normal;">${custName}</div>
+                        <div class="pack-meta" style="margin:0; font-weight:700; color:var(--brand);">${order.id}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleBatchOrder(id) {
+            if (batchSelections.has(id)) batchSelections.delete(id);
+            else batchSelections.add(id);
+            renderBatching();
+        }
+
+        async function confirmBatchCreation() {
+            if (batchSelections.size === 0) { showWarning("Empty Batch", "Please select at least one order to create a batch."); return; }
+            
+            const isConfirmed = await showConfirm("Create Batch", `Group <b>${batchSelections.size}</b> orders into a new Delivery Batch?`, "Yes, Create Batch");
+            if (!isConfirmed) return;
+
+            let nextBatNum = 1;
+            const allBatches = SUBMITTED_ORDERS.filter(o => o.batch_id).map(o => parseInt(o.batch_id.replace(/\D/g, '')) || 0);
+            if (allBatches.length > 0) nextBatNum = Math.max(...allBatches) + 1;
+            const batchId = 'BAT' + String(nextBatNum).padStart(4, '0');
+
+            const orderIdsToUpdate = Array.from(batchSelections);
+            try {
+                const { error } = await sbClient.from('orders').update({ batch_id: batchId, status: 'Loaded' }).in('id', orderIdsToUpdate);
+                if (error) throw error;
+                
+                orderIdsToUpdate.forEach(id => {
+                    const idx = SUBMITTED_ORDERS.findIndex(o => o.id === id);
+                    if (idx > -1) {
+                        SUBMITTED_ORDERS[idx].status = 'Loaded';
+                        SUBMITTED_ORDERS[idx].batch_id = batchId;
+                    }
+                });
+                
+                batchSelections.clear();
+                showSuccess(`Batch ${batchId} created successfully!`);
+                renderBatching();
+            } catch (e) {
+                showWarning("Batch Failed", `Could not create batch. Check connection.<br>${e.message}`);
+            }
+        }
+
+        function renderDelivery() {
+            const feed = document.getElementById('delivery-feed');
+            if(!feed) return;
+            const filterDate = document.getElementById('del-date-filter').value;
+            
+            let filtered = SUBMITTED_ORDERS.filter(o => o.status === 'Loaded' && o.batch_id);
+            
+            // Group by Batch ID
+            const batches = {};
+            filtered.forEach(o => {
+                if (!batches[o.batch_id]) batches[o.batch_id] = { id: o.batch_id, count: 0, created_at: o.created_at };
+                batches[o.batch_id].count++;
+            });
+
+            const batchList = Object.values(batches);
+            
+            if (batchList.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No active batches to deliver.</div>`;
+                return;
+            }
+
+            feed.innerHTML = batchList.map(b => `
+                <div class="order-card" style="border-left: 4px solid var(--brand);">
+                    <div style="flex:1; min-width:0;">
+                        <b style="font-size: 1.1rem; color:var(--text);">${b.id}</b><br>
+                        <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${b.count} Orders Loaded</div>
+                    </div>
+                    <button class="btn-take-order" style="flex-shrink:0;" onclick="openDeliveryBatch('${b.id}')">Start Delivery</button>
+                </div>
+            `).join('');
+        }
+
+        function openDeliveryBatch(batchId) {
+            currentActiveBatchId = batchId;
+            document.getElementById('del-batch-id').innerText = batchId;
+            renderDeliveryDetailList();
+            document.getElementById('delivery-detail-view').classList.remove('hidden');
+        }
+
+        function exitDeliveryDetail() {
+            currentActiveBatchId = null;
+            document.getElementById('delivery-detail-view').classList.add('hidden');
+            renderDelivery();
+        }
+
+        function renderDeliveryDetailList() {
+            const list = document.getElementById('delivery-detail-list');
+            const batchOrders = SUBMITTED_ORDERS.filter(o => o.batch_id === currentActiveBatchId);
+            document.getElementById('del-batch-count').innerText = `${batchOrders.length} Orders`;
+
+            list.innerHTML = batchOrders.map(order => {
+                const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+                const isDelivered = order.status === 'Delivered';
+
+                if (isDelivered) {
+                    return `
+                    <div style="background: #F0FDF4; padding: 12px; border-radius: 6px; border: 1px solid #BBF7D0; margin-bottom: 10px;">
+                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 4px;">${custName}</div>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <span style="font-size: 0.8rem; color:var(--success); font-weight:700;"><i class="fas fa-check-circle"></i> Delivered</span>
+                            <button onclick="showPhotoModal('${order.delivery_photo}')" style="background:white; color:var(--success); border:1px solid var(--success); padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:700; cursor:pointer;">View Photo</button>
+                        </div>
+                    </div>`;
+                } else {
+                    return `
+                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px;">
+                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px;">${custName}</div>
+                        <div style="font-size: 0.8rem; color:var(--text-mut); margin-bottom: 10px;">${order.id}</div>
+                        <button onclick="triggerPhotoCapture('${order.id}')" style="width:100%; background:var(--brand); color:white; border:none; padding:10px; border-radius:4px; font-weight:700; font-size:0.9rem; cursor:pointer;"><i class="fas fa-camera"></i> Mark Delivered</button>
+                    </div>`;
+                }
+            }).join('');
+        }
+
+        function triggerPhotoCapture(orderId) {
+            currentPhotoOrderId = orderId;
+            document.getElementById('camera-input').click();
+        }
+
+        async function handlePhotoCapture(event) {
+            const file = event.target.files[0];
+            if (!file || !currentPhotoOrderId) return;
+
+            // Compress image using Canvas
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = e => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = async () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const MAX_WIDTH = 800;
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    const base64Photo = canvas.toDataURL('image/jpeg', 0.6); // 60% quality jpeg
+                    await saveDeliveryToCloud(currentPhotoOrderId, base64Photo);
+                };
+            };
+        }
+
+        async function saveDeliveryToCloud(orderId, base64Photo) {
+            try {
+                const { error } = await sbClient.from('orders').update({
+                    status: 'Delivered',
+                    delivery_photo: base64Photo
+                }).eq('id', orderId);
+                
+                if (error) throw error;
+                
+                const idx = SUBMITTED_ORDERS.findIndex(o => o.id === orderId);
+                if (idx > -1) {
+                    SUBMITTED_ORDERS[idx].status = 'Delivered';
+                    SUBMITTED_ORDERS[idx].delivery_photo = base64Photo;
+                }
+                
+                showSuccess("Order marked as Delivered!");
+                renderDeliveryDetailList();
+            } catch (e) {
+                showWarning("Delivery Failed", "Could not reach the cloud to save photo. Try again.");
+            }
+        }
+
+        function showPhotoModal(base64) {
+            document.getElementById('photo-modal-img').src = base64;
+            document.getElementById('photo-modal').classList.remove('hidden');
+        }
+
+        // --- DELIVERY HISTORY ---
+        function renderDelHistory() {
+            const feed = document.getElementById('del-hist-feed');
+            if(!feed) return;
+            const filterDate = document.getElementById('del-hist-date-filter').value;
+            
+            let filtered = SUBMITTED_ORDERS.filter(o => o.status === 'Delivered' && o.batch_id);
+            if (filterDate) {
+                filtered = filtered.filter(o => {
+                    const d = new Date(o.created_at);
+                    const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    return localDate === filterDate;
+                });
+            }
+
+            if (filtered.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No deliveries found for this date.</div>`;
+                return;
+            }
+
+            feed.innerHTML = filtered.map(order => {
+                const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+                return `
+                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom: 6px;">
+                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text);">${custName}</div>
+                        <span style="font-size:0.75rem; font-weight:700; color:var(--brand); background:var(--brand-light); padding:2px 6px; border-radius:4px;">${order.batch_id}</span>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="font-size: 0.8rem; color:var(--text-mut);">${order.id}</div>
+                        <button onclick="showPhotoModal('${order.delivery_photo}')" style="background:white; color:var(--success); border:1px solid var(--success); padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:700; cursor:pointer;"><i class="fas fa-camera"></i> Proof</button>
+                    </div>
+                </div>`;
+            }).join('');
         }
 
         /* ========================================== */
