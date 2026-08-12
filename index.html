@@ -213,6 +213,27 @@
 
         .prof-view { padding: 20px; text-align: center; }
         .btn-logout { background: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; width: 90%; cursor: pointer; margin-top: 20px;}
+
+        /* --- MOBILE RESPONSIVE TWEAKS --- */
+        @media (max-width: 768px) {
+            /* Hide Import/Export bulk buttons on mobile */
+            #view-pricing .bulk-group { display: none !important; }
+            
+            /* Stick the Item Name column to the left when scrolling */
+            .pricing-table th:nth-child(2) {
+                position: sticky !important;
+                left: 0;
+                z-index: 105 !important; /* Keep above other headers */
+                background: var(--brand-dark) !important;
+            }
+            .pricing-table td:nth-child(2) {
+                position: sticky !important;
+                left: 0;
+                z-index: 5 !important; /* Keep above scrolling cells */
+                background: white !important;
+                border-right: 2px solid var(--border-dark) !important; /* Clean separator line */
+            }
+        }
     </style>
 </head>
 <body>
@@ -507,6 +528,26 @@
             </div>
         </div>
 
+        <!-- ADMIN: LIVE DASHBOARD -->
+        <div id="view-live" class="tab-content hidden admin-view">
+            <div class="hist-top" style="gap: 10px;">
+                <div style="display:flex; flex-direction:column; flex:1;">
+                    <span style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-bottom:4px;">From:</span>
+                    <input type="date" id="live-from-date" onchange="renderLiveDashboard(true)">
+                </div>
+                <div style="display:flex; flex-direction:column; flex:1;">
+                    <span style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-bottom:4px;">To:</span>
+                    <input type="date" id="live-to-date" onchange="renderLiveDashboard(true)">
+                </div>
+            </div>
+            <div id="live-sm-filter-bar" style="background:var(--bg);"></div>
+            <div class="scroll-area" style="padding: 0 16px 16px 16px; background: var(--bg);">
+                <div id="live-top-dashboard"></div>
+                <div id="live-stat-filter-bar" style="background:var(--bg);"></div>
+                <div id="live-feed"></div>
+            </div>
+        </div>
+
         <!-- ========================================== -->
         <!-- PACKING VIEW                               -->
         <!-- ========================================== -->
@@ -618,6 +659,7 @@
         <div class="bottom-nav admin-nav hidden">
             <div class="nav-item active" onclick="switchTab('catalog')" data-target="catalog"><i class="fas fa-box-open"></i>Catalog</div>
             <div class="nav-item" onclick="switchTab('pricing')" data-target="pricing"><i class="fas fa-tags"></i>Pricing</div>
+            <div class="nav-item" onclick="switchTab('live')" data-target="live"><i class="fas fa-chart-line"></i>Live</div>
             <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
         </div>
         
@@ -801,6 +843,10 @@
             </div>
             <i class="fas fa-check" style="color: transparent;"></i>
         </div>
+        <div class="search-bar">
+            <i class="fas fa-search" style="color:var(--text-mut);"></i>
+            <input type="text" placeholder="Search customer or order ID..." id="del-search-input" oninput="handleDeliverySearch(this.value)">
+        </div>
         <div class="scroll-area" style="background: var(--bg); padding: 12px;" id="delivery-detail-list"></div>
         <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoCapture(event)">
     </div>
@@ -894,7 +940,7 @@
         /* --- AUTH & INIT --- */
         window.onload = async () => {
             const today = new Date().toISOString().split('T')[0];
-            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter', 'batch-from-date', 'batch-to-date', 'del-date-filter', 'del-hist-date-filter'].forEach(id => {
+            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter', 'batch-from-date', 'batch-to-date', 'del-date-filter', 'del-hist-date-filter', 'live-from-date', 'live-to-date'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.value = today;
             });
@@ -1159,6 +1205,7 @@
 
             if (tabId === 'catalog' && (currentUserRole === 'Admin' || currentUserRole === 'Manager')) renderCatalogView();
             if (tabId === 'pricing' && currentUserRole === 'Admin') renderPricingTable();
+            if (tabId === 'live' && currentUserRole === 'Admin') renderLiveDashboard();
             if (tabId === 'history' && currentUserRole === 'Salesman') renderSalesmanHistory();
             if (tabId === 'collection' && (currentUserRole === 'Salesman' || currentUserRole === 'Delivery')) renderCollectionCustomers();
             if (tabId === 'packing' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman')) renderPackingOrders();
@@ -1232,15 +1279,18 @@
         }
 
         function getSmartSlabLabel(min, max, caseQty) {
-            if(!caseQty || caseQty <= 0) return `${min} - ${max}`; 
+            // If no case logic exists, just append 'Pc' to the raw numbers
+            if(!caseQty || caseQty <= 0) return `${min} Pc - ${max >= 99999 ? '+' : max + ' Pc'}`; 
+            
             const halfCase = Math.floor(caseQty / 2);
             const formatVal = (val) => {
                 if (val === 0) return "0";
-                if (val === caseQty) return "1 Case";
-                if (val % caseQty === 0) return `${val/caseQty} Case`;
-                if (caseQty > 50 && val === halfCase) return "Half Case";
-                return `${val}`;
+                if (val === caseQty) return "1 Cs";
+                if (val % caseQty === 0) return `${val/caseQty} Cs`;
+                if (caseQty > 50 && val === halfCase) return "1/2 Cs";
+                return `${val} Pc`; // Add 'Pc' to any raw number that doesn't fit a Case mold
             };
+            
             let minText = formatVal(min);
             if (max >= 99999) return `${minText}+`;
             let maxText = formatVal(max);
@@ -2773,16 +2823,37 @@
             document.getElementById('delivery-detail-view').classList.remove('hidden');
         }
 
+        let deliverySearchQuery = "";
+
+        function handleDeliverySearch(val) {
+            deliverySearchQuery = val.toLowerCase();
+            renderDeliveryDetailList();
+        }
+
         function exitDeliveryDetail() {
             currentActiveBatchId = null;
+            deliverySearchQuery = ""; // Reset search when leaving
+            document.getElementById('del-search-input').value = "";
             document.getElementById('delivery-detail-view').classList.add('hidden');
             renderDelivery();
         }
 
         function renderDeliveryDetailList() {
             const list = document.getElementById('delivery-detail-list');
-            const batchOrders = SUBMITTED_ORDERS.filter(o => o.batch_id === currentActiveBatchId);
+            let batchOrders = SUBMITTED_ORDERS.filter(o => o.batch_id === currentActiveBatchId);
             document.getElementById('del-batch-count').innerText = `${batchOrders.length} Orders`;
+
+            if (deliverySearchQuery) {
+                batchOrders = batchOrders.filter(o => {
+                    const custName = CUSTOMERS.find(c => c.code === o.customer_code)?.name || o.customer_code;
+                    return custName.toLowerCase().includes(deliverySearchQuery) || o.id.toLowerCase().includes(deliverySearchQuery);
+                });
+            }
+
+            if (batchOrders.length === 0) {
+                list.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-mut);">No matches found.</div>`;
+                return;
+            }
 
             list.innerHTML = batchOrders.map(order => {
                 const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
@@ -2840,9 +2911,11 @@
 
         async function saveDeliveryToCloud(orderId, base64Photo) {
             try {
+                const now = new Date().toISOString();
                 const { error } = await sbClient.from('orders').update({
                     status: 'Delivered',
-                    delivery_photo: base64Photo
+                    delivery_photo: base64Photo,
+                    delivered_at: now
                 }).eq('id', orderId);
                 
                 if (error) throw error;
@@ -2851,6 +2924,7 @@
                 if (idx > -1) {
                     SUBMITTED_ORDERS[idx].status = 'Delivered';
                     SUBMITTED_ORDERS[idx].delivery_photo = base64Photo;
+                    SUBMITTED_ORDERS[idx].delivered_at = now;
                 }
                 
                 showSuccess("Order marked as Delivered!");
@@ -2872,9 +2946,14 @@
             const filterDate = document.getElementById('del-hist-date-filter').value;
             
             let filtered = SUBMITTED_ORDERS.filter(o => o.status === 'Delivered' && o.batch_id);
+            
+            // Sort by delivery time, newest at the top
+            filtered.sort((a, b) => new Date(b.delivered_at || b.created_at) - new Date(a.delivered_at || a.created_at));
+
             if (filterDate) {
                 filtered = filtered.filter(o => {
-                    const d = new Date(o.created_at);
+                    // Use delivered_at. If it's an old order missing the column, fallback to created_at
+                    const d = new Date(o.delivered_at || o.created_at);
                     const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
                     return localDate === filterDate;
                 });
@@ -2889,13 +2968,15 @@
                 const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
                 return `
                 <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px;">
-                    <div style="display:flex; justify-content:space-between; margin-bottom: 6px;">
-                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text);">${custName}</div>
-                        <span style="font-size:0.75rem; font-weight:700; color:var(--brand); background:var(--brand-light); padding:2px 6px; border-radius:4px;">${order.batch_id}</span>
-                    </div>
+                    <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
+                    
                     <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div style="font-size: 0.8rem; color:var(--text-mut);">${order.id}</div>
-                        <button onclick="showPhotoModal('${order.delivery_photo}')" style="background:white; color:var(--success); border:1px solid var(--success); padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:700; cursor:pointer;"><i class="fas fa-camera"></i> Proof</button>
+                        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
+                            <span style="font-size:0.75rem; font-weight:700; color:var(--brand);"><i class="fas fa-receipt" style="margin-right:2px;"></i>${order.id}</span>
+                            <span style="opacity:0.4; font-size:0.75rem;">•</span>
+                            <span style="font-size:0.75rem; font-weight:700; color:var(--text-mut);"><i class="fas fa-layer-group" style="margin-right:2px;"></i>${order.batch_id}</span>
+                        </div>
+                        <button onclick="showPhotoModal('${order.delivery_photo}')" style="background:white; color:var(--success); border:1px solid var(--success); padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:700; cursor:pointer; flex-shrink:0;"><i class="fas fa-camera"></i> Proof</button>
                     </div>
                 </div>`;
             }).join('');
@@ -3296,26 +3377,40 @@
                         const markupFmt = fmt(s.markup);
                         const smartLabel = getSmartSlabLabel(s.min, s.max, item.caseQty);
                         return `
-                            <div class="slab-row">
-                                <div class="sl-col-name">${smartLabel}</div>
-                                <div class="sl-col-rate">₹${rate.toFixed(2)} <span class="prof">(${markupFmt}%)</span></div>
-                                <div class="sl-col-act"></div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; background: white; border: 1px solid var(--border); border-radius: 4px; padding: 6px 10px;">
+                                <div style="font-weight: 600; color: var(--text-mut); font-size: 0.75rem; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                    ${smartLabel}
+                                </div>
+                                <div style="text-align: right; font-size: 0.85rem; font-weight: 700; color: var(--text);">
+                                    ₹${rate.toFixed(2)} <span style="color: var(--success); font-weight: 600; font-size: 0.7rem; margin-left: 6px;">(${markupFmt}%)</span>
+                                </div>
                             </div>
                         `;
                     }).join('');
 
-                    pricingUI = `<div class="mgr-cost-badge">Base Cost: ₹${fmt(item.cost)}</div>`;
+                    // Calculate Base Rate (Slab 1)
+                    const baseRate = fmt(getRate(item.cost, item.slabs[0].markup));
+
+                    pricingUI = `
+                        <div style="display:flex; gap:6px; margin-top:4px; align-items:center;">
+                            <div style="font-size:0.7rem; color:var(--text-mut); font-weight:600; border:1px solid var(--border); padding:2px 6px; border-radius:4px;">Cost: ₹${fmt(item.cost)}</div>
+                            <div style="font-size:0.8rem; font-weight:800; color:var(--brand); background:var(--brand-light); padding:2px 6px; border-radius:4px;">Rate: ₹${baseRate.toFixed(2)}</div>
+                        </div>
+                    `;
+                    
                     dropdownUI = `
                         <div class="slab-toggle" onclick="toggleAccordion('cat-slabs-${item.code}', 'cat-icon-${item.code}')">
                             <span>View Wholesale Pricing Tiers</span>
                             <i class="fas fa-chevron-down" id="cat-icon-${item.code}"></i>
                         </div>
-                        <div class="slab-list hidden" id="cat-slabs-${item.code}">${slabHTML}</div>
+                        <div class="slab-list hidden" id="cat-slabs-${item.code}" style="gap: 8px; margin-top: 10px;">${slabHTML}</div>
                     `;
                 } else {
                     pricingUI = `
-                        <div class="mgr-cost-badge">Base Cost: ₹${fmt(item.cost)}</div>
-                        <div style="font-size: 1.05rem; font-weight: 800; color: var(--brand); margin-top: 4px;">Rate: ₹${fmt(item.price2)}</div>
+                        <div style="display:flex; gap:6px; margin-top:4px; align-items:center;">
+                            <div style="font-size:0.7rem; color:var(--text-mut); font-weight:600; border:1px solid var(--border); padding:2px 6px; border-radius:4px;">Cost: ₹${fmt(item.cost)}</div>
+                            <div style="font-size: 0.95rem; font-weight: 800; color: var(--brand);">Rate: ₹${fmt(item.price2)}</div>
+                        </div>
                     `;
                 }
 
@@ -3347,6 +3442,265 @@
                 </div>
                 `;
             }).join('');
+        }
+
+       /* ========================================== */
+        /* ADMIN LIVE DASHBOARD LOGIC                 */
+        /* ========================================== */
+        let adminLiveSmFilter = "All";
+        let adminLiveStatusFilter = "All";
+
+        function updateLiveFilters(type, val) {
+            if (type === 'sm') adminLiveSmFilter = val;
+            if (type === 'status') adminLiveStatusFilter = val;
+            renderLiveDashboard(false); // False prevents the scrollbars from rebuilding
+        }
+
+        function renderLiveDashboard(rebuildFilters = true) {
+            const feed = document.getElementById('live-feed');
+            const smBar = document.getElementById('live-sm-filter-bar');
+            if(!feed || !smBar) return;
+            
+            const fromDate = document.getElementById('live-from-date').value;
+            const toDate = document.getElementById('live-to-date').value;
+            
+            let filteredOrders = SUBMITTED_ORDERS;
+            let filteredCols = ALL_COLLECTIONS;
+            
+            // 1. Filter by Date Range
+            if (fromDate && toDate) {
+                filteredOrders = filteredOrders.filter(o => {
+                    const localDate = new Date(new Date(o.created_at).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    return localDate >= fromDate && localDate <= toDate;
+                });
+                filteredCols = filteredCols.filter(c => {
+                    const localDate = new Date(new Date(c.created_at).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    return localDate >= fromDate && localDate <= toDate;
+                });
+            }
+
+            // 2. Build SM Filter HTML (Only if dates change to preserve scroll)
+            if (rebuildFilters) {
+                const smListMap = new Map();
+                PROFILES.filter(p => p.role === 'Salesman').forEach(p => {
+                    smListMap.set(p.id, p.full_name.split(' ')[0].toUpperCase());
+                });
+                filteredOrders.forEach(o => {
+                    if (!smListMap.has(o.salesman_id)) {
+                        if (o.salesman_id === 'local_dev') smListMap.set(o.salesman_id, 'DEV');
+                        else smListMap.set(o.salesman_id, (o.salesman_id || "UKN").substring(0,4).toUpperCase());
+                    }
+                });
+
+                const smList = Array.from(smListMap, ([id, name]) => ({ id, name }));
+                smList.sort((a, b) => a.name.localeCompare(b.name));
+                
+                let smFilterHTML = `<div class="cat-scroll" style="padding: 12px 16px 6px 16px; border: none; background: transparent;">`;
+                smFilterHTML += `<div id="ls-All" class="cat-pill ${adminLiveSmFilter === 'All' ? 'active' : ''}" onclick="updateLiveFilters('sm', 'All')">All Salesmen</div>`;
+                smList.forEach(sm => {
+                    smFilterHTML += `<div id="ls-${sm.id}" class="cat-pill ${adminLiveSmFilter === sm.id ? 'active' : ''}" onclick="updateLiveFilters('sm', '${sm.id}')">${sm.name}</div>`;
+                });
+                smFilterHTML += `<div style="margin-right:10px;"></div></div>`;
+                smBar.innerHTML = smFilterHTML;
+            } else {
+                // Just update active classes without redrawing
+                Array.from(smBar.querySelectorAll('.cat-pill')).forEach(el => el.classList.remove('active'));
+                const activeEl = document.getElementById(`ls-${adminLiveSmFilter}`);
+                if (activeEl) activeEl.classList.add('active');
+            }
+
+            // 3. Apply Salesman Filter
+            if (adminLiveSmFilter !== "All") {
+                filteredOrders = filteredOrders.filter(o => o.salesman_id === adminLiveSmFilter);
+                filteredCols = filteredCols.filter(c => c.salesman_id === adminLiveSmFilter);
+            }
+
+            // 4. Calculate KPIs, Pipeline & Margin
+            let stPendingPack = 0, stPendingBill = 0, stPendingLoad = 0, stPendingDel = 0, stDelivered = 0;
+            let totalOrderVal = 0, totalOrderCost = 0;
+            
+            filteredOrders.forEach(o => {
+                const status = o.status || 'Pending';
+                if (status === 'Pending') stPendingPack++;
+                else if (status === 'Packed') stPendingBill++;
+                else if (status === 'Billed') stPendingLoad++;
+                else if (status === 'Loaded') stPendingDel++;
+                else if (status === 'Delivered') stDelivered++;
+                
+                totalOrderVal += o.total_amount;
+
+                // Calculate real cost by iterating over the items in the order
+                if (o.items) {
+                    for (const code in o.items) {
+                        const qty = o.items[code];
+                        const item = INVENTORY.find(i => i.code === code);
+                        if (item) {
+                            const cQty = parseInt(item.caseQty) || 0;
+                            const totalPcs = (qty.c * cQty) + qty.p;
+                            totalOrderCost += (totalPcs * item.cost);
+                        }
+                    }
+                }
+            });
+
+            let totalCollection = 0;
+            filteredCols.forEach(c => totalCollection += c.total_amount);
+            
+            const totalOrderCount = filteredOrders.length;
+            const avgOrderVal = totalOrderCount > 0 ? (totalOrderVal / totalOrderCount) : 0;
+            
+            // Gross Margin % based on Sales Value (Revenue)
+            const overallMarginPerc = totalOrderVal > 0 ? (((totalOrderVal - totalOrderCost) / totalOrderVal) * 100) : 0;
+
+            // 5. Apply Status Filter for Feed
+            let feedOrders = filteredOrders;
+            if (adminLiveStatusFilter !== "All") {
+                feedOrders = feedOrders.filter(o => (o.status || 'Pending') === adminLiveStatusFilter);
+            }
+
+            // 6. Build Status Filter HTML (Safely inject into separate div)
+            const statBar = document.getElementById('live-stat-filter-bar');
+            if (rebuildFilters) {
+                const statuses = [
+                    { db: 'All', ui: 'All' },
+                    { db: 'Pending', ui: 'Pending Packing' },
+                    { db: 'Packed', ui: 'Pending Billing' },
+                    { db: 'Billed', ui: 'Pending Loading' },
+                    { db: 'Loaded', ui: 'Pending Delivery' },
+                    { db: 'Delivered', ui: 'Delivered' }
+                ];
+                let statFilterHTML = `<div class="cat-scroll" style="padding: 0 0 10px 0; border: none; background: transparent; margin: 0 -16px;">`;
+                statFilterHTML += `<div style="margin-left:16px;"></div>`; 
+                statuses.forEach(s => {
+                    statFilterHTML += `<div id="lstat-${s.db}" class="cat-pill ${adminLiveStatusFilter === s.db ? 'active' : ''}" onclick="updateLiveFilters('status', '${s.db}')">${s.ui}</div>`;
+                });
+                statFilterHTML += `<div style="margin-right:10px;"></div></div>`;
+                statBar.innerHTML = statFilterHTML;
+            } else {
+                Array.from(statBar.querySelectorAll('.cat-pill')).forEach(el => el.classList.remove('active'));
+                const activeEl = document.getElementById(`lstat-${adminLiveStatusFilter}`);
+                if (activeEl) activeEl.classList.add('active');
+            }
+
+            
+            // Calculate Total Profit for the Margin tile
+            const totalProfit = Math.round(totalOrderVal - totalOrderCost);
+            const profitStr = String(totalProfit);
+            let profitFontSize = "1.4rem";
+            if (profitStr.length >= 7) profitFontSize = "1rem";
+            else if (profitStr.length >= 6) profitFontSize = "1.15rem";
+            
+            // Round Avg to nearest 100
+            const roundedAvg = Math.round(avgOrderVal / 100) * 100;
+
+            // 7. Inject Dashboard Stats HTML
+            document.getElementById('live-top-dashboard').innerHTML = `
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom: 10px;">
+                    <div style="background:var(--brand); padding:12px; border-radius:8px; border:1px solid var(--brand-dark); text-align:center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; flex-direction:column; justify-content:center;">
+                        <div style="font-size:1.4rem; color:white; font-weight:800; margin-bottom:4px;">₹${Math.round(totalOrderVal)}</div>
+                        <div style="font-size:0.7rem; color:var(--brand-light); font-weight:700; text-transform:uppercase;">Total Value</div>
+                    </div>
+                    
+                    <div style="background:white; border-radius:8px; border:1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.02); display:flex; overflow:hidden;">
+                        <div style="flex:3; padding:10px; text-align:center; display:flex; flex-direction:column; justify-content:center;">
+                            <div style="font-size:1.4rem; color:var(--text); font-weight:800; margin-bottom:4px;">₹${roundedAvg}</div>
+                            <div style="font-size:0.65rem; color:var(--text-mut); font-weight:700; text-transform:uppercase;">Avg Order</div>
+                        </div>
+                        <div style="flex:1; background:#F9FAFB; padding:10px; border-left:1px solid var(--border); text-align:center; display:flex; flex-direction:column; justify-content:center;">
+                            <div style="font-size:1.1rem; color:var(--text); font-weight:800; margin-bottom:4px;">${totalOrderCount}</div>
+                            <div style="font-size:0.6rem; color:var(--text-mut); font-weight:700; text-transform:uppercase;">Orders</div>
+                        </div>
+                    </div>
+
+                    <div style="background:var(--success); padding:12px; border-radius:8px; border:1px solid #065F46; text-align:center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; flex-direction:column; justify-content:center;">
+                        <div style="font-size:1.4rem; color:white; font-weight:800; margin-bottom:4px;">₹${Math.round(totalCollection)}</div>
+                        <div style="font-size:0.7rem; color:#D1FAE5; font-weight:700; text-transform:uppercase;">Collected</div>
+                    </div>
+
+                    <div style="background:white; border-radius:8px; border:1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.02); display:flex; overflow:hidden;">
+                        <div style="flex:3; padding:10px; text-align:center; display:flex; flex-direction:column; justify-content:center;">
+                            <div style="font-size:${profitFontSize}; color:var(--brand); font-weight:800; margin-bottom:4px; white-space:nowrap;">₹${totalProfit}</div>
+                            <div style="font-size:0.65rem; color:var(--text-mut); font-weight:700; text-transform:uppercase;">Est. Profit</div>
+                        </div>
+                        <div style="flex:1; background:#EFF6FF; padding:10px; border-left:1px solid #BFDBFE; text-align:center; display:flex; flex-direction:column; justify-content:center;">
+                            <div style="font-size:0.9rem; color:var(--brand); font-weight:800; margin-bottom:4px;">${overallMarginPerc.toFixed(1)}%</div>
+                            <div style="font-size:0.6rem; color:var(--brand); font-weight:700; text-transform:uppercase;">Margin</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background:white; padding:12px 0px; border-radius:8px; border:1px solid var(--border); margin-bottom:16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                    <div style="display:flex; justify-content:space-between; text-align:center; font-size:0.65rem; font-weight:700; line-height:1.2;">
+                        <div style="color:#B45309; flex:1;"><div style="font-size:1.1rem; margin-bottom:2px;">${stPendingPack}</div>Pend<br>Packing</div>
+                        <div style="color:#166534; flex:1; border-left:1px solid var(--border);"><div style="font-size:1.1rem; margin-bottom:2px;">${stPendingBill}</div>Pend<br>Billing</div>
+                        <div style="color:#1E3A8A; flex:1; border-left:1px solid var(--border);"><div style="font-size:1.1rem; margin-bottom:2px;">${stPendingLoad}</div>Pend<br>Loading</div>
+                        <div style="color:#5B21B6; flex:1; border-left:1px solid var(--border);"><div style="font-size:1.1rem; margin-bottom:2px;">${stPendingDel}</div>Pend<br>Delivery</div>
+                        <div style="color:var(--success); flex:1; border-left:1px solid var(--border);"><div style="font-size:1.1rem; margin-bottom:2px;">${stDelivered}</div>Delivered</div>
+                    </div>
+                </div>
+                
+                <h4 style="margin-bottom:10px; color:var(--text-mut); font-size:0.85rem; text-transform:uppercase;">Live Order Feed</h4>
+            `;
+
+            // 8. Inject Feed HTML
+            let feedHTML = '';
+            if (feedOrders.length === 0) {
+                feedHTML = `<div style="text-align:center; padding: 20px; color: var(--text-mut); font-weight:600;">No orders found.</div>`;
+            } else {
+                feedHTML = feedOrders.map(order => {
+                    const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+                    let smName = "Unknown";
+                    if (order.salesman_id === "local_dev") smName = "Dev Salesman";
+                    else {
+                        const p = PROFILES.find(p => p.id === order.salesman_id);
+                        if (p && p.full_name) smName = p.full_name.split(' ')[0];
+                        else smName = (order.salesman_id || "").substring(0, 4);
+                    }
+                    
+                    let statColor, statIcon, statBg, uiStatus;
+                    const status = order.status || 'Pending';
+                    if (status === 'Pending') { statColor = '#B45309'; statBg = '#FEF3C7'; statIcon = 'fa-box-open'; uiStatus = 'Pending Pack'; }
+                    else if (status === 'Packed') { statColor = '#166534'; statBg = '#DCFCE7'; statIcon = 'fa-file-invoice-dollar'; uiStatus = 'Pending Bill'; }
+                    else if (status === 'Billed') { statColor = '#1E3A8A'; statBg = '#DBEAFE'; statIcon = 'fa-layer-group'; uiStatus = 'Pending Load'; }
+                    else if (status === 'Loaded') { statColor = '#5B21B6'; statBg = '#E0E7FF'; statIcon = 'fa-truck'; uiStatus = 'Pending Deliv'; }
+                    else if (status === 'Delivered') { statColor = '#065F46'; statBg = '#A7F3D0'; statIcon = 'fa-check-circle'; uiStatus = 'Delivered'; }
+
+                    // Calculate individual order margin
+                    let indCost = 0;
+                    if (order.items) {
+                        for (const code in order.items) {
+                            const qty = order.items[code];
+                            const item = INVENTORY.find(i => i.code === code);
+                            if (item) {
+                                const cQty = parseInt(item.caseQty) || 0;
+                                const totalPcs = (qty.c * cQty) + qty.p;
+                                indCost += (totalPcs * item.cost);
+                            }
+                        }
+                    }
+                    
+                    const indProfit = order.total_amount - indCost;
+                    const indMargin = order.total_amount > 0 ? ((indProfit / order.total_amount) * 100) : 0;
+
+                    return `
+                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                        <div style="flex:1; min-width:0; padding-right: 10px;">
+                            <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
+                            <div style="font-size: 0.75rem; color:var(--text-mut); display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
+                                <span style="font-weight: 700; color: var(--text);">${order.id}</span>
+                                <span style="opacity: 0.4;">•</span>
+                                <span><i class="fas fa-user-tie" style="margin-right:2px;"></i>${smName}</span>
+                            </div>
+                        </div>
+                        <div style="text-align: right; flex-shrink:0;">
+                            <span style="background:${statBg}; color:${statColor}; padding:4px 8px; border-radius:4px; font-size:0.65rem; font-weight:800; display:inline-flex; align-items:center; gap:4px;"><i class="fas ${statIcon}"></i> ${uiStatus.toUpperCase()}</span>
+                            <div style="margin-top:6px; font-weight:800; color:var(--text); font-size:1.05rem;">₹${fmt(order.total_amount)}</div>
+                            <div style="font-size:0.7rem; font-weight:700; color:var(--success); margin-top:2px;">₹${fmt(indProfit)} (${fmt(indMargin)}%)</div>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
+            feed.innerHTML = feedHTML;
         }
 
         /* ========================================== */
