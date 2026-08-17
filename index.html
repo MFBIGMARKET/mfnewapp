@@ -817,6 +817,53 @@
         <div class="scroll-area" style="background: var(--bg); padding: 12px;" id="ph-item-list"></div>
     </div>
 
+    <!-- ADMIN: LIVE ORDER DETAIL VIEW -->
+    <div id="admin-live-detail-view" class="order-view hidden">
+        <div class="ov-head">
+            <i class="fas fa-arrow-left" onclick="exitAdminLiveDetail()" style="cursor:pointer; padding:4px;"></i>
+            <div class="ov-center">
+                <div class="ov-title" id="live-det-cust">Loading...</div>
+                <div class="ov-sub" id="live-det-id">ORD-XXXX</div>
+            </div>
+            <i class="fas fa-check" style="color: transparent;"></i> <!-- Spacer -->
+        </div>
+        <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB;">
+            <span><span id="live-det-count" style="color:var(--brand); font-weight:800;">0</span> Items</span>
+            <span id="live-det-status" style="font-size:0.75rem; padding:4px 10px; border-radius:12px; font-weight:800;">STATUS</span>
+        </div>
+        <div class="scroll-area" style="background: var(--bg); padding: 12px;" id="live-det-list"></div>
+    </div>
+
+    <!-- ADMIN: REMOVED ITEMS VIEW -->
+    <div id="admin-removed-items-view" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
+        <div class="ov-head">
+            <i class="fas fa-arrow-left" onclick="exitRemovedItemsView()" style="cursor:pointer; padding:4px;"></i>
+            <div class="ov-center">
+                <div class="ov-title">Removed / Not Packed</div>
+            </div>
+            <i class="fas fa-check" style="color: transparent;"></i>
+        </div>
+        <div class="hist-top" style="gap: 10px; border-bottom: none;">
+            <div style="display:flex; flex-direction:column; flex:1;">
+                <span style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-bottom:4px;">From:</span>
+                <input type="date" id="rem-from-date" onchange="renderRemovedItems()">
+            </div>
+            <div style="display:flex; flex-direction:column; flex:1;">
+                <span style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-bottom:4px;">To:</span>
+                <input type="date" id="rem-to-date" onchange="renderRemovedItems()">
+            </div>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 0 16px 12px 16px; background: white; border-bottom: 1px solid var(--border);">
+            <div id="rem-sm-filter-bar" style="flex:1; min-width:0; margin-right:10px;"></div>
+            
+            <div style="display: flex; background: var(--bg); border-radius: 6px; padding: 2px; border: 1px solid var(--border); flex-shrink: 0;">
+                <button id="rem-btn-item" onclick="updateRemovedFilters('view', 'item')" style="padding: 6px 10px; border-radius: 4px; border:none; background: var(--brand); color: white; font-weight: 700; font-size: 0.7rem; cursor:pointer;">Item</button>
+                <button id="rem-btn-order" onclick="updateRemovedFilters('view', 'order')" style="padding: 6px 10px; border-radius: 4px; border:none; background: transparent; color: var(--text-mut); font-weight: 700; font-size: 0.7rem; cursor:pointer;">Order</button>
+            </div>
+        </div>
+        <div class="scroll-area" style="padding: 16px;" id="rem-feed"></div>
+    </div>
+
     <!-- PACKING: DETAIL VIEW -->
     <div id="packing-detail-view" class="order-view hidden">
         <div class="ov-head">
@@ -970,7 +1017,7 @@
         /* --- AUTH & INIT --- */
         window.onload = async () => {
             const today = new Date().toISOString().split('T')[0];
-            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter', 'batch-from-date', 'batch-to-date', 'del-date-filter', 'del-hist-date-filter', 'live-from-date', 'live-to-date'].forEach(id => {
+            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter', 'batch-from-date', 'batch-to-date', 'del-date-filter', 'del-hist-date-filter', 'live-from-date', 'live-to-date', 'rem-from-date', 'rem-to-date'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.value = today;
             });
@@ -1200,7 +1247,8 @@
                 if(typeof renderCatalogCats === 'function') renderCatalogCats();
                 if(typeof renderCatalogView === 'function') renderCatalogView();
                 if(typeof renderPricingTable === 'function') renderPricingTable();
-                switchTab('pricing'); 
+                if(typeof renderLiveDashboard === 'function') renderLiveDashboard();
+                switchTab('live'); 
             } else if (currentUserRole === 'Packing') {
                 if(pNav) pNav.classList.remove('hidden');
                 if(typeof renderPackingOrders === 'function') renderPackingOrders();
@@ -1425,11 +1473,15 @@
 
         function toggleAccordion(listId, iconId) {
             const list = document.getElementById(listId);
-            const icon = document.getElementById(iconId);
-            if(list && icon) {
+            if (list) {
                 list.classList.toggle('hidden');
-                if(list.classList.contains('hidden')) icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
-                else icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+                if (iconId) {
+                    const icon = document.getElementById(iconId);
+                    if (icon) {
+                        if (list.classList.contains('hidden')) icon.classList.replace('fa-chevron-up', 'fa-chevron-down');
+                        else icon.classList.replace('fa-chevron-down', 'fa-chevron-up');
+                    }
+                }
             }
         }
 
@@ -3688,10 +3740,12 @@
         /* ========================================== */
         let adminLiveSmFilter = "All";
         let adminLiveStatusFilter = "All";
+        let adminLiveSort = "time";
 
         function updateLiveFilters(type, val) {
             if (type === 'sm') adminLiveSmFilter = val;
             if (type === 'status') adminLiveStatusFilter = val;
+            if (type === 'sort') adminLiveSort = val;
             renderLiveDashboard(false); // False prevents the scrollbars from rebuilding
         }
 
@@ -3794,45 +3848,56 @@
             // 5. Apply Status Filter for Feed
             let feedOrders = filteredOrders;
             if (adminLiveStatusFilter !== "All") {
-                feedOrders = feedOrders.filter(o => (o.status || 'Pending') === adminLiveStatusFilter);
+                // Notice 'Billed' is treated as 'Loaded' in this new pipeline structure
+                if (adminLiveStatusFilter === 'Loaded') {
+                    feedOrders = feedOrders.filter(o => o.status === 'Loaded' || o.status === 'Billed');
+                } else {
+                    feedOrders = feedOrders.filter(o => (o.status || 'Pending') === adminLiveStatusFilter);
+                }
             }
 
-            // 6. Build Status Filter HTML (Safely inject into separate div)
-            const statBar = document.getElementById('live-stat-filter-bar');
-            if (rebuildFilters) {
-                const statuses = [
-                    { db: 'All', ui: 'All' },
-                    { db: 'Pending', ui: 'Pending Packing' },
-                    { db: 'Packed', ui: 'Pending Billing' },
-                    { db: 'Billed', ui: 'Pending Loading' },
-                    { db: 'Loaded', ui: 'Pending Delivery' },
-                    { db: 'Delivered', ui: 'Delivered' }
-                ];
-                let statFilterHTML = `<div class="cat-scroll" style="padding: 0 0 10px 0; border: none; background: transparent; margin: 0 -16px;">`;
-                statFilterHTML += `<div style="margin-left:16px;"></div>`; 
-                statuses.forEach(s => {
-                    statFilterHTML += `<div id="lstat-${s.db}" class="cat-pill ${adminLiveStatusFilter === s.db ? 'active' : ''}" onclick="updateLiveFilters('status', '${s.db}')">${s.ui}</div>`;
-                });
-                statFilterHTML += `<div style="margin-right:10px;"></div></div>`;
-                statBar.innerHTML = statFilterHTML;
-            } else {
-                Array.from(statBar.querySelectorAll('.cat-pill')).forEach(el => el.classList.remove('active'));
-                const activeEl = document.getElementById(`lstat-${adminLiveStatusFilter}`);
-                if (activeEl) activeEl.classList.add('active');
-            }
+            // 6. Sort Feed Orders
+            feedOrders.sort((a, b) => {
+                if (adminLiveSort === 'time') return new Date(b.created_at) - new Date(a.created_at);
+                if (adminLiveSort === 'alpha') {
+                    const nA = CUSTOMERS.find(c => c.code === a.customer_code)?.name || a.customer_code;
+                    const nB = CUSTOMERS.find(c => c.code === b.customer_code)?.name || b.customer_code;
+                    return nA.localeCompare(nB);
+                }
+                if (adminLiveSort === 'amount') return b.total_amount - a.total_amount;
+                
+                // Advanced sorting requires unpacking margins
+                let costA = 0, costB = 0;
+                if (a.items) { for(let k in a.items) { const i=INVENTORY.find(x=>x.code===k); if(i) costA+= ((a.items[k].c*(i.caseQty||0))+a.items[k].p)*i.cost; } }
+                if (b.items) { for(let k in b.items) { const i=INVENTORY.find(x=>x.code===k); if(i) costB+= ((b.items[k].c*(i.caseQty||0))+b.items[k].p)*i.cost; } }
+                
+                const profA = a.total_amount - costA;
+                const profB = b.total_amount - costB;
+                
+                if (adminLiveSort === 'profit') return profB - profA;
+                if (adminLiveSort === 'margin') {
+                    const mA = a.total_amount>0 ? (profA/a.total_amount) : 0;
+                    const mB = b.total_amount>0 ? (profB/b.total_amount) : 0;
+                    return mB - mA;
+                }
+                return 0;
+            });
 
-            
-            // Calculate Total Profit for the Margin tile
+            // Clean up the old stat filter bar so it completely vanishes
+            const oldStatBar = document.getElementById('live-stat-filter-bar');
+            if (oldStatBar) oldStatBar.innerHTML = '';
+
+            // 7. Inject Dashboard Stats HTML with Clickable Pipeline
+            const getPipeStyle = (status) => adminLiveStatusFilter === status ? 'background: #F3F4F6; opacity: 1;' : 'background: white; opacity: 0.6;';
+
+            // Safe formatting variables
+            const roundedAvg = Math.round(avgOrderVal / 100) * 100;
             const totalProfit = Math.round(totalOrderVal - totalOrderCost);
             const profitStr = String(totalProfit);
             let profitFontSize = "1.4rem";
             if (profitStr.length >= 7) profitFontSize = "1rem";
             else if (profitStr.length >= 6) profitFontSize = "1.15rem";
-            
-            // Round Avg to nearest 100
-            const roundedAvg = Math.round(avgOrderVal / 100) * 100;
 
-            // 7. Inject Dashboard Stats HTML
             document.getElementById('live-top-dashboard').innerHTML = `
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom: 10px;">
                     <div style="background:var(--brand); padding:12px; border-radius:8px; border:1px solid var(--brand-dark); text-align:center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; flex-direction:column; justify-content:center;">
@@ -3868,17 +3933,28 @@
                     </div>
                 </div>
 
-                <div style="background:white; padding:12px 0px; border-radius:8px; border:1px solid var(--border); margin-bottom:16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                    <div style="display:flex; justify-content:space-between; text-align:center; font-size:0.65rem; font-weight:700; line-height:1.2;">
-                        <div style="color:#B45309; flex:1;"><div style="font-size:1.1rem; margin-bottom:2px;">${stPendingPack}</div>Pend<br>Packing</div>
-                        <div style="color:#166534; flex:1; border-left:1px solid var(--border);"><div style="font-size:1.1rem; margin-bottom:2px;">${stPendingBill}</div>Pend<br>Billing</div>
-                        <div style="color:#1E3A8A; flex:1; border-left:1px solid var(--border);"><div style="font-size:1.1rem; margin-bottom:2px;">${stPendingLoad}</div>Pend<br>Loading</div>
-                        <div style="color:#5B21B6; flex:1; border-left:1px solid var(--border);"><div style="font-size:1.1rem; margin-bottom:2px;">${stPendingDel}</div>Pend<br>Delivery</div>
-                        <div style="color:var(--success); flex:1; border-left:1px solid var(--border);"><div style="font-size:1.1rem; margin-bottom:2px;">${stDelivered}</div>Delivered</div>
-                    </div>
+                <div style="background:white; border-radius:8px; border:1px solid var(--border); margin-bottom:16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); display:flex; overflow:hidden;">
+                    <div onclick="updateLiveFilters('status', 'All')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:var(--text); ${getPipeStyle('All')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${totalOrderCount}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">All<br>Orders</div></div>
+                    <div onclick="updateLiveFilters('status', 'Pending')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:#B45309; border-left:1px solid var(--border); ${getPipeStyle('Pending')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${stPendingPack}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">Pend<br>Packing</div></div>
+                    <div onclick="updateLiveFilters('status', 'Packed')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:#166534; border-left:1px solid var(--border); ${getPipeStyle('Packed')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${stPendingBill}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">Pend<br>Billing</div></div>
+                    <div onclick="updateLiveFilters('status', 'Loaded')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:#5B21B6; border-left:1px solid var(--border); ${getPipeStyle('Loaded')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${stPendingDel + stPendingLoad}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">Pend<br>Delivery</div></div>
+                    <div onclick="updateLiveFilters('status', 'Delivered')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:var(--success); border-left:1px solid var(--border); ${getPipeStyle('Delivered')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${stDelivered}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">Done</div></div>
                 </div>
-                
-                <h4 style="margin-bottom:10px; color:var(--text-mut); font-size:0.85rem; text-transform:uppercase;">Live Order Feed</h4>
+
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <h4 style="color:var(--text); font-size:0.9rem;">Order Feed</h4>
+                    <div style="display:flex; gap:8px;">
+                        <button onclick="openRemovedItemsView()" style="background: #FEF2F2; color: var(--accent); border: 1px solid #FEE2E2; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                            <i class="fas fa-times-circle"></i> Not Packed
+                        </button>
+                        <select onchange="updateLiveFilters('sort', this.value)" style="padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.75rem; font-weight: 700; color: var(--brand); background: var(--brand-light);">
+                            <option value="time" ${adminLiveSort === 'time' ? 'selected' : ''}>Sort by Time</option>
+                            <option value="alpha" ${adminLiveSort === 'alpha' ? 'selected' : ''}>A-Z Name</option>
+                        <option value="amount" ${adminLiveSort === 'amount' ? 'selected' : ''}>Amount (₹)</option>
+                        <option value="profit" ${adminLiveSort === 'profit' ? 'selected' : ''}>Profit (₹)</option>
+                        <option value="margin" ${adminLiveSort === 'margin' ? 'selected' : ''}>Margin (%)</option>
+                    </select>
+                </div>
             `;
 
             // 8. Inject Feed HTML
@@ -3922,7 +3998,7 @@
                     const indMargin = order.total_amount > 0 ? ((indProfit / order.total_amount) * 100) : 0;
 
                     return `
-                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <div onclick="openAdminLiveDetail('${order.id}')" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: pointer;">
                         <div style="flex:1; min-width:0; padding-right: 10px;">
                             <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
                             <div style="font-size: 0.75rem; color:var(--text-mut); display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
@@ -3940,6 +4016,277 @@
                 }).join('');
             }
             feed.innerHTML = feedHTML;
+        }
+
+        function openAdminLiveDetail(orderId) {
+            const order = SUBMITTED_ORDERS.find(o => o.id === orderId) || MY_ORDERS.find(o => o.id === orderId);
+            if(!order) return;
+
+            const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+            document.getElementById('live-det-cust').innerText = custName;
+            document.getElementById('live-det-id').innerText = order.id;
+
+            // Set Header Status Badge
+            const statusStr = order.status || 'Pending';
+            const badgeEl = document.getElementById('live-det-status');
+            badgeEl.innerText = statusStr.toUpperCase();
+            
+            if (statusStr === 'Pending') { badgeEl.style.background = '#FEF3C7'; badgeEl.style.color = '#B45309'; }
+            else if (statusStr === 'Packed') { badgeEl.style.background = '#DCFCE7'; badgeEl.style.color = '#166534'; }
+            else if (statusStr === 'Billed') { badgeEl.style.background = '#DBEAFE'; badgeEl.style.color = '#1E3A8A'; }
+            else if (statusStr === 'Loaded') { badgeEl.style.background = '#E0E7FF'; badgeEl.style.color = '#5B21B6'; }
+            else if (statusStr === 'Delivered') { badgeEl.style.background = '#A7F3D0'; badgeEl.style.color = '#065F46'; }
+
+            // Render Item Breakdown
+            const list = document.getElementById('live-det-list');
+            const itemsArr = Object.keys(order.items || {}).map(k => ({ key: k, ...order.items[k] }));
+            document.getElementById('live-det-count').innerText = itemsArr.length;
+
+            list.innerHTML = itemsArr.map((data, index) => {
+                const realCode = data.key.split('__')[0];
+                const item = INVENTORY.find(i => i.code === realCode);
+                if(!item) return '';
+
+                const cQty = parseInt(item.caseQty) || 0;
+                const totalQty = (data.c * cQty) + data.p;
+                
+                let mrpText = `₹${fmt(item.mrp)}`;
+                if (data.mrp_override) mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹${fmt(data.old_mrp)}</del> ₹${fmt(data.mrp_override)}`;
+                
+                const isRemoved = (statusStr !== 'Pending') && data.packed === false;
+                let badgeHTML = '';
+                if (isRemoved) { badgeHTML = `<span class="pack-new-badge" style="background:var(--accent);">REMOVED</span>`; }
+                else if (data.is_new) {
+                    const isSplit = data.key.includes('__');
+                    badgeHTML = isSplit ? `<span class="pack-new-badge" style="background:#B45309;">SPLIT</span>` : `<span class="pack-new-badge" style="background:var(--success);">ADDED</span>`;
+                }
+
+                const rate = getApplicableRate(item, totalQty, data.r || 'price2', data.cr || 0);
+                const totalItemCost = isRemoved ? 0 : (totalQty * rate);
+                const baseItemCost = totalQty * item.cost;
+                const itemProfit = totalItemCost - baseItemCost;
+                const itemMargin = totalItemCost > 0 ? ((itemProfit / totalItemCost) * 100) : 0;
+                
+                const dimStyle = isRemoved ? "opacity: 0.5; text-decoration: line-through;" : "";
+
+                return `
+                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; ${isRemoved ? 'background: #FEF2F2; border-color: #FEE2E2;' : ''}">
+                    <div style="display:flex; justify-content:space-between; margin-bottom: 8px; ${dimStyle}">
+                        <div style="font-weight:700; font-size:0.85rem; color:var(--text); line-height: 1.3; flex:1; padding-right:10px;">
+                            ${index + 1}. ${item.name}
+                        </div>
+                        <div style="font-weight:800; font-size:1rem; color:var(--text); flex-shrink:0;">
+                            ₹${fmt(totalItemCost)}
+                        </div>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; ${dimStyle}">
+                        <div style="display:flex; align-items:center; gap:6px;">
+                            <span style="font-size:0.75rem; color:var(--text-mut); font-weight:600;">MRP: ${mrpText}</span>
+                            ${badgeHTML}
+                        </div>
+                        <span style="background: var(--brand-light); color: var(--brand); padding: 3px 8px; border-radius: 4px; font-size:0.75rem; font-weight:700;">
+                            ₹${fmt(rate)} × ${totalQty} NOS
+                        </span>
+                    </div>
+                    ${!isRemoved ? `
+                    <div style="text-align:right; font-size:0.7rem; color:var(--success); font-weight:700; margin-top:4px;">
+                        Profit: ₹${fmt(itemProfit)} (${fmt(itemMargin)}%)
+                    </div>` : ''}
+                </div>`;
+            }).join('');
+
+            document.getElementById('admin-live-detail-view').classList.remove('hidden');
+        }
+
+        function exitAdminLiveDetail() {
+            document.getElementById('admin-live-detail-view').classList.add('hidden');
+        }
+
+        /* --- REMOVED ITEMS VIEWER --- */
+        let remSmFilter = "All";
+        let remViewType = "item";
+
+        function openRemovedItemsView() {
+            document.getElementById('rem-from-date').value = document.getElementById('live-from-date').value;
+            document.getElementById('rem-to-date').value = document.getElementById('live-to-date').value;
+            renderRemovedItems();
+            document.getElementById('admin-removed-items-view').classList.remove('hidden');
+        }
+
+        function exitRemovedItemsView() {
+            document.getElementById('admin-removed-items-view').classList.add('hidden');
+        }
+
+        function updateRemovedFilters(type, val) {
+            if (type === 'sm') remSmFilter = val;
+            if (type === 'view') remViewType = val;
+            renderRemovedItems();
+        }
+
+        function renderRemovedItems() {
+            const feed = document.getElementById('rem-feed');
+            const smBar = document.getElementById('rem-sm-filter-bar');
+            if(!feed || !smBar) return;
+            
+            const fromDate = document.getElementById('rem-from-date').value;
+            const toDate = document.getElementById('rem-to-date').value;
+            
+            // Only orders that passed the packing stage
+            let validOrders = SUBMITTED_ORDERS.filter(o => o.status !== 'Pending');
+            
+            if (fromDate && toDate) {
+                validOrders = validOrders.filter(o => {
+                    const localDate = new Date(new Date(o.created_at).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    return localDate >= fromDate && localDate <= toDate;
+                });
+            }
+
+            // Build SM Filter (Unique)
+            const smListMap = new Map();
+            PROFILES.filter(p => p.role === 'Salesman').forEach(p => smListMap.set(p.id, p.full_name.split(' ')[0].toUpperCase()));
+            validOrders.forEach(o => {
+                if (!smListMap.has(o.salesman_id)) {
+                    if (o.salesman_id === 'local_dev') smListMap.set(o.salesman_id, 'DEV');
+                    else smListMap.set(o.salesman_id, (o.salesman_id || "UKN").substring(0,4).toUpperCase());
+                }
+            });
+            const smList = Array.from(smListMap, ([id, name]) => ({ id, name }));
+            smList.sort((a, b) => a.name.localeCompare(b.name));
+            
+            let smFilterHTML = `<div class="cat-scroll" style="padding: 0; border: none; background: transparent; overflow-y: hidden;">`;
+            smFilterHTML += `<div id="rsm-All" class="cat-pill ${remSmFilter === 'All' ? 'active' : ''}" onclick="updateRemovedFilters('sm', 'All')">All</div>`;
+            smList.forEach(sm => {
+                smFilterHTML += `<div id="rsm-${sm.id}" class="cat-pill ${remSmFilter === sm.id ? 'active' : ''}" onclick="updateRemovedFilters('sm', '${sm.id}')">${sm.name}</div>`;
+            });
+            smFilterHTML += `</div>`;
+            smBar.innerHTML = smFilterHTML;
+
+            // Apply SM Filter
+            if (remSmFilter !== "All") validOrders = validOrders.filter(o => o.salesman_id === remSmFilter);
+
+            // Extract ONLY Removed Items
+            let removedData = []; 
+            validOrders.forEach(o => {
+                const custName = CUSTOMERS.find(c => c.code === o.customer_code)?.name || o.customer_code;
+                if (o.items) {
+                    for (let key in o.items) {
+                        const data = o.items[key];
+                        if (data.packed === false) { // The crucial check
+                            const realCode = key.split('__')[0];
+                            const item = INVENTORY.find(i => i.code === realCode);
+                            if (item) {
+                                const cQty = parseInt(item.caseQty) || 0;
+                                const totalQty = (data.c * cQty) + data.p;
+                                removedData.push({ orderId: o.id, custName: custName, itemCode: realCode, itemName: item.name, qty: totalQty });
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Toggle UI Buttons
+            const btnItem = document.getElementById('rem-btn-item');
+            const btnOrder = document.getElementById('rem-btn-order');
+            if (remViewType === 'item') {
+                btnItem.style.background = 'var(--brand)'; btnItem.style.color = 'white';
+                btnOrder.style.background = 'transparent'; btnOrder.style.color = 'var(--text-mut)';
+            } else {
+                btnOrder.style.background = 'var(--brand)'; btnOrder.style.color = 'white';
+                btnItem.style.background = 'transparent'; btnItem.style.color = 'var(--text-mut)';
+            }
+
+            if (removedData.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No removed items found for these filters.</div>`;
+                return;
+            }
+
+            let html = '';
+            if (remViewType === 'item') {
+                // Group by Item
+                const groupedByItem = {};
+                removedData.forEach(d => {
+                    if (!groupedByItem[d.itemCode]) {
+                        const invItem = INVENTORY.find(i => i.code === d.itemCode);
+                        groupedByItem[d.itemCode] = { name: d.itemName, mrp: invItem ? invItem.mrp : 0, totalQty: 0, details: [] };
+                    }
+                    groupedByItem[d.itemCode].totalQty += d.qty;
+                    groupedByItem[d.itemCode].details.push(d);
+                });
+
+                html = Object.keys(groupedByItem).map((code, idx) => {
+                    const g = groupedByItem[code];
+                    const detailsHTML = g.details.map(d => `
+                        <div style="display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.8rem;">
+                            <div style="color:var(--text-mut); line-height:1.2; padding-right:10px;"><b>${d.orderId}</b><br>${d.custName}</div>
+                            <div style="font-weight:700; color:var(--accent); flex-shrink:0;">${d.qty} NOS</div>
+                        </div>
+                    `).join('');
+
+                    return `
+                    <div style="background: white; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; overflow:hidden;">
+                        <div style="padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor:pointer;" onclick="toggleAccordion('rem-item-${idx}', null)">
+                            <div style="flex:1; padding-right:10px;">
+                                <div style="font-weight: 800; font-size: 0.9rem; color:var(--text); line-height: 1.3;">${g.name}</div>
+                                <div style="font-weight: 800; font-size: 0.8rem; color:var(--success); margin-top:2px;">₹${fmt(g.mrp)}</div>
+                            </div>
+                            <div style="text-align:right; flex-shrink:0;">
+                                <span style="background:#FEF2F2; color:var(--accent); padding:4px 8px; border-radius:4px; font-size:0.8rem; font-weight:800;">${g.totalQty} NOS</span>
+                            </div>
+                        </div>
+                        <div id="rem-item-${idx}" class="hidden" style="padding: 0 12px 12px 12px; background: #F9FAFB; border-top: 1px solid var(--border);">${detailsHTML}</div>
+                    </div>`;
+                }).join('');
+            } else {
+                // Group by Order
+                const groupedByOrder = {};
+                removedData.forEach(d => {
+                    if (!groupedByOrder[d.orderId]) {
+                        const o = validOrders.find(x => x.id === d.orderId);
+                        let oCost = 0;
+                        if (o && o.items) {
+                            for(let k in o.items) { const i=INVENTORY.find(x=>x.code===k); if(i) oCost+= ((o.items[k].c*(i.caseQty||0))+o.items[k].p)*i.cost; }
+                        }
+                        const oProf = o ? (o.total_amount - oCost) : 0;
+                        const oMarg = (o && o.total_amount > 0) ? ((oProf / o.total_amount)*100) : 0;
+                        
+                        groupedByOrder[d.orderId] = { 
+                            custName: d.custName, 
+                            amount: o ? o.total_amount : 0, 
+                            margin: oMarg, 
+                            details: [] 
+                        };
+                    }
+                    groupedByOrder[d.orderId].details.push(d);
+                });
+
+                html = Object.keys(groupedByOrder).map((oid, idx) => {
+                    const g = groupedByOrder[oid];
+                    const detailsHTML = g.details.map(d => `
+                        <div style="display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.8rem;">
+                            <span style="color:var(--text-mut); line-height:1.2; padding-right:10px;">${d.itemName}</span>
+                            <span style="font-weight:700; color:var(--accent); flex-shrink:0;">${d.qty} NOS</span>
+                        </div>
+                    `).join('');
+
+                    return `
+                    <div style="background: white; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; overflow:hidden;">
+                        <div style="padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor:pointer;" onclick="toggleAccordion('rem-ord-${idx}', null)">
+                            <div style="flex:1; padding-right:10px;">
+                                <div style="font-weight: 800; font-size: 0.9rem; color:var(--text); line-height:1.3;">${g.custName}</div>
+                                <div style="display:flex; gap:6px; align-items:center; margin-top:2px;">
+                                    <span style="font-size: 0.75rem; color:var(--brand); font-weight:700;">${oid}</span>
+                                    <span style="font-size: 0.75rem; color:var(--success); font-weight:700;">₹${fmt(g.amount)} (${fmt(g.margin)}%)</span>
+                                </div>
+                            </div>
+                            <div style="text-align:right; flex-shrink:0;">
+                                <span style="background:#FEF2F2; color:var(--accent); padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:800;">${g.details.length} Items</span>
+                            </div>
+                        </div>
+                        <div id="rem-ord-${idx}" class="hidden" style="padding: 0 12px 12px 12px; background: #F9FAFB; border-top: 1px solid var(--border);">${detailsHTML}</div>
+                    </div>`;
+                }).join('');
+            }
+            feed.innerHTML = html;
         }
 
         /* ========================================== */
