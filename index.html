@@ -354,6 +354,27 @@
         </div>
     </div>
 
+    <!-- DELIVERY CONFIRM MODAL -->
+    <div id="del-confirm-modal" class="modal-overlay hidden" style="z-index: 4000;">
+        <div class="modal-content" style="max-width: 320px;">
+            <div class="modal-header">
+                <span>Confirm Delivery</span>
+                <i class="fas fa-times" onclick="closeModal('del-confirm-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.85rem; color:var(--text-mut); margin-bottom: 10px;">Record payment (optional) and take photo proof.</p>
+                
+                <span class="step-lbl" style="display:block;">Cash Amount (₹)</span>
+                <input type="number" id="del-cash" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:10px; outline:none;" placeholder="0">
+                
+                <span class="step-lbl" style="display:block;">GPay / UPI (₹)</span>
+                <input type="number" id="del-gpay" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:15px; outline:none;" placeholder="0">
+                
+                <button onclick="proceedToPhoto()" style="width: 100%; background: var(--brand); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: 700; cursor: pointer;"><i class="fas fa-camera"></i> Take Photo & Complete</button>
+            </div>
+        </div>
+    </div>
+
     <!-- PHOTO VIEWER MODAL -->
     <div id="photo-modal" class="modal-overlay hidden" style="z-index: 5000; background: rgba(0,0,0,0.9);">
         <div style="width: 100%; max-width: 500px; display:flex; flex-direction:column; align-items:center;">
@@ -600,11 +621,16 @@
         </div>
 
         <div id="view-del-hist" class="tab-content hidden delivery-view">
-            <div class="hist-top">
+            <div class="hist-top" style="border-bottom: none;">
                 <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
                 <input type="date" id="del-hist-date-filter" onchange="renderDelHistory()">
             </div>
-            <div class="scroll-area" style="padding: 16px;" id="del-hist-feed"></div>
+            <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB; border-top: 1px solid var(--border);">
+                <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-mut);">Cash: <span id="dh-cash" style="color:var(--text);">₹0</span></span>
+                <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-mut);">UPI: <span id="dh-upi" style="color:var(--text);">₹0</span></span>
+                <span style="font-size: 0.9rem; font-weight: 800; color: var(--success);">Total: <span id="dh-total">₹0</span></span>
+            </div>
+            <div class="scroll-area" style="padding: 12px;" id="del-hist-feed"></div>
         </div>
 
        <!-- ========================================== -->
@@ -677,7 +703,6 @@
             <div class="nav-item active" onclick="switchTab('packing')" data-target="packing"><i class="fas fa-box"></i>Pack</div>
             <div class="nav-item" onclick="switchTab('batching')" data-target="batching"><i class="fas fa-layer-group"></i>Batch</div>
             <div class="nav-item" onclick="switchTab('delivery')" data-target="delivery"><i class="fas fa-truck"></i>Deliver</div>
-            <div class="nav-item" onclick="switchTab('collection')" data-target="collection"><i class="fas fa-rupee-sign"></i>Collect</div>
             <div class="nav-item" onclick="switchTab('del-hist')" data-target="del-hist"><i class="fas fa-history"></i>History</div>
             <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
         </div>
@@ -1215,7 +1240,7 @@
             if (tabId === 'pricing' && currentUserRole === 'Admin') renderPricingTable();
             if (tabId === 'live' && currentUserRole === 'Admin') renderLiveDashboard();
             if (tabId === 'history' && currentUserRole === 'Salesman') renderSalesmanHistory();
-            if (tabId === 'collection' && (currentUserRole === 'Salesman' || currentUserRole === 'Delivery')) renderCollectionCustomers();
+            if (tabId === 'collection' && currentUserRole === 'Salesman') renderCollectionCustomers();
             if (tabId === 'packing' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman')) renderPackingOrders();
             if (tabId === 'pack-hist' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman')) renderPackerHistory();
             if (tabId === 'billing' && currentUserRole === 'Billing') renderBillingOrders();
@@ -3017,9 +3042,37 @@
             }).join('');
         }
 
+        let tempDelCash = 0;
+        let tempDelGpay = 0;
+
         function triggerPhotoCapture(orderId) {
             currentPhotoOrderId = orderId;
+            document.getElementById('del-cash').value = '';
+            document.getElementById('del-gpay').value = '';
+            document.getElementById('del-confirm-modal').classList.remove('hidden');
+        }
+
+        function proceedToPhoto() {
+            tempDelCash = parseFloat(document.getElementById('del-cash').value) || 0;
+            tempDelGpay = parseFloat(document.getElementById('del-gpay').value) || 0;
+            closeModal('del-confirm-modal');
             document.getElementById('camera-input').click();
+        }
+
+        function openDeliveryPayment(orderId, isErp) {
+            const order = isErp ? ERP_DELIVERIES.find(o=>o.id===orderId) : SUBMITTED_ORDERS.find(o=>o.id===orderId);
+            if(!order) return;
+            const custName = order.customer_name || CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+            
+            currentColCust = { code: order.customer_code, name: custName };
+            document.getElementById('col-cust-name').innerText = custName;
+            document.getElementById('col-cust-bal').innerText = `Order Amount: ₹${fmt(order.total_amount || order.amount || 0)}`;
+            
+            document.getElementById('col-cash').value = '';
+            document.getElementById('col-gpay').value = '';
+            document.getElementById('col-total').innerText = '₹0';
+            
+            document.getElementById('collection-modal').classList.remove('hidden');
         }
 
         async function handlePhotoCapture(event) {
@@ -3063,16 +3116,39 @@
                 
                 const targetArray = isErp ? ERP_DELIVERIES : SUBMITTED_ORDERS;
                 const idx = targetArray.findIndex(o => o.id === orderId);
+                let custCode = orderId;
                 if (idx > -1) {
                     targetArray[idx].status = 'Delivered';
                     targetArray[idx].delivery_photo = base64Photo;
                     targetArray[idx].delivered_at = now;
+                    custCode = targetArray[idx].customer_code;
                 }
                 
-                showSuccess("Order marked as Delivered!");
+                // Process Collection if entered
+                const totalCol = tempDelCash + tempDelGpay;
+                if (totalCol > 0) {
+                    let nextRecNum = 1;
+                    if (MY_COLLECTIONS.length > 0) {
+                        nextRecNum = Math.max(...MY_COLLECTIONS.map(o => parseInt(o.id.replace(/\D/g, '')) || 0)) + 1;
+                    }
+                    const colId = 'REC' + String(nextRecNum).padStart(4, '0');
+                    const colPayload = {
+                        id: colId,
+                        customer_code: custCode,
+                        salesman_id: userSession ? userSession.user.id : "local_dev",
+                        amount_cash: tempDelCash,
+                        amount_gpay: tempDelGpay,
+                        total_amount: totalCol,
+                        created_at: now
+                    };
+                    await sbClient.from('collections').insert(colPayload);
+                    MY_COLLECTIONS.unshift(colPayload);
+                }
+
+                showSuccess(totalCol > 0 ? `Delivered and ₹${totalCol} Collected!` : "Order marked as Delivered!");
                 renderDeliveryDetailList();
             } catch (e) {
-                showWarning("Delivery Failed", "Could not reach the cloud to save photo. Try again.");
+                showWarning("Delivery Failed", "Could not reach the cloud. Try again.");
             }
         }
 
@@ -3104,6 +3180,21 @@
                 });
             }
 
+            // Calculate Collections for the filtered date
+            let tCash = 0, tUpi = 0, tTotal = 0;
+            if (filterDate) {
+                MY_COLLECTIONS.forEach(c => {
+                    const d = new Date(c.created_at);
+                    const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    if (localDate === filterDate) {
+                        tCash += c.amount_cash; tUpi += c.amount_gpay; tTotal += c.total_amount;
+                    }
+                });
+            }
+            document.getElementById('dh-cash').innerText = `₹${fmt(tCash)}`;
+            document.getElementById('dh-upi').innerText = `₹${fmt(tUpi)}`;
+            document.getElementById('dh-total').innerText = `₹${fmt(tTotal)}`;
+
             if (filtered.length === 0) {
                 feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No deliveries found for this date.</div>`;
                 return;
@@ -3111,11 +3202,14 @@
 
             feed.innerHTML = filtered.map(order => {
                 const custName = order.customer_name || CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+                const isErp = order.id.startsWith('ERP');
                 return `
                 <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px;">
-                    <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
-                    
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
+                        <button onclick="openDeliveryPayment('${order.id}', ${isErp})" style="background:var(--success-bg); color:var(--success); border:1px solid var(--success); width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;"><i class="fas fa-rupee-sign"></i></button>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
                         <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
                             <span style="font-size:0.75rem; font-weight:700; color:var(--brand);"><i class="fas fa-receipt" style="margin-right:2px;"></i>${order.id}</span>
                             <span style="opacity:0.4; font-size:0.75rem;">•</span>
