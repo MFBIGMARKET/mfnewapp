@@ -3082,21 +3082,54 @@
             }).join('');
         }
 
-        let tempDelCash = 0;
-        let tempDelGpay = 0;
+        let tempBase64Photo = null;
 
         function triggerPhotoCapture(orderId) {
             currentPhotoOrderId = orderId;
-            document.getElementById('del-cash').value = '';
-            document.getElementById('del-gpay').value = '';
-            document.getElementById('del-confirm-modal').classList.remove('hidden');
+            // 1. Immediately trigger camera
+            document.getElementById('camera-input').click();
+        }
+
+        async function handlePhotoCapture(event) {
+            const file = event.target.files[0];
+            if (!file || !currentPhotoOrderId) return;
+
+            // 2. Compress image using Canvas
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = e => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const MAX_WIDTH = 800;
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    tempBase64Photo = canvas.toDataURL('image/jpeg', 0.6);
+                    
+                    // 3. Image captured. Now ask for Collection.
+                    document.getElementById('del-cash').value = '';
+                    document.getElementById('del-gpay').value = '';
+                    document.getElementById('del-confirm-modal').classList.remove('hidden');
+                };
+            };
         }
 
         function proceedToPhoto() {
-            tempDelCash = parseFloat(document.getElementById('del-cash').value) || 0;
-            tempDelGpay = parseFloat(document.getElementById('del-gpay').value) || 0;
+            // Function renamed to reflect new flow: proceed to Save
+            proceedToSaveDelivery();
+        }
+
+        async function proceedToSaveDelivery() {
+            const cash = parseFloat(document.getElementById('del-cash').value) || 0;
+            const gpay = parseFloat(document.getElementById('del-gpay').value) || 0;
+            
             closeModal('del-confirm-modal');
-            document.getElementById('camera-input').click();
+            await saveDeliveryToCloud(currentPhotoOrderId, tempBase64Photo, cash, gpay);
         }
 
         function openDeliveryPayment(orderId, isErp) {
@@ -3115,32 +3148,7 @@
             document.getElementById('collection-modal').classList.remove('hidden');
         }
 
-        async function handlePhotoCapture(event) {
-            const file = event.target.files[0];
-            if (!file || !currentPhotoOrderId) return;
-
-            // Compress image using Canvas
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = e => {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = async () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const MAX_WIDTH = 800;
-                    const scaleSize = MAX_WIDTH / img.width;
-                    canvas.width = MAX_WIDTH;
-                    canvas.height = img.height * scaleSize;
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    
-                    const base64Photo = canvas.toDataURL('image/jpeg', 0.6); // 60% quality jpeg
-                    await saveDeliveryToCloud(currentPhotoOrderId, base64Photo);
-                };
-            };
-        }
-
-        async function saveDeliveryToCloud(orderId, base64Photo) {
+        async function saveDeliveryToCloud(orderId, base64Photo, cashAmt = 0, gpayAmt = 0) {
             try {
                 const now = new Date().toISOString();
                 const isErp = orderId.startsWith('ERP');
@@ -3165,7 +3173,7 @@
                 }
                 
                 // Process Collection if entered
-                const totalCol = tempDelCash + tempDelGpay;
+                const totalCol = cashAmt + gpayAmt;
                 if (totalCol > 0) {
                     let nextRecNum = 1;
                     if (MY_COLLECTIONS.length > 0) {
@@ -3176,8 +3184,8 @@
                         id: colId,
                         customer_code: custCode,
                         salesman_id: userSession ? userSession.user.id : "local_dev",
-                        amount_cash: tempDelCash,
-                        amount_gpay: tempDelGpay,
+                        amount_cash: cashAmt,
+                        amount_gpay: gpayAmt,
                         total_amount: totalCol,
                         created_at: now
                     };
