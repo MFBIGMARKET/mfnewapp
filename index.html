@@ -563,6 +563,65 @@
             </div>
         </div>
 
+        <!-- ADMIN: CUSTOMER DIRECTORY -->
+        <div id="view-admin-customers" class="tab-content hidden admin-view">
+            <div class="search-bar">
+                <i class="fas fa-search" style="color:var(--text-mut);"></i>
+                <input type="text" placeholder="Search customer or subgroup..." id="admin-cust-search" oninput="renderAdminCustomers()">
+            </div>
+            <div class="scroll-area" style="padding: 12px; background: var(--bg);" id="admin-cust-list"></div>
+        </div>
+
+        <!-- ADMIN: ERP SALES DASHBOARD -->
+        <div id="view-admin-sales" class="tab-content hidden admin-view">
+            <div style="background: var(--brand-dark); color: var(--brand-light); text-align: center; padding: 6px; font-size: 0.7rem; font-weight: 700;">
+                <i class="fas fa-sync-alt"></i> Last Synced: <span id="sales-last-sync">Loading...</span>
+            </div>
+            <div class="hist-top" style="gap: 10px;">
+                <input type="date" id="sales-from-date" onchange="fetchAndRenderSales()" style="flex:1;">
+                <input type="date" id="sales-to-date" onchange="fetchAndRenderSales()" style="flex:1;">
+            </div>
+            <div id="sales-subgroup-bar" style="background:var(--bg);"></div>
+            
+            <div class="scroll-area" style="padding: 0 16px 16px 16px; background: var(--bg);">
+                <!-- KPIs -->
+                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom: 10px;" id="sales-kpi-board"></div>
+                
+                <!-- View Toggles & Sort -->
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                    <div style="display: flex; background: white; border-radius: 4px; border: 1px solid var(--border); height: 28px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                        <button id="sales-view-cust" onclick="updateSalesView('cust')" style="flex:1; padding: 0 12px; border:none; background: var(--brand); color: white; cursor:pointer; font-size: 1rem;" title="Customer View">👤</button>
+                        <button id="sales-view-item" onclick="updateSalesView('item')" style="flex:1; padding: 0 12px; border:none; background: transparent; border-left: 1px solid var(--border); color: var(--text-mut); cursor:pointer; font-size: 1rem; filter: grayscale(100%);" title="Item View">📦</button>
+                    </div>
+                    <select id="sales-sort" onchange="renderSalesFeed()" style="height: 28px; padding: 0 8px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.75rem; font-weight: 700; color: var(--brand); background: var(--brand-light);">
+                        <option value="sales">Sort: Highest Sales</option>
+                        <option value="profit">Sort: Highest Profit</option>
+                        <option value="margin">Sort: Highest Margin %</option>
+                        <option value="alpha">Sort: A-Z</option>
+                    </select>
+                </div>
+
+                <div id="sales-feed"></div>
+            </div>
+        </div>
+
+        <!-- ADMIN: SALES DRILL-DOWN VIEW -->
+        <div id="admin-sales-detail-view" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="exitSalesDetail()" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center">
+                    <div class="ov-title" id="sd-title">Loading...</div>
+                    <div class="ov-sub" id="sd-sub">Sub</div>
+                </div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB;">
+                <span style="font-size: 0.85rem; font-weight: 700; color:var(--text-mut);">Total: <span id="sd-total-sales" style="color:var(--brand);">₹0</span></span>
+                <span style="font-size: 0.85rem; font-weight: 700; color:var(--success);">Profit: <span id="sd-total-profit">₹0</span></span>
+            </div>
+            <div class="scroll-area" style="padding: 12px; background: var(--bg);" id="sd-list"></div>
+        </div>
+
         <!-- ========================================== -->
         <!-- PACKING VIEW                               -->
         <!-- ========================================== -->
@@ -681,10 +740,12 @@
         </div>
 
         <div class="bottom-nav admin-nav hidden">
-            <div class="nav-item active" onclick="switchTab('catalog')" data-target="catalog"><i class="fas fa-box-open"></i>Catalog</div>
-            <div class="nav-item" onclick="switchTab('pricing')" data-target="pricing"><i class="fas fa-tags"></i>Pricing</div>
-            <div class="nav-item" onclick="switchTab('live')" data-target="live"><i class="fas fa-chart-line"></i>Live</div>
-            <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
+            <div class="nav-item active" onclick="switchTab('catalog')" data-target="catalog"><i class="fas fa-box-open"></i>Cat</div>
+            <div class="nav-item" onclick="switchTab('pricing')" data-target="pricing"><i class="fas fa-tags"></i>Price</div>
+            <div class="nav-item" onclick="switchTab('live')" data-target="live"><i class="fas fa-bolt"></i>Live</div>
+            <div class="nav-item" onclick="switchTab('admin-customers')" data-target="admin-customers"><i class="fas fa-users"></i>Cust</div>
+            <div class="nav-item" onclick="switchTab('admin-sales')" data-target="admin-sales"><i class="fas fa-chart-pie"></i>Sales</div>
+            <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Me</div>
         </div>
         
         <div class="bottom-nav packing-nav hidden">
@@ -1005,7 +1066,9 @@
         /* --- AUTH & INIT --- */
         window.onload = async () => {
             const today = new Date().toISOString().split('T')[0];
-            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter', 'batch-from-date', 'batch-to-date', 'del-date-filter', 'del-hist-date-filter', 'live-from-date', 'live-to-date', 'rem-from-date', 'rem-to-date'].forEach(id => {
+            
+            // Set default date for all single-date filters
+            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter', 'batch-from-date', 'batch-to-date', 'del-date-filter', 'del-hist-date-filter', 'live-from-date', 'live-to-date', 'rem-from-date', 'rem-to-date', 'sales-from-date', 'sales-to-date'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.value = today;
             });
@@ -1275,6 +1338,8 @@
             if (tabId === 'catalog' && (currentUserRole === 'Admin' || currentUserRole === 'Manager')) renderCatalogView();
             if (tabId === 'pricing' && currentUserRole === 'Admin') renderPricingTable();
             if (tabId === 'live' && currentUserRole === 'Admin') renderLiveDashboard();
+            if (tabId === 'admin-customers' && currentUserRole === 'Admin') renderAdminCustomers();
+            if (tabId === 'admin-sales' && currentUserRole === 'Admin') fetchAndRenderSales();
             if (tabId === 'history' && currentUserRole === 'Salesman') renderSalesmanHistory();
             if (tabId === 'collection' && currentUserRole === 'Salesman') renderCollectionCustomers();
             if (tabId === 'packing' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman')) renderPackingOrders();
@@ -3731,6 +3796,261 @@
             }).join('');
         }
 
+        /* ========================================== */
+        /* ADMIN CUSTOMERS & SALES LOGIC              */
+        /* ========================================== */
+        function renderAdminCustomers() {
+            const feed = document.getElementById('admin-cust-list');
+            const query = (document.getElementById('admin-cust-search').value || "").toLowerCase();
+            
+            let filtered = CUSTOMERS;
+            if (query) {
+                filtered = filtered.filter(c => c.name.toLowerCase().includes(query) || (c.subgroup && c.subgroup.toLowerCase().includes(query)));
+            }
+
+            feed.innerHTML = filtered.map(c => `
+                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="flex:1; padding-right:10px;">
+                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 4px;">${c.name}</div>
+                        <div style="font-size: 0.75rem; color:var(--text-mut); font-weight:700;"><i class="fas fa-users" style="margin-right:4px;"></i>${c.subgroup || 'No Subgroup'}</div>
+                    </div>
+                    <div style="text-align: right; flex-shrink:0;">
+                        <span style="font-size: 0.65rem; color:var(--text-mut); text-transform:uppercase; font-weight:700;">Balance</span><br>
+                        <b style="color:var(--accent); font-size: 1.05rem;">₹${fmt(c.bal)}</b>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        let adminSalesData = [];
+        let salesSubgroupFilter = "All";
+        let salesViewMode = "cust"; // 'cust' or 'item'
+
+        async function fetchAndRenderSales() {
+            const fromD = document.getElementById('sales-from-date').value;
+            const toD = document.getElementById('sales-to-date').value;
+            
+            // Safety Check: Do not query the cloud if dates are empty
+            if (!fromD || !toD) return;
+            
+            // Show loading state
+            document.getElementById('sales-feed').innerHTML = `<div style="text-align:center; padding:40px; color:var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br><b>Fetching Sales Data...</b></div>`;
+            document.getElementById('sales-kpi-board').innerHTML = '';
+            
+            // 1. Get Last Sync Time
+            try {
+                const { data: syncLog } = await sbClient.from('sync_logs').select('last_sync').eq('id', 1).single();
+                if (syncLog) {
+                    const d = new Date(syncLog.last_sync);
+                    document.getElementById('sales-last-sync').innerText = d.toLocaleString();
+                }
+            } catch(e) {}
+
+            // 2. Fetch specific dates directly from cloud to save memory
+            try {
+                // Ensure we capture the entire end day by setting time to 23:59:59 if needed by DB
+                const { data, error } = await sbClient.from('erp_sales')
+                    .select('*')
+                    .gte('doc_date', fromD)
+                    .lte('doc_date', toD);
+                
+                if (error) throw error;
+                adminSalesData = data || [];
+                
+                // Pre-process Data: Assign Customer Subgroups
+                adminSalesData.forEach(sale => {
+                    const cust = CUSTOMERS.find(c => c.name.toLowerCase() === sale.customer_name.toLowerCase());
+                    const rawSub = cust ? cust.subgroup : null;
+                    let sg = 'COUNTER';
+                    if (rawSub) {
+                        const up = rawSub.toUpperCase();
+                        if (up.includes('SUNNY')) sg = 'SUNNY';
+                        else if (up.includes('RIYAS')) sg = 'RIYAS';
+                        else if (up.includes('METRO')) sg = 'METRO';
+                    }
+                    sale.assigned_subgroup = sg;
+                });
+                
+                renderSalesFeed(true); // true = rebuild filter bar
+            } catch (e) {
+                showWarning("Fetch Failed", "Could not load sales from the cloud.");
+            }
+        }
+
+        function updateSalesSubFilter(val) {
+            salesSubgroupFilter = val;
+            renderSalesFeed(false);
+        }
+
+        function updateSalesView(mode) {
+            salesViewMode = mode;
+            const btnCust = document.getElementById('sales-view-cust');
+            const btnItem = document.getElementById('sales-view-item');
+            
+            if (mode === 'cust') {
+                btnCust.style.background = 'var(--brand)'; btnCust.style.filter = 'none';
+                btnItem.style.background = 'transparent'; btnItem.style.filter = 'grayscale(100%) opacity(0.5)';
+            } else {
+                btnItem.style.background = 'var(--brand)'; btnItem.style.filter = 'none';
+                btnCust.style.background = 'transparent'; btnCust.style.filter = 'grayscale(100%) opacity(0.5)';
+            }
+            renderSalesFeed(false);
+        }
+
+        function renderSalesFeed(rebuildFilter = false) {
+            // 1. Build Subgroup Filter Bar
+            const filterBar = document.getElementById('sales-subgroup-bar');
+            if (rebuildFilter) {
+                const pills = ['All', 'SUNNY', 'RIYAS', 'METRO', 'COUNTER'];
+                let fHTML = `<div class="cat-scroll" style="padding: 12px 16px 16px 16px; border-bottom: 1px solid var(--border);">`; // Increased bottom padding to 16px
+                pills.forEach(p => {
+                    fHTML += `<div id="sg-${p}" class="cat-pill ${salesSubgroupFilter === p ? 'active' : ''}" onclick="updateSalesSubFilter('${p}')">${p}</div>`;
+                });
+                fHTML += `</div>`;
+                filterBar.innerHTML = fHTML;
+            } else {
+                Array.from(filterBar.querySelectorAll('.cat-pill')).forEach(el => el.classList.remove('active'));
+                const aEl = document.getElementById(`sg-${salesSubgroupFilter}`);
+                if (aEl) aEl.classList.add('active');
+            }
+
+            // 2. Filter Data
+            let filtered = adminSalesData;
+            if (salesSubgroupFilter !== 'All') {
+                filtered = filtered.filter(s => s.assigned_subgroup === salesSubgroupFilter);
+            }
+
+            // 3. Calculate KPIs
+            let tSales = 0, tCost = 0, tProfit = 0;
+            const uniqueInvoices = new Set();
+            const uniqueCusts = new Set();
+
+            filtered.forEach(s => {
+                tSales += s.sales_amt;
+                tCost += s.sales_cost;
+                tProfit += s.margin_amt;
+                uniqueInvoices.add(s.document_number);
+                uniqueCusts.add(s.customer_name);
+            });
+
+            const tMargin = tSales > 0 ? ((tProfit / tSales) * 100) : 0;
+            const avgSale = uniqueInvoices.size > 0 ? (tSales / uniqueInvoices.size) : 0;
+            
+            // Calculate Total Pending Credit for the selected subgroup (regardless of date filter)
+            let totalCredit = 0;
+            let activeCustGroup = CUSTOMERS;
+            if (salesSubgroupFilter !== 'All') {
+                activeCustGroup = CUSTOMERS.filter(c => {
+                    const up = (c.subgroup || '').toUpperCase();
+                    return up.includes(salesSubgroupFilter) || (salesSubgroupFilter === 'COUNTER' && !up);
+                });
+            }
+            activeCustGroup.forEach(c => totalCredit += (c.bal || 0));
+
+            // Dynamic Font Sizing for massive profit numbers
+            const profitStr = String(Math.round(tProfit));
+            let profitFontSize = "1.4rem";
+            if (profitStr.length >= 7) profitFontSize = "1rem";
+            else if (profitStr.length >= 6) profitFontSize = "1.15rem";
+
+            document.getElementById('sales-kpi-board').innerHTML = `
+                <div style="background:var(--brand); padding:12px; border-radius:8px; border:1px solid var(--brand-dark); text-align:center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; flex-direction:column; justify-content:center;">
+                    <div style="font-size:1.4rem; color:white; font-weight:800; margin-bottom:4px;">₹${Math.round(tSales)}</div>
+                    <div style="font-size:0.7rem; color:var(--brand-light); font-weight:700; text-transform:uppercase;">Total Sales</div>
+                </div>
+                
+                <div style="background:white; border-radius:8px; border:1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.02); display:flex; overflow:hidden;">
+                    <div style="flex:3; padding:10px; text-align:center; display:flex; flex-direction:column; justify-content:center;">
+                        <div style="font-size:1.4rem; color:var(--text); font-weight:800; margin-bottom:4px;">₹${Math.round(avgSale / 100) * 100}</div>
+                        <div style="font-size:0.65rem; color:var(--text-mut); font-weight:700; text-transform:uppercase;">Avg Sale</div>
+                    </div>
+                    <div style="flex:1; background:#F9FAFB; padding:10px; border-left:1px solid var(--border); text-align:center; display:flex; flex-direction:column; justify-content:center;">
+                        <div style="font-size:1.1rem; color:var(--text); font-weight:800; margin-bottom:4px;">${uniqueCusts.size}</div>
+                        <div style="font-size:0.6rem; color:var(--text-mut); font-weight:700; text-transform:uppercase;">Cust</div>
+                    </div>
+                </div>
+
+                <div style="background:var(--accent); padding:12px; border-radius:8px; border:1px solid #991B1B; text-align:center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; flex-direction:column; justify-content:center;">
+                    <div style="font-size:1.4rem; color:white; font-weight:800; margin-bottom:4px;">₹${Math.round(totalCredit)}</div>
+                    <div style="font-size:0.7rem; color:#FEE2E2; font-weight:700; text-transform:uppercase;">Credit Pending</div>
+                </div>
+
+                <div style="background:white; border-radius:8px; border:1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.02); display:flex; overflow:hidden;">
+                    <div style="flex:3; padding:10px; text-align:center; display:flex; flex-direction:column; justify-content:center;">
+                        <div style="font-size:${profitFontSize}; color:var(--brand); font-weight:800; margin-bottom:4px; white-space:nowrap;">₹${Math.round(tProfit)}</div>
+                        <div style="font-size:0.65rem; color:var(--text-mut); font-weight:700; text-transform:uppercase;">Total Profit</div>
+                    </div>
+                    <div style="flex:1; background:#EFF6FF; padding:10px; border-left:1px solid #BFDBFE; text-align:center; display:flex; flex-direction:column; justify-content:center;">
+                        <div style="font-size:0.9rem; color:var(--brand); font-weight:800; margin-bottom:4px;">${tMargin.toFixed(1)}%</div>
+                        <div style="font-size:0.6rem; color:var(--brand); font-weight:700; text-transform:uppercase;">Mar%</div>
+                    </div>
+                </div>
+            `;
+
+            
+
+            // 4. Generate Feed
+            const sortVal = document.getElementById('sales-sort').value;
+            const feed = document.getElementById('sales-feed');
+            let groups = {};
+
+            if (salesViewMode === 'cust') {
+                filtered.forEach(s => {
+                    const key = s.customer_name;
+                    if (!groups[key]) groups[key] = { name: key, sales: 0, profit: 0, details: [] };
+                    groups[key].sales += s.sales_amt;
+                    groups[key].profit += s.margin_amt;
+                    groups[key].details.push(s);
+                });
+            } else {
+                filtered.forEach(s => {
+                    const key = s.item_name;
+                    if (!groups[key]) groups[key] = { name: key, sales: 0, profit: 0, details: [] };
+                    groups[key].sales += s.sales_amt;
+                    groups[key].profit += s.margin_amt;
+                    groups[key].details.push(s);
+                });
+            }
+
+            let gArray = Object.values(groups);
+            gArray.forEach(g => g.margin = g.sales > 0 ? (g.profit / g.sales) * 100 : 0);
+
+            // Sorting
+            gArray.sort((a, b) => {
+                if (sortVal === 'sales') return b.sales - a.sales;
+                if (sortVal === 'profit') return b.profit - a.profit;
+                if (sortVal === 'margin') return b.margin - a.margin;
+                if (sortVal === 'alpha') return a.name.localeCompare(b.name);
+                return 0;
+            });
+
+            if (gArray.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-mut);">No sales found.</div>`;
+                return;
+            }
+
+            // We make the data globally available so the Drilldown function can access it
+            window.currentSalesViewArray = gArray; 
+
+            feed.innerHTML = gArray.map((g, idx) => {
+                const invSet = new Set();
+                g.details.forEach(d => invSet.add(d.document_number));
+                const invoices = Array.from(invSet).map(inv => inv.replace('HC-', '').replace('HCR-', 'R-')).join(', ');
+
+                return `
+                <div style="background: white; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; overflow:hidden; padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor:pointer;" onclick="openSalesDetail(${idx})">
+                    <div style="flex:1; padding-right:10px;">
+                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); line-height: 1.3; margin-bottom: 4px;">${g.name}</div>
+                        ${salesViewMode === 'cust' ? `<div style="font-size: 0.75rem; color:var(--text-mut); font-weight:700;"><i class="fas fa-file-invoice" style="margin-right:4px;"></i>${invoices}</div>` : ''}
+                    </div>
+                    <div style="text-align:right; flex-shrink:0;">
+                        <span style="background:var(--brand-light); color:var(--brand); padding:4px 8px; border-radius:4px; font-size:0.9rem; font-weight:800; display:inline-block; margin-bottom:4px;">₹${fmt(g.sales)}</span>
+                        <div style="font-weight: 700; font-size: 0.75rem; color:var(--success);">₹${fmt(g.profit)} (${g.margin.toFixed(1)}%)</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
        /* ========================================== */
         /* ADMIN LIVE DASHBOARD LOGIC                 */
         /* ========================================== */
@@ -4680,6 +5000,49 @@
                 showConfirm("Save Failed", "Could not reach the cloud.", "OK");
             }
             renderPricingTable();
+        }
+
+        function openSalesDetail(idx) {
+            const g = window.currentSalesViewArray[idx];
+            if (!g) return;
+
+            document.getElementById('sd-title').innerText = g.name;
+            document.getElementById('sd-sub').innerText = salesViewMode === 'cust' ? "Customer Breakdown" : "Item Breakdown";
+            document.getElementById('sd-total-sales').innerText = `₹${fmt(g.sales)}`;
+            document.getElementById('sd-total-profit').innerText = `₹${fmt(g.profit)} (${g.margin.toFixed(1)}%)`;
+
+            // Group the drilldown details and calculate exact Profit/Margin per line!
+            const dMap = {};
+            g.details.forEach(d => {
+                const dKey = salesViewMode === 'cust' ? d.item_name : d.customer_name;
+                if (!dMap[dKey]) dMap[dKey] = { name: dKey, qty: 0, sales: 0, profit: 0 };
+                dMap[dKey].qty += d.issue_quantity;
+                dMap[dKey].sales += d.sales_amt;
+                dMap[dKey].profit += d.margin_amt;
+            });
+
+            const list = document.getElementById('sd-list');
+            list.innerHTML = Object.values(dMap).sort((a,b) => b.sales - a.sales).map(d => {
+                const marg = d.sales > 0 ? (d.profit / d.sales) * 100 : 0;
+                
+                return `
+                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="flex:1; padding-right:10px;">
+                        <div style="font-weight: 700; font-size: 0.85rem; color:var(--text); line-height: 1.3;">${d.name}</div>
+                        <div style="font-size: 0.75rem; color:var(--text-mut); margin-top:4px; font-weight:700;">${d.qty} Pcs</div>
+                    </div>
+                    <div style="text-align: right; flex-shrink:0;">
+                        <b style="color:var(--brand); font-size:0.95rem;">₹${fmt(d.sales)}</b><br>
+                        <span style="font-size:0.7rem; color:var(--success); font-weight:700;">₹${fmt(d.profit)} (${fmt(marg)}%)</span>
+                    </div>
+                </div>`;
+            }).join('');
+
+            document.getElementById('admin-sales-detail-view').classList.remove('hidden');
+        }
+
+        function exitSalesDetail() {
+            document.getElementById('admin-sales-detail-view').classList.add('hidden');
         }
 
         /* --- BULK CSV ACTIONS --- */
