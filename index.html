@@ -643,26 +643,46 @@
         <!-- ========================================== -->
         <!-- DELIVERY VIEWS                             -->
         <!-- ========================================== -->
-        <div id="view-batching" class="tab-content hidden delivery-view">
-            <div class="hist-top" style="gap: 10px;">
-                <div style="display:flex; flex-direction:column; flex:1;">
-                    <span style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-bottom:4px;">From:</span>
-                    <input type="date" id="batch-from-date" onchange="renderBatching()">
-                </div>
-                <div style="display:flex; flex-direction:column; flex:1;">
-                    <span style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-bottom:4px;">To:</span>
-                    <input type="date" id="batch-to-date" onchange="renderBatching()">
+        <div id="view-batching" class="tab-content hidden billing-view">
+            <div style="display: flex; background: white; border-bottom: 1px solid var(--border); padding: 8px 16px; justify-content: center;">
+                <div style="display: flex; background: var(--bg); border-radius: 6px; padding: 2px; width: 100%; max-width: 300px; border: 1px solid var(--border);">
+                    <button id="batch-btn-new" onclick="toggleBatchingView('new')" style="flex:1; padding: 6px; border-radius: 4px; border:none; background: var(--brand); color: white; font-weight: 700; font-size: 0.8rem; cursor:pointer;">New Batch</button>
+                    <button id="batch-btn-hist" onclick="toggleBatchingView('hist')" style="flex:1; padding: 6px; border-radius: 4px; border:none; background: transparent; color: var(--text-mut); font-weight: 700; font-size: 0.8rem; cursor:pointer;">History</button>
                 </div>
             </div>
-            <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB; padding: 8px 16px;">
-                <span style="font-size: 0.85rem; font-weight: 600;">Selected: <span id="batch-sel-count" style="color:var(--brand);">0</span></span>
-                <div style="display:flex; gap:8px;">
-                    <button class="btn-pack-add" style="background:white; color:var(--brand); border:1px solid var(--brand);" onclick="document.getElementById('csv-upload-batch').click()"><i class="fas fa-file-csv"></i> ERP</button>
-                    <input type="file" id="csv-upload-batch" class="hidden" accept=".csv" onchange="handleBatchCSVUpload(event)">
-                    <button class="btn-pack-add" onclick="confirmBatchCreation()" style="background:var(--brand); color:white;">Create Batch</button>
+            
+            <div id="batch-new-view">
+                <div class="hist-top" style="gap: 10px;">
+                    <div style="display:flex; flex-direction:column; flex:1;">
+                        <span style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-bottom:4px;">From:</span>
+                        <input type="date" id="batch-from-date" onchange="fetchBatchingData()">
+                    </div>
+                    <div style="display:flex; flex-direction:column; flex:1;">
+                        <span style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-bottom:4px;">To:</span>
+                        <input type="date" id="batch-to-date" onchange="fetchBatchingData()">
+                    </div>
                 </div>
+                <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB; padding: 8px 16px;">
+                    <span style="font-size: 0.85rem; font-weight: 600;">Selected: <span id="batch-sel-count" style="color:var(--brand);">0</span></span>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <select id="batch-sort-select" onchange="sortBatchingData(this.value)" style="padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.75rem; font-weight: 700; color: var(--brand); background: white;">
+                            <option value="doc">Bill No.</option>
+                            <option value="cust">A-Z Name</option>
+                            <option value="amt">Amount (₹)</option>
+                        </select>
+                        <button class="btn-pack-add" onclick="confirmBatchCreation()" style="background:var(--brand); color:white;">Create Batch</button>
+                    </div>
+                </div>
+                <div class="scroll-area" style="padding: 16px;" id="batching-feed"></div>
             </div>
-            <div class="scroll-area" style="padding: 16px;" id="batching-feed"></div>
+
+            <div id="batch-hist-view" class="hidden" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+                <div class="hist-top">
+                    <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
+                    <input type="date" id="batch-hist-date" onchange="renderBatchingHistory()">
+                </div>
+                <div class="scroll-area" style="padding: 16px; background:var(--bg);" id="batch-hist-feed"></div>
+            </div>
         </div>
 
         <div id="view-delivery" class="tab-content hidden delivery-view">
@@ -756,14 +776,14 @@
 
         <div class="bottom-nav delivery-nav hidden">
             <div class="nav-item active" onclick="switchTab('packing')" data-target="packing"><i class="fas fa-box"></i>Pack</div>
-            <div class="nav-item" onclick="switchTab('batching')" data-target="batching"><i class="fas fa-layer-group"></i>Batch</div>
             <div class="nav-item" onclick="switchTab('delivery')" data-target="delivery"><i class="fas fa-truck"></i>Deliver</div>
             <div class="nav-item" onclick="switchTab('del-hist')" data-target="del-hist"><i class="fas fa-history"></i>History</div>
             <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
         </div>
 
         <div class="bottom-nav billing-nav hidden">
-            <div class="nav-item active" onclick="switchTab('billing')" data-target="billing"><i class="fas fa-clock"></i>Pending</div>
+            <div class="nav-item active" onclick="switchTab('billing')" data-target="billing"><i class="fas fa-box"></i>PackQ</div>
+            <div class="nav-item" onclick="switchTab('batching')" data-target="batching"><i class="fas fa-layer-group"></i>Batch</div>
             <div class="nav-item" onclick="switchTab('bill-hist')" data-target="bill-hist"><i class="fas fa-check-circle"></i>History</div>
             <div class="nav-item" onclick="switchTab('bill-col')" data-target="bill-col"><i class="fas fa-rupee-sign"></i>Collects</div>
             <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
@@ -1068,7 +1088,7 @@
             const today = new Date().toISOString().split('T')[0];
             
             // Set default date for all single-date filters
-            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter', 'batch-from-date', 'batch-to-date', 'del-date-filter', 'del-hist-date-filter', 'live-from-date', 'live-to-date', 'rem-from-date', 'rem-to-date', 'sales-from-date', 'sales-to-date'].forEach(id => {
+            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter', 'batch-from-date', 'batch-to-date', 'del-date-filter', 'del-hist-date-filter', 'live-from-date', 'live-to-date', 'rem-from-date', 'rem-to-date', 'sales-from-date', 'sales-to-date', 'batch-hist-date'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.value = today;
             });
@@ -1345,9 +1365,9 @@
             if (tabId === 'packing' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman')) renderPackingOrders();
             if (tabId === 'pack-hist' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman')) renderPackerHistory();
             if (tabId === 'billing' && currentUserRole === 'Billing') renderBillingOrders();
+            if (tabId === 'batching' && currentUserRole === 'Billing') fetchBatchingData();
             if (tabId === 'bill-hist' && currentUserRole === 'Billing') renderBillingHistory();
             if (tabId === 'bill-col' && currentUserRole === 'Billing') renderBillingCollections();
-            if (tabId === 'batching' && currentUserRole === 'Delivery') renderBatching();
             if (tabId === 'delivery' && currentUserRole === 'Delivery') renderDelivery();
             if (tabId === 'del-hist' && currentUserRole === 'Delivery') renderDelHistory();
         }
@@ -2857,211 +2877,338 @@
         }
 
         /* ========================================== */
-        /* DELIVERY & BATCHING LOGIC                  */
+        /* ERP BATCHING & DELIVERY LOGIC              */
         /* ========================================== */
         let batchSelections = new Set();
+        let currentBatchingSales = [];
         let currentActiveBatchId = null;
         let currentPhotoOrderId = null;
+        let currentDeliveryItems = [];
+        let unbatchedBillsCache = [];
+        let batchSortMode = 'doc'; // default sort
 
-        function renderBatching() {
+        async function fetchBatchingData() {
+            const feed = document.getElementById('batching-feed');
+            const fromD = document.getElementById('batch-from-date').value;
+            const toD = document.getElementById('batch-to-date').value;
+            if(!feed || !fromD || !toD) return;
+
+            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br><b>Fetching ERP Bills...</b></div>`;
+
+            try {
+                // 1. Fetch ERP Sales for Date Range
+                const { data: sales } = await sbClient.from('erp_sales').select('*').gte('doc_date', fromD).lte('doc_date', toD);
+                currentBatchingSales = sales || [];
+
+                // 2. Fetch existing deliveries to prevent double batching
+                const { data: existingBatches } = await sbClient.from('erp_deliveries').select('document_numbers');
+                const batchedDocs = new Set();
+                if (existingBatches) {
+                    existingBatches.forEach(b => { if(b.document_numbers) b.document_numbers.forEach(doc => batchedDocs.add(doc)); });
+                }
+
+                // 3. Group by Bill Number
+                const bills = {};
+                currentBatchingSales.forEach(s => {
+                    if(!bills[s.document_number]) {
+                        bills[s.document_number] = { 
+                            doc: s.document_number, 
+                            cust: s.customer_name, 
+                            amt: 0, 
+                            isReturn: s.document_number.toUpperCase().includes('R'), 
+                            batched: batchedDocs.has(s.document_number) 
+                        };
+                    }
+                    bills[s.document_number].amt += s.sales_amt;
+                });
+
+                unbatchedBillsCache = Object.values(bills).filter(b => !b.batched);
+                renderBatchingUI();
+
+            } catch (e) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--accent);">Failed to load bills. Check connection.</div>`;
+            }
+        }
+
+        function sortBatchingData(mode) {
+            batchSortMode = mode;
+            renderBatchingUI();
+        }
+
+        function renderBatchingUI() {
             const feed = document.getElementById('batching-feed');
             if(!feed) return;
-            const fromDate = document.getElementById('batch-from-date').value;
-            const toDate = document.getElementById('batch-to-date').value;
-            
-            let filtered = SUBMITTED_ORDERS.filter(o => o.status === 'Billed');
-            if (fromDate && toDate) {
-                filtered = filtered.filter(o => {
-                    const localDate = new Date(new Date(o.created_at).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                    return localDate >= fromDate && localDate <= toDate;
-                });
+
+            if(unbatchedBillsCache.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No unbatched bills found for these dates.</div>`;
+                return;
             }
 
             document.getElementById('batch-sel-count').innerText = batchSelections.size;
 
-            if (filtered.length === 0) {
-                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No billed orders found for this range.</div>`;
+            // Apply Sort
+            let sortedBills = [...unbatchedBillsCache];
+            sortedBills.sort((a, b) => {
+                if (batchSortMode === 'doc') {
+                    // Extract number from HC-XXXX
+                    const numA = parseInt(a.doc.replace(/\D/g, '')) || 0;
+                    const numB = parseInt(b.doc.replace(/\D/g, '')) || 0;
+                    return numB - numA; // Highest bill number first
+                }
+                if (batchSortMode === 'cust') return a.cust.localeCompare(b.cust);
+                if (batchSortMode === 'amt') {
+                    // Sort strictly by absolute magnitude, completely ignoring the negative sign on returns
+                    return Math.abs(b.amt) - Math.abs(a.amt);
+                }
+                return 0;
+            });
+
+            // Update the sticky header select box to ensure it matches current state
+            const headerSelect = document.getElementById('batch-sort-select');
+            if (headerSelect && headerSelect.value !== batchSortMode) {
+                headerSelect.value = batchSortMode;
+            }
+
+            feed.innerHTML = sortedBills.map(b => {
+                const isSelected = batchSelections.has(b.doc);
+                if (b.isReturn) {
+                    return `
+                    <div class="pack-row" style="border-radius:6px; margin-bottom:10px; border: 1px solid #FCA5A5; background: #FEF2F2; opacity: 0.8;">
+                        <input type="checkbox" class="pack-chk" disabled>
+                        <div class="pack-info">
+                            <div class="pack-title" style="white-space:normal; color:#991B1B;">${b.cust}</div>
+                            <div class="pack-meta" style="margin:0; font-weight:700; color:#991B1B;">${b.doc} <span style="background:#EF4444; color:white; padding:2px 4px; border-radius:4px; font-size:0.6rem; margin-left:4px;">RETURN</span></div>
+                        </div>
+                        <div style="font-weight:800; color:#991B1B;">₹${fmt(b.amt)}</div>
+                    </div>`;
+                }
+
+                return `
+                <div class="pack-row" style="cursor:pointer; border-radius:6px; margin-bottom:10px; border: 1px solid var(--border); ${isSelected ? 'border-color:var(--brand); background:var(--brand-light);' : ''}" onclick="toggleBatchOrder('${b.doc}')">
+                    <input type="checkbox" class="pack-chk" style="pointer-events:none;" ${isSelected ? 'checked' : ''}>
+                    <div class="pack-info">
+                        <div class="pack-title" style="white-space:normal;">${b.cust}</div>
+                        <div class="pack-meta" style="margin:0; font-weight:700; color:var(--brand);">${b.doc}</div>
+                    </div>
+                    <div style="font-weight:800; color:var(--text);">₹${fmt(b.amt)}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function toggleBatchOrder(doc) {
+            if (batchSelections.has(doc)) batchSelections.delete(doc);
+            else batchSelections.add(doc);
+            renderBatchingUI(); // Instant local re-render! No loading screen!
+        }
+
+        async function confirmBatchCreation() {
+            if (batchSelections.size === 0) { showWarning("Empty Batch", "Please select at least one bill."); return; }
+            const isConfirmed = await showConfirm("Create Batch", `Group <b>${batchSelections.size}</b> bills into a new Delivery Batch?`, "Yes, Create Batch", true);
+            if (!isConfirmed) return;
+
+            // Generate Batch ID
+            let nextBatNum = 1;
+            try {
+                const { data: lastBat } = await sbClient.from('erp_deliveries').select('batch_id').order('created_at', { ascending: false }).limit(1);
+                if (lastBat && lastBat.length > 0) nextBatNum = (parseInt(lastBat[0].batch_id.replace(/\D/g, '')) || 0) + 1;
+            } catch (e) {}
+            const batchId = 'BAT' + String(nextBatNum).padStart(4, '0');
+
+            // Group selected bills by Customer Name
+            const custGroups = {};
+            currentBatchingSales.forEach(s => {
+                if (batchSelections.has(s.document_number)) {
+                    if (!custGroups[s.customer_name]) custGroups[s.customer_name] = { docs: new Set(), amt: 0 };
+                    custGroups[s.customer_name].docs.add(s.document_number);
+                    custGroups[s.customer_name].amt += s.sales_amt;
+                }
+            });
+
+            const dbPayload = [];
+            const now = new Date().toISOString();
+            const todayStr = now.split('T')[0];
+            let linkedAppOrderIds = [];
+
+            let custIdx = 1;
+            for (let custName in custGroups) {
+                dbPayload.push({
+                    id: `${batchId}_C${custIdx++}`,
+                    batch_id: batchId,
+                    customer_name: custName,
+                    document_numbers: Array.from(custGroups[custName].docs),
+                    amount: custGroups[custName].amt,
+                    status: 'Loaded',
+                    batch_date: todayStr,
+                    created_at: now
+                });
+
+                // AUTO-LINK BRIDGE: Find App Orders for this customer that are 'Billed' AND created within the last 3 days
+                const batchDateObj = new Date(todayStr); // The date the ERP bills were batched
+                
+                const linkedAppOrders = SUBMITTED_ORDERS.filter(o => {
+                    const isBilled = o.status === 'Billed';
+                    const matchesCustomer = (CUSTOMERS.find(c => c.code === o.customer_code)?.name === custName || o.customer_code === custName);
+                    
+                    if (!isBilled || !matchesCustomer) return false;
+
+                    // 3-Day Rule Check
+                    const orderDateObj = new Date(o.created_at);
+                    const diffTime = Math.abs(batchDateObj - orderDateObj);
+                    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                    
+                    return diffDays <= 3;
+                });
+                
+                if (linkedAppOrders.length > 0) {
+                    linkedAppOrders.forEach(o => {
+                        linkedAppOrderIds.push(o.id);
+                        o.status = 'Loaded'; o.batch_id = batchId; o.batch_date = todayStr; // Update local memory instantly
+                    });
+                }
+            }
+
+            try {
+                // 1. Save the new ERP Delivery Batch to the cloud
+                const { error } = await sbClient.from('erp_deliveries').insert(dbPayload);
+                if (error) throw error;
+                
+                // 2. If any App Orders were found, update their status to 'Loaded' in the cloud in the background
+                if (linkedAppOrderIds.length > 0) {
+                    sbClient.from('orders').update({ 
+                        status: 'Loaded', 
+                        batch_id: batchId, 
+                        batch_date: todayStr 
+                    }).in('id', linkedAppOrderIds).then();
+                }
+                
+                dbPayload.forEach(o => ERP_DELIVERIES.unshift(o));
+                batchSelections.clear();
+                
+                showSuccess(`Batch ${batchId} created successfully! Linked to ${linkedAppOrderIds.length} App Orders.`);
+                fetchBatchingData(); 
+            } catch (e) {
+                showWarning("Batch Failed", `Could not create batch.<br>${e.message}`);
+            }
+        }
+
+        function toggleBatchingView(mode) {
+            const btnNew = document.getElementById('batch-btn-new');
+            const btnHist = document.getElementById('batch-btn-hist');
+            
+            if (mode === 'new') {
+                btnNew.style.background = 'var(--brand)'; btnNew.style.color = 'white';
+                btnHist.style.background = 'transparent'; btnHist.style.color = 'var(--text-mut)';
+                document.getElementById('batch-new-view').classList.remove('hidden');
+                document.getElementById('batch-hist-view').classList.add('hidden');
+            } else {
+                btnHist.style.background = 'var(--brand)'; btnHist.style.color = 'white';
+                btnNew.style.background = 'transparent'; btnNew.style.color = 'var(--text-mut)';
+                document.getElementById('batch-hist-view').classList.remove('hidden');
+                document.getElementById('batch-new-view').classList.add('hidden');
+                renderBatchingHistory();
+            }
+        }
+
+        function renderBatchingHistory() {
+            const feed = document.getElementById('batch-hist-feed');
+            if(!feed) return;
+            const filterDate = document.getElementById('batch-hist-date').value;
+            
+            let filtered = ERP_DELIVERIES.filter(o => o.batch_id);
+            if (filterDate) filtered = filtered.filter(o => o.batch_date === filterDate);
+            
+            const batches = {};
+            filtered.forEach(o => {
+                if (!batches[o.batch_id]) batches[o.batch_id] = { id: o.batch_id, count: 0, stops: [] };
+                batches[o.batch_id].count++;
+                batches[o.batch_id].stops.push(o);
+            });
+
+            const batchList = Object.values(batches).sort((a,b) => b.id.localeCompare(a.id)); // Newest first
+            
+            if (batchList.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No batches created on this date.</div>`;
                 return;
             }
 
-            feed.innerHTML = filtered.map(order => {
-                const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
-                const isSelected = batchSelections.has(order.id);
+            feed.innerHTML = batchList.map((b, idx) => {
+                // Determine if batch can be edited (only if ALL stops are still 'Loaded')
+                const isEditable = b.stops.every(s => s.status === 'Loaded');
                 
+                const stopRows = b.stops.map(s => {
+                    const isRemoved = s.status === 'Cancelled'; // If we remove it
+                    const canRemove = isEditable && s.status === 'Loaded';
+                    
+                    return `
+                    <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.8rem; ${isRemoved ? 'opacity:0.5; text-decoration:line-through;' : ''}">
+                        <div style="color:var(--text); font-weight:700; flex:1; padding-right:10px;">${s.customer_name}</div>
+                        <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
+                            <span style="font-weight:800; color:var(--brand);">₹${fmt(s.amount)}</span>
+                            ${canRemove ? `<button onclick="removeStopFromBatch('${s.id}', '${b.id}')" style="background:#FEE2E2; color:var(--accent); border:1px solid #FCA5A5; border-radius:4px; padding:4px 8px; cursor:pointer;"><i class="fas fa-trash"></i></button>` : ''}
+                        </div>
+                    </div>`;
+                }).join('');
+
                 return `
-                <div class="pack-row" style="cursor:pointer; border-radius:6px; margin-bottom:10px; border: 1px solid var(--border);" onclick="toggleBatchOrder('${order.id}')">
-                    <input type="checkbox" class="pack-chk" style="pointer-events:none;" ${isSelected ? 'checked' : ''}>
-                    <div class="pack-info">
-                        <div class="pack-title" style="white-space:normal;">${custName}</div>
-                        <div class="pack-meta" style="margin:0; font-weight:700; color:var(--brand);">${order.id}</div>
+                <div style="background: white; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; overflow:hidden;">
+                    <div style="padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor:pointer;" onclick="toggleAccordion('bat-acc-${idx}', 'bat-icon-${idx}')">
+                        <div style="flex:1;">
+                            <div style="font-weight: 800; font-size: 1.1rem; color:var(--brand); margin-bottom: 4px;">${b.id}</div>
+                            <div style="font-size: 0.75rem; color:var(--text-mut); font-weight:700;">${b.stops.filter(s=>s.status !== 'Cancelled').length} Active Stops</div>
+                        </div>
+                        <div style="text-align:right;">
+                            ${!isEditable ? `<span style="background:#DCFCE7; color:#166534; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:800;">IN PROGRESS</span>` : ''}
+                            <i class="fas fa-chevron-down" id="bat-icon-${idx}" style="color:var(--text-mut); margin-left:8px;"></i>
+                        </div>
+                    </div>
+                    <div id="bat-acc-${idx}" class="hidden" style="padding: 0 12px 12px 12px; background: #F9FAFB; border-top: 1px solid var(--border);">
+                        ${stopRows}
                     </div>
                 </div>`;
             }).join('');
         }
 
-        function toggleBatchOrder(id) {
-            if (batchSelections.has(id)) batchSelections.delete(id);
-            else batchSelections.add(id);
-            renderBatching();
-        }
-
-        async function confirmBatchCreation() {
-            if (batchSelections.size === 0) { showWarning("Empty Batch", "Please select at least one order to create a batch."); return; }
-            
-            const isConfirmed = await showConfirm("Create Batch", `Group <b>${batchSelections.size}</b> orders into a new Delivery Batch?`, "Yes, Create Batch");
+        async function removeStopFromBatch(stopId, batchId) {
+            const isConfirmed = await showConfirm("Remove Stop", "Remove this stop from the batch and return it to the Pending pool?", "Yes, Remove");
             if (!isConfirmed) return;
 
-            let nextBatNum = 1;
-            const allBatches = SUBMITTED_ORDERS.filter(o => o.batch_id).map(o => parseInt(o.batch_id.replace(/\D/g, '')) || 0);
-            if (allBatches.length > 0) nextBatNum = Math.max(...allBatches) + 1;
-            const batchId = 'BAT' + String(nextBatNum).padStart(4, '0');
-
-            const orderIdsToUpdate = Array.from(batchSelections);
-            const todayStr = new Date().toISOString().split('T')[0]; // Lock batch to today's date
-
             try {
-                const { error } = await sbClient.from('orders').update({ batch_id: batchId, status: 'Loaded', batch_date: todayStr }).in('id', orderIdsToUpdate);
+                // To cleanly remove it, we just delete the row from erp_deliveries. 
+                // Because it's an ERP flow, removing it means it will just pop back into the "Unbatched" pool next time we fetch!
+                const { error } = await sbClient.from('erp_deliveries').delete().eq('id', stopId);
                 if (error) throw error;
                 
-                orderIdsToUpdate.forEach(id => {
-                    const idx = SUBMITTED_ORDERS.findIndex(o => o.id === id);
-                    if (idx > -1) {
-                        SUBMITTED_ORDERS[idx].status = 'Loaded';
-                        SUBMITTED_ORDERS[idx].batch_id = batchId;
-                        SUBMITTED_ORDERS[idx].batch_date = todayStr;
-                    }
-                });
+                // Remove from local memory
+                const idx = ERP_DELIVERIES.findIndex(o => o.id === stopId);
+                if (idx > -1) ERP_DELIVERIES.splice(idx, 1);
+
+                showSuccess("Stop successfully removed and returned to Pending pool!");
+                renderBatchingHistory(); // Refresh the history view
                 
-                batchSelections.clear();
-                showSuccess(`Batch ${batchId} created successfully!`);
-                renderBatching();
+                // Force a background fetch of unbatched items so the New Batch view is immediately accurate
+                fetchBatchingData(); 
+
             } catch (e) {
-                showWarning("Batch Failed", `Could not create batch. Check connection.<br>${e.message}`);
+                showWarning("Remove Failed", "Could not reach cloud to remove stop. Try again.");
             }
         }
 
-        async function handleBatchCSVUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-
-            const reader = new FileReader();
-            reader.onload = async function(e) {
-                const lines = e.target.result.split('\n');
-                let parsedOrders = [];
-
-                for (let i = 1; i < lines.length; i++) {
-                    const line = lines[i].trim();
-                    // Skip empty lines and the footer total
-                    if (!line || line.toUpperCase().startsWith('TOTAL') || line.toUpperCase().startsWith('"TOTAL')) continue;
-
-                    // Extract the amount from the last comma
-                    const lastCommaIdx = line.lastIndexOf(',');
-                    if (lastCommaIdx === -1) continue;
-
-                    let custName = line.substring(0, lastCommaIdx).replace(/^"|"$/g, '').trim();
-                    let amountStr = line.substring(lastCommaIdx + 1).replace(/[",]/g, '').trim();
-                    let amount = parseFloat(amountStr) || 0;
-
-                    // Check if customer exists in DB, otherwise save raw name
-                    let custCode = custName; 
-                    const matchedCust = CUSTOMERS.find(c => c.name.toLowerCase() === custName.toLowerCase());
-                    if (matchedCust) custCode = matchedCust.code;
-
-                    if (amount > 0) parsedOrders.push({ custCode, custName, amount });
-                }
-
-                if (parsedOrders.length === 0) {
-                    showWarning("Invalid File", "No valid orders found in the CSV.");
-                    document.getElementById('csv-upload-batch').value = "";
-                    return;
-                }
-
-                const isConfirmed = await showConfirm("Upload ERP Batch", `Found <b>${parsedOrders.length}</b> orders in the CSV.<br><br>Do you want to generate a Delivery Batch directly from this file?`, "Yes, Create Batch");
-                if (!isConfirmed) {
-                    document.getElementById('csv-upload-batch').value = "";
-                    return;
-                }
-
-                // 1. Determine next Batch ID
-                let nextBatNum = 1;
-                const allBatches = SUBMITTED_ORDERS.filter(o => o.batch_id).map(o => parseInt(o.batch_id.replace(/\D/g, '')) || 0);
-                if (allBatches.length > 0) nextBatNum = Math.max(...allBatches) + 1;
-                const batchId = 'BAT' + String(nextBatNum).padStart(4, '0');
-
-                // 2. Determine next Order IDs securely from the cloud
-                let nextOrdNum = 1;
-                try {
-                    const { data: latestOrder } = await sbClient.from('orders').select('id').order('created_at', { ascending: false }).limit(1);
-                    if (latestOrder && latestOrder.length > 0) nextOrdNum = (parseInt(latestOrder[0].id.replace(/\D/g, '')) || 0) + 1;
-                } catch (err) {
-                    const allOrders = [...(SUBMITTED_ORDERS||[]), ...(MY_ORDERS||[])];
-                    if (allOrders.length > 0) nextOrdNum = Math.max(...allOrders.map(o => parseInt(o.id.replace(/\D/g, '')) || 0)) + 1;
-                }
-
-                // 3. Build Cloud Payload for new ERP_DELIVERIES table
-                let dbPayload = [];
-                const now = new Date().toISOString();
-                const todayStr = now.split('T')[0];
-                const activeUserId = userSession ? userSession.user.id : "local_dev";
-                
-                parsedOrders.forEach((po, idx) => {
-                    // Generate a unique ID for this specific stop
-                    const stopId = `ERP-${batchId}-${idx + 1}`;
-
-                    dbPayload.push({
-                        id: stopId,
-                        batch_id: batchId,
-                        customer_name: po.custName,
-                        amount: po.amount,
-                        status: 'Loaded',
-                        batch_date: todayStr,
-                        delivery_user_id: activeUserId,
-                        created_at: now
-                    });
-                });
-
-                try {
-                    const { error } = await sbClient.from('erp_deliveries').insert(dbPayload);
-                    if (error) throw error;
-
-                    dbPayload.forEach(o => ERP_DELIVERIES.unshift(o));
-                    showSuccess(`Batch ${batchId} created successfully from ERP data!`);
-                    
-                    switchTab('delivery');
-                } catch (e) {
-                    showWarning("Upload Failed", `Could not connect to cloud.<br>${e.message}`);
-                }
-
-                document.getElementById('csv-upload-batch').value = "";
-            };
-            reader.readAsText(file);
-        }
-
+        // --- DELIVERY APP ---
         function renderDelivery() {
             const feed = document.getElementById('delivery-feed');
             if(!feed) return;
             const filterDate = document.getElementById('del-date-filter').value;
             
-            // Combine normal app orders with raw ERP deliveries
-            const allLoaded = [
-                ...SUBMITTED_ORDERS.filter(o => o.status === 'Loaded' && o.batch_id),
-                ...ERP_DELIVERIES.filter(o => o.status === 'Loaded')
-            ];
-
-            let filtered = allLoaded;
-            if (filterDate) {
-                filtered = filtered.filter(o => o.batch_date === filterDate);
-            }
+            let filtered = ERP_DELIVERIES.filter(o => o.status === 'Loaded');
+            if (filterDate) filtered = filtered.filter(o => o.batch_date === filterDate);
             
-            // Group by Batch ID
             const batches = {};
             filtered.forEach(o => {
-                if (!batches[o.batch_id]) batches[o.batch_id] = { id: o.batch_id, count: 0, created_at: o.created_at };
+                if (!batches[o.batch_id]) batches[o.batch_id] = { id: o.batch_id, count: 0 };
                 batches[o.batch_id].count++;
             });
 
             const batchList = Object.values(batches);
-            
             if (batchList.length === 0) {
                 feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No active batches to deliver.</div>`;
                 return;
@@ -3071,21 +3218,47 @@
                 <div class="order-card" style="border-left: 4px solid var(--brand);">
                     <div style="flex:1; min-width:0;">
                         <b style="font-size: 1.1rem; color:var(--text);">${b.id}</b><br>
-                        <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${b.count} Orders Loaded</div>
+                        <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${b.count} Stops Loaded</div>
                     </div>
                     <button class="btn-take-order" style="flex-shrink:0;" onclick="openDeliveryBatch('${b.id}')">Start Delivery</button>
                 </div>
             `).join('');
         }
 
-        function openDeliveryBatch(batchId) {
+        async function openDeliveryBatch(batchId) {
             currentActiveBatchId = batchId;
             document.getElementById('del-batch-id').innerText = batchId;
-            renderDeliveryDetailList();
+            
+            const list = document.getElementById('delivery-detail-list');
+            list.innerHTML = `<div style="text-align:center; padding:40px; color:var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br><b>Loading Bills...</b></div>`;
             document.getElementById('delivery-detail-view').classList.remove('hidden');
+
+            const batchOrders = ERP_DELIVERIES.filter(o => o.batch_id === batchId);
+            document.getElementById('del-batch-count').innerText = `${batchOrders.length} Stops`;
+
+            // Extract all document numbers to fetch items for the checklist
+            let allDocs = [];
+            batchOrders.forEach(o => { if(o.document_numbers) allDocs.push(...o.document_numbers); });
+
+            try {
+                // Safely fetch items in chunks of 50 to prevent URL length crashes
+                currentDeliveryItems = [];
+                for (let i = 0; i < allDocs.length; i += 50) {
+                    const chunk = allDocs.slice(i, i + 50);
+                    const { data, error } = await sbClient.from('erp_sales').select('document_number, item_name, issue_quantity').in('document_number', chunk);
+                    if (error) throw error;
+                    if (data) currentDeliveryItems.push(...data);
+                }
+                
+                renderDeliveryDetailList();
+            } catch(e) {
+                list.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--accent);">Failed to load bill items.<br><span style="font-size:0.7rem;">${e.message || ''}</span></div>`;
+            }
         }
 
-        let deliverySearchQuery = "";
+
+
+        let deliverySearchQuery = ""; // Define the variable globally
 
         function handleDeliverySearch(val) {
             deliverySearchQuery = val.toLowerCase();
@@ -3095,26 +3268,32 @@
         function exitDeliveryDetail() {
             currentActiveBatchId = null;
             deliverySearchQuery = ""; // Reset search when leaving
-            document.getElementById('del-search-input').value = "";
+            const searchInput = document.getElementById('del-search-input');
+            if(searchInput) searchInput.value = "";
             document.getElementById('delivery-detail-view').classList.add('hidden');
             renderDelivery();
         }
 
         function renderDeliveryDetailList() {
             const list = document.getElementById('delivery-detail-list');
+            const filterDate = document.getElementById('del-date-filter').value;
             
-            // Pull from both arrays
+            // Pull from both arrays, strictly filtering by Batch ID AND Date
             let batchOrders = [
-                ...SUBMITTED_ORDERS.filter(o => o.batch_id === currentActiveBatchId),
-                ...ERP_DELIVERIES.filter(o => o.batch_id === currentActiveBatchId)
+                ...SUBMITTED_ORDERS.filter(o => o.batch_id === currentActiveBatchId && o.batch_date === filterDate),
+                ...ERP_DELIVERIES.filter(o => o.batch_id === currentActiveBatchId && o.batch_date === filterDate)
             ];
             
-            document.getElementById('del-batch-count').innerText = `${batchOrders.length} Orders`;
+            document.getElementById('del-batch-count').innerText = `${batchOrders.length} Stops`;
 
             if (deliverySearchQuery) {
                 batchOrders = batchOrders.filter(o => {
-                    const custName = o.customer_name || CUSTOMERS.find(c => c.code === o.customer_code)?.name || o.customer_code;
-                    return custName.toLowerCase().includes(deliverySearchQuery) || o.id.toLowerCase().includes(deliverySearchQuery);
+                    const custName = (o.customer_name || CUSTOMERS.find(c => c.code === o.customer_code)?.name || o.customer_code || "").toLowerCase();
+                    const docSearchStr = o.document_numbers ? o.document_numbers.join(' ').toLowerCase() : "";
+                    
+                    return custName.includes(deliverySearchQuery) || 
+                           o.id.toLowerCase().includes(deliverySearchQuery) || 
+                           docSearchStr.includes(deliverySearchQuery);
                 });
             }
 
@@ -3123,9 +3302,10 @@
                 return;
             }
 
-            list.innerHTML = batchOrders.map(order => {
+            list.innerHTML = batchOrders.map((order, idx) => {
                 const custName = order.customer_name || CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
                 const isDelivered = order.status === 'Delivered';
+                const billsStr = order.document_numbers ? order.document_numbers.join(', ') : '';
 
                 if (isDelivered) {
                     return `
@@ -3137,11 +3317,38 @@
                         </div>
                     </div>`;
                 } else {
+                    const myItems = currentDeliveryItems.filter(i => order.document_numbers.includes(i.document_number));
+                    const checklistHTML = myItems.map(item => {
+                        // Generate a safe unique ID for the specific item in the specific bill
+                        const cleanId = (item.document_number + '_' + item.item_name).replace(/[^a-zA-Z0-9]/g, '');
+                        return `
+                        <label class="pack-row" style="padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.8rem; display:flex; align-items:center; gap:10px; cursor:pointer;">
+                            <input type="checkbox" class="pack-chk del-chk-${order.id}" data-item-id="${cleanId}" style="width:18px; height:18px;">
+                            <div style="flex:1; padding-left:8px;">
+                                <div style="font-weight:700; color:var(--text);">${item.item_name}</div>
+                                <div style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-top:2px;">${item.document_number}</div>
+                            </div>
+                            <div style="font-weight:800; color:var(--brand);">${item.issue_quantity} Pcs</div>
+                        </label>`;
+                    }).join('');
+
                     return `
-                    <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px;">
-                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px;">${custName}</div>
-                        <div style="font-size: 0.8rem; color:var(--text-mut); margin-bottom: 10px;">${order.id}</div>
-                        <button onclick="triggerPhotoCapture('${order.id}')" style="width:100%; background:var(--brand); color:white; border:none; padding:10px; border-radius:4px; font-weight:700; font-size:0.9rem; cursor:pointer;"><i class="fas fa-camera"></i> Mark Delivered</button>
+                    <div style="background: white; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; overflow:hidden;">
+                        <div style="padding: 12px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onclick="toggleAccordion('del-acc-${idx}', 'del-icon-${idx}')">
+                            <div style="flex:1;">
+                                <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 4px;">${custName}</div>
+                                <div style="font-size: 0.75rem; color:var(--brand); font-weight:700;"><i class="fas fa-file-invoice" style="margin-right:4px;"></i>${billsStr}</div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-weight: 800; font-size: 1rem; color:var(--text); margin-bottom:4px;">₹${fmt(order.amount)}</div>
+                                <i class="fas fa-chevron-down" id="del-icon-${idx}" style="color:var(--text-mut);"></i>
+                            </div>
+                        </div>
+                        <div id="del-acc-${idx}" class="hidden" style="padding: 0 12px 12px 12px; background: #F9FAFB; border-top: 1px solid var(--border);">
+                            <div style="margin-bottom:10px; color:var(--text-mut); font-size:0.75rem; font-weight:700;">Verify items (Optional):</div>
+                            ${checklistHTML}
+                            <button onclick="triggerPhotoCapture('${order.id}')" style="width:100%; background:var(--brand); color:white; border:none; padding:12px; border-radius:4px; font-weight:700; font-size:1rem; margin-top:12px; cursor:pointer;"><i class="fas fa-camera"></i> Verify & Deliver</button>
+                        </div>
                     </div>`;
                 }
             }).join('');
@@ -3151,7 +3358,6 @@
 
         function triggerPhotoCapture(orderId) {
             currentPhotoOrderId = orderId;
-            // 1. Immediately trigger camera
             document.getElementById('camera-input').click();
         }
 
@@ -3159,7 +3365,6 @@
             const file = event.target.files[0];
             if (!file || !currentPhotoOrderId) return;
 
-            // 2. Compress image using Canvas
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = e => {
@@ -3176,7 +3381,6 @@
                     
                     tempBase64Photo = canvas.toDataURL('image/jpeg', 0.6);
                     
-                    // 3. Image captured. Now ask for Collection.
                     document.getElementById('del-cash').value = '';
                     document.getElementById('del-gpay').value = '';
                     document.getElementById('del-confirm-modal').classList.remove('hidden');
@@ -3185,7 +3389,6 @@
         }
 
         function proceedToPhoto() {
-            // Function renamed to reflect new flow: proceed to Save
             proceedToSaveDelivery();
         }
 
@@ -3197,54 +3400,80 @@
             await saveDeliveryToCloud(currentPhotoOrderId, tempBase64Photo, cash, gpay);
         }
 
-        function openDeliveryPayment(orderId, isErp) {
-            const order = isErp ? ERP_DELIVERIES.find(o=>o.id===orderId) : SUBMITTED_ORDERS.find(o=>o.id===orderId);
-            if(!order) return;
-            const custName = order.customer_name || CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
-            
-            currentColCust = { code: order.customer_code, name: custName };
-            document.getElementById('col-cust-name').innerText = custName;
-            document.getElementById('col-cust-bal').innerText = `Order Amount: ₹${fmt(order.total_amount || order.amount || 0)}`;
-            
-            document.getElementById('col-cash').value = '';
-            document.getElementById('col-gpay').value = '';
-            document.getElementById('col-total').innerText = '₹0';
-            
-            document.getElementById('collection-modal').classList.remove('hidden');
-        }
-
         async function saveDeliveryToCloud(orderId, base64Photo, cashAmt = 0, gpayAmt = 0) {
             try {
                 const now = new Date().toISOString();
-                const isErp = orderId.startsWith('ERP');
+                const isErp = orderId.startsWith('ERP') || orderId.startsWith('BAT');
                 const tableName = isErp ? 'erp_deliveries' : 'orders';
 
-                const { error } = await sbClient.from(tableName).update({
+                // Scan UI for any checked items right before saving (Checklist feature)
+                let verifiedItems = [];
+                const checkboxes = document.querySelectorAll(`.del-chk-${orderId}:checked`);
+                checkboxes.forEach(chk => verifiedItems.push(chk.getAttribute('data-item-id')));
+
+                const payload = {
                     status: 'Delivered',
                     delivery_photo: base64Photo,
                     delivered_at: now
-                }).eq('id', orderId);
-                
+                };
+                if (isErp) payload.verified_items = verifiedItems;
+
+                // 1. Update the Delivery/Order in the Cloud
+                const { error } = await sbClient.from(tableName).update(payload).eq('id', orderId);
                 if (error) throw error;
                 
+                // 2. Update Local Memory
                 const targetArray = isErp ? ERP_DELIVERIES : SUBMITTED_ORDERS;
                 const idx = targetArray.findIndex(o => o.id === orderId);
+                
                 let custCode = orderId;
+                let custName = "Unknown";
+                
                 if (idx > -1) {
                     targetArray[idx].status = 'Delivered';
                     targetArray[idx].delivery_photo = base64Photo;
                     targetArray[idx].delivered_at = now;
-                    custCode = targetArray[idx].customer_code;
+                    if (isErp) targetArray[idx].verified_items = verifiedItems;
+                    
+                    custCode = targetArray[idx].customer_code || targetArray[idx].customer_name; 
+                    custName = targetArray[idx].customer_name || CUSTOMERS.find(c => c.code === targetArray[idx].customer_code)?.name || "";
+                }
+
+                // 3. AUTO-LINK BRIDGE: If ERP Delivery completes, push associated App Orders to 'Delivered'
+                if (isErp && custName) {
+                    const appOrdersToClose = SUBMITTED_ORDERS.filter(o => 
+                        o.status === 'Loaded' && 
+                        (CUSTOMERS.find(c => c.code === o.customer_code)?.name === custName || o.customer_code === custName)
+                    );
+                    
+                    if (appOrdersToClose.length > 0) {
+                        const idsToUpdate = appOrdersToClose.map(o => o.id);
+                        
+                        // Close them out silently in the background
+                        sbClient.from('orders').update({ 
+                            status: 'Delivered', 
+                            delivery_photo: base64Photo, 
+                            delivered_at: now 
+                        }).in('id', idsToUpdate).then();
+                        
+                        // Update local instantly
+                        appOrdersToClose.forEach(o => {
+                            o.status = 'Delivered'; 
+                            o.delivery_photo = base64Photo; 
+                            o.delivered_at = now;
+                        });
+                    }
                 }
                 
-                // Process Collection if entered
+                // 4. Process Collection if entered
                 const totalCol = cashAmt + gpayAmt;
                 if (totalCol > 0) {
                     let nextRecNum = 1;
-                    if (MY_COLLECTIONS.length > 0) {
-                        nextRecNum = Math.max(...MY_COLLECTIONS.map(o => parseInt(o.id.replace(/\D/g, '')) || 0)) + 1;
+                    if (ALL_COLLECTIONS.length > 0) {
+                        nextRecNum = Math.max(...ALL_COLLECTIONS.map(o => parseInt(o.id.replace(/\D/g, '')) || 0)) + 1;
                     }
                     const colId = 'REC' + String(nextRecNum).padStart(4, '0');
+                    
                     const colPayload = {
                         id: colId,
                         customer_code: custCode,
@@ -3254,14 +3483,19 @@
                         total_amount: totalCol,
                         created_at: now
                     };
+                    
                     await sbClient.from('collections').insert(colPayload);
                     MY_COLLECTIONS.unshift(colPayload);
+                    ALL_COLLECTIONS.unshift(colPayload); // Make sure Billing sees it instantly
                 }
 
                 showSuccess(totalCol > 0 ? `Delivered and ₹${totalCol} Collected!` : "Order marked as Delivered!");
+                
+                // 5. Refresh the list safely
                 renderDeliveryDetailList();
+
             } catch (e) {
-                showWarning("Delivery Failed", "Could not reach the cloud. Try again.");
+                showWarning("Delivery Failed", "Could not reach the cloud to save delivery. Try again.");
             }
         }
 
@@ -3276,17 +3510,11 @@
             if(!feed) return;
             const filterDate = document.getElementById('del-hist-date-filter').value;
             
-            let filtered = [
-                ...SUBMITTED_ORDERS.filter(o => o.status === 'Delivered' && o.batch_id),
-                ...ERP_DELIVERIES.filter(o => o.status === 'Delivered')
-            ];
-            
-            // Sort by delivery time, newest at the top
+            let filtered = ERP_DELIVERIES.filter(o => o.status === 'Delivered');
             filtered.sort((a, b) => new Date(b.delivered_at || b.created_at) - new Date(a.delivered_at || a.created_at));
 
             if (filterDate) {
                 filtered = filtered.filter(o => {
-                    // Use delivered_at. If it's an old order missing the column, fallback to created_at
                     const d = new Date(o.delivered_at || o.created_at);
                     const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
                     return localDate === filterDate;
@@ -3313,18 +3541,30 @@
                 return;
             }
 
-            feed.innerHTML = filtered.map(order => {
+            feed.innerHTML = filtered.map((order, idx) => {
                 const custName = order.customer_name || CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
-                const isErp = order.id.startsWith('ERP');
+                
+                // Process Verified Checklist if it exists
+                let checklistHTML = '';
+                if (order.verified_items && order.document_numbers) {
+                    const myItems = ERP_DELIVERIES.filter(i => order.document_numbers.includes(i.document_number));
+                    // The trick is we need the raw items from erp_sales matching these docs. 
+                    // Let's keep it simple: just show how many items were ticked vs total items
+                    const totalItems = currentDeliveryItems.filter(i => order.document_numbers.includes(i.document_number)).length;
+                    const tickedItems = order.verified_items.length;
+                    
+                    let tickColor = tickedItems === 0 ? "var(--accent)" : (tickedItems === totalItems ? "var(--success)" : "#B45309");
+                    checklistHTML = `<div style="font-size:0.7rem; font-weight:700; color:${tickColor}; background:${tickColor}20; padding:2px 6px; border-radius:4px; margin-top:6px;">Verified: ${tickedItems} items</div>`;
+                }
+
                 return `
                 <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px;">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
-                        <button onclick="openDeliveryPayment('${order.id}', ${isErp})" style="background:var(--success-bg); color:var(--success); border:1px solid var(--success); width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer;"><i class="fas fa-rupee-sign"></i></button>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:4px;">
+                    <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
+                    ${checklistHTML}
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
                         <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
-                            <span style="font-size:0.75rem; font-weight:700; color:var(--brand);"><i class="fas fa-receipt" style="margin-right:2px;"></i>${order.id}</span>
+                            <span style="font-size:0.75rem; font-weight:700; color:var(--brand);"><i class="fas fa-receipt" style="margin-right:2px;"></i>${order.id.replace(order.batch_id+'_C', 'STOP ')}</span>
                             <span style="opacity:0.4; font-size:0.75rem;">•</span>
                             <span style="font-size:0.75rem; font-weight:700; color:var(--text-mut);"><i class="fas fa-layer-group" style="margin-right:2px;"></i>${order.batch_id}</span>
                         </div>
