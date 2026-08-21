@@ -3382,13 +3382,14 @@
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    const MAX_WIDTH = 800;
+                    // Stronger compression to safely bypass Supabase 1MB payload limits
+                    const MAX_WIDTH = 600; 
                     const scaleSize = MAX_WIDTH / img.width;
                     canvas.width = MAX_WIDTH;
                     canvas.height = img.height * scaleSize;
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     
-                    tempBase64Photo = canvas.toDataURL('image/jpeg', 0.6);
+                    tempBase64Photo = canvas.toDataURL('image/jpeg', 0.5); 
                     
                     document.getElementById('del-cash').value = '';
                     document.getElementById('del-gpay').value = '';
@@ -3406,7 +3407,28 @@
             const gpay = parseFloat(document.getElementById('del-gpay').value) || 0;
             
             closeModal('del-confirm-modal');
+            
+            // Show a visual loading indicator so the user knows it's uploading
+            const btn = document.getElementById(`btn-del-${currentPhotoOrderId}`);
+            if(btn) btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Saving...`;
+            
             await saveDeliveryToCloud(currentPhotoOrderId, tempBase64Photo, cash, gpay);
+        }
+
+        function openDeliveryPayment(orderId, isErp) {
+            const order = isErp ? ERP_DELIVERIES.find(o=>o.id===orderId) : SUBMITTED_ORDERS.find(o=>o.id===orderId);
+            if(!order) return;
+            const custName = order.customer_name || CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+            
+            currentColCust = { code: order.customer_code, name: custName };
+            document.getElementById('col-cust-name').innerText = custName;
+            document.getElementById('col-cust-bal').innerText = `Order Amount: ₹${fmt(order.total_amount || order.amount || 0)}`;
+            
+            document.getElementById('col-cash').value = '';
+            document.getElementById('col-gpay').value = '';
+            document.getElementById('col-total').innerText = '₹0';
+            
+            document.getElementById('collection-modal').classList.remove('hidden');
         }
 
         async function saveDeliveryToCloud(orderId, base64Photo, cashAmt = 0, gpayAmt = 0) {
@@ -3415,10 +3437,12 @@
                 const isErp = orderId.startsWith('ERP') || orderId.startsWith('BAT');
                 const tableName = isErp ? 'erp_deliveries' : 'orders';
 
-                // Scan UI for any checked items right before saving (Checklist feature)
                 let verifiedItems = [];
-                const checkboxes = document.querySelectorAll(`.del-chk-${orderId}:checked`);
-                checkboxes.forEach(chk => verifiedItems.push(chk.getAttribute('data-item-id')));
+                // Handle CSS query safely 
+                try {
+                    const checkboxes = document.querySelectorAll(`.del-chk-${orderId}:checked`);
+                    checkboxes.forEach(chk => verifiedItems.push(chk.getAttribute('data-item-id')));
+                } catch(err) { console.warn("Checklist DOM scan skipped"); }
 
                 const payload = {
                     status: 'Delivered',
@@ -3448,7 +3472,7 @@
                     custName = targetArray[idx].customer_name || CUSTOMERS.find(c => c.code === targetArray[idx].customer_code)?.name || "";
                 }
 
-                // 3. AUTO-LINK BRIDGE: If ERP Delivery completes, push associated App Orders to 'Delivered'
+                // 3. AUTO-LINK BRIDGE: Pull 'Loaded' App Orders to 'Delivered'
                 if (isErp && custName) {
                     const appOrdersToClose = SUBMITTED_ORDERS.filter(o => 
                         o.status === 'Loaded' && 
@@ -3457,19 +3481,14 @@
                     
                     if (appOrdersToClose.length > 0) {
                         const idsToUpdate = appOrdersToClose.map(o => o.id);
-                        
-                        // Close them out silently in the background
                         sbClient.from('orders').update({ 
                             status: 'Delivered', 
                             delivery_photo: base64Photo, 
                             delivered_at: now 
                         }).in('id', idsToUpdate).then();
                         
-                        // Update local instantly
                         appOrdersToClose.forEach(o => {
-                            o.status = 'Delivered'; 
-                            o.delivery_photo = base64Photo; 
-                            o.delivered_at = now;
+                            o.status = 'Delivered'; o.delivery_photo = base64Photo; o.delivered_at = now;
                         });
                     }
                 }
@@ -3495,16 +3514,19 @@
                     
                     await sbClient.from('collections').insert(colPayload);
                     MY_COLLECTIONS.unshift(colPayload);
-                    ALL_COLLECTIONS.unshift(colPayload); // Make sure Billing sees it instantly
+                    ALL_COLLECTIONS.unshift(colPayload);
                 }
 
                 showSuccess(totalCol > 0 ? `Delivered and ₹${totalCol} Collected!` : "Order marked as Delivered!");
-                
-                // 5. Refresh the list safely
                 renderDeliveryDetailList();
 
             } catch (e) {
-                showWarning("Delivery Failed", "Could not reach the cloud to save delivery. Try again.");
+                // EXPLICITLY SHOW THE ERROR MESSAGE NOW
+                showWarning("Delivery Failed", `Could not save delivery.<br><br><b>Error:</b> ${e.message}`);
+                
+                // Reset button UI if failed
+                const btn = document.getElementById(`btn-del-${orderId}`);
+                if(btn) btn.innerHTML = `<i class="fas fa-camera"></i> Verify & Deliver`;
             }
         }
 
