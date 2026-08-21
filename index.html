@@ -3279,23 +3279,24 @@
 
         function renderDeliveryDetailList() {
             const list = document.getElementById('delivery-detail-list');
-            const filterDate = document.getElementById('del-date-filter').value;
             
-            // Pull from both arrays, strictly filtering by Batch ID AND Date
-            let batchOrders = [
-                ...SUBMITTED_ORDERS.filter(o => o.batch_id === currentActiveBatchId && o.batch_date === filterDate),
-                ...ERP_DELIVERIES.filter(o => o.batch_id === currentActiveBatchId && o.batch_date === filterDate)
-            ];
+            // Pull ONLY from ERP Deliveries. App Orders are closed silently in the background.
+            let batchOrders = ERP_DELIVERIES.filter(o => o.batch_id === currentActiveBatchId);
             
             document.getElementById('del-batch-count').innerText = `${batchOrders.length} Stops`;
 
             if (deliverySearchQuery) {
                 batchOrders = batchOrders.filter(o => {
                     const custName = (o.customer_name || CUSTOMERS.find(c => c.code === o.customer_code)?.name || o.customer_code || "").toLowerCase();
-                    const docSearchStr = o.document_numbers ? o.document_numbers.join(' ').toLowerCase() : "";
+                    const orderIdStr = (o.id || "").toLowerCase();
+                    let docSearchStr = "";
+                    
+                    if (o.document_numbers && Array.isArray(o.document_numbers)) {
+                        docSearchStr = o.document_numbers.join(' ').toLowerCase();
+                    }
                     
                     return custName.includes(deliverySearchQuery) || 
-                           o.id.toLowerCase().includes(deliverySearchQuery) || 
+                           orderIdStr.includes(deliverySearchQuery) || 
                            docSearchStr.includes(deliverySearchQuery);
                 });
             }
@@ -3320,7 +3321,12 @@
                         </div>
                     </div>`;
                 } else {
-                    const myItems = currentDeliveryItems.filter(i => order.document_numbers.includes(i.document_number));
+                    // Safe Check: Only attempt to filter items if document_numbers exists (ERP Order)
+                    let myItems = [];
+                    if (order.document_numbers && Array.isArray(order.document_numbers)) {
+                        myItems = currentDeliveryItems.filter(i => order.document_numbers.includes(i.document_number));
+                    }
+                    
                     const checklistHTML = myItems.map(item => {
                         // Generate a safe unique ID for the specific item in the specific bill
                         const cleanId = (item.document_number + '_' + item.item_name).replace(/[^a-zA-Z0-9]/g, '');
@@ -3513,7 +3519,10 @@
             if(!feed) return;
             const filterDate = document.getElementById('del-hist-date-filter').value;
             
+            // Only show the actual physical ERP deliveries in history
             let filtered = ERP_DELIVERIES.filter(o => o.status === 'Delivered');
+            
+            // Sort by delivery time, newest at the top
             filtered.sort((a, b) => new Date(b.delivered_at || b.created_at) - new Date(a.delivered_at || a.created_at));
 
             if (filterDate) {
@@ -3550,14 +3559,13 @@
                 // Process Verified Checklist if it exists
                 let checklistHTML = '';
                 if (order.verified_items && order.document_numbers) {
-                    const myItems = ERP_DELIVERIES.filter(i => order.document_numbers.includes(i.document_number));
-                    // The trick is we need the raw items from erp_sales matching these docs. 
-                    // Let's keep it simple: just show how many items were ticked vs total items
                     const totalItems = currentDeliveryItems.filter(i => order.document_numbers.includes(i.document_number)).length;
                     const tickedItems = order.verified_items.length;
                     
                     let tickColor = tickedItems === 0 ? "var(--accent)" : (tickedItems === totalItems ? "var(--success)" : "#B45309");
-                    checklistHTML = `<div style="font-size:0.7rem; font-weight:700; color:${tickColor}; background:${tickColor}20; padding:2px 6px; border-radius:4px; margin-top:6px;">Verified: ${tickedItems} items</div>`;
+                    if (totalItems > 0) {
+                        checklistHTML = `<div style="font-size:0.7rem; font-weight:700; color:${tickColor}; background:${tickColor}20; padding:2px 6px; border-radius:4px; margin-top:6px; display:inline-block;">Verified: ${tickedItems} items</div>`;
+                    }
                 }
 
                 return `
