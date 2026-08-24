@@ -549,17 +549,25 @@
             </div>
         </div>
 
-        <!-- ADMIN: LIVE DASHBOARD -->
-        <div id="view-live" class="tab-content hidden admin-view">
-            <div class="hist-top" style="gap: 10px;">
-                <input type="date" id="live-from-date" onchange="renderLiveDashboard(true)" style="flex:1;">
-                <input type="date" id="live-to-date" onchange="renderLiveDashboard(true)" style="flex:1;">
-            </div>
-            <div id="live-sm-filter-bar" style="background:var(--bg);"></div>
-            <div class="scroll-area" style="padding: 0 16px 16px 16px; background: var(--bg);">
-                <div id="live-top-dashboard"></div>
-                <div id="live-stat-filter-bar" style="background:var(--bg);"></div>
-                <div id="live-feed"></div>
+        <!-- ADMIN: MAIN DASHBOARD -->
+        <div id="view-dashboard" class="tab-content hidden admin-view">
+            <div style="padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div onclick="openAdminDashboardApp('live')" style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;">
+                    <div style="font-size: 2.5rem; color: #F59E0B; margin-bottom: 10px;"><i class="fas fa-bolt"></i></div>
+                    <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Live Order</div>
+                </div>
+                <div onclick="openAdminDashboardApp('sales')" style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;">
+                    <div style="font-size: 2.5rem; color: var(--brand); margin-bottom: 10px;"><i class="fas fa-chart-pie"></i></div>
+                    <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">ERP Sales</div>
+                </div>
+                <div onclick="openAdminDashboardApp('delivery')" style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;">
+                    <div style="font-size: 2.5rem; color: #10B981; margin-bottom: 10px;"><i class="fas fa-truck"></i></div>
+                    <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Delivery</div>
+                </div>
+                <div style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer; opacity: 0.7;">
+                    <div style="font-size: 2.5rem; color: #6366F1; margin-bottom: 10px;"><i class="fas fa-shopping-bag"></i></div>
+                    <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Purchase</div>
+                </div>
             </div>
         </div>
 
@@ -572,36 +580,75 @@
             <div class="scroll-area" style="padding: 12px; background: var(--bg);" id="admin-cust-list"></div>
         </div>
 
-        <!-- ADMIN: ERP SALES DASHBOARD -->
-        <div id="view-admin-sales" class="tab-content hidden admin-view">
-            <div style="background: var(--brand-dark); color: var(--brand-light); text-align: center; padding: 6px; font-size: 0.7rem; font-weight: 700;">
-                <i class="fas fa-sync-alt"></i> Last Synced: <span id="sales-last-sync">Loading...</span>
+        <!-- ADMIN: LIVE OVERLAY -->
+        <div id="admin-live-app" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="closeAdminDashboardApp('live')" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center"><div class="ov-title">Live Orders</div></div>
+                <i class="fas fa-check" style="color: transparent;"></i>
             </div>
-            <div class="hist-top" style="gap: 10px;">
-                <input type="date" id="sales-from-date" onchange="fetchAndRenderSales()" style="flex:1;">
-                <input type="date" id="sales-to-date" onchange="fetchAndRenderSales()" style="flex:1;">
-            </div>
-            <div id="sales-subgroup-bar" style="background:var(--bg);"></div>
-            
-            <div class="scroll-area" style="padding: 0 16px 16px 16px; background: var(--bg);">
-                <!-- KPIs -->
-                <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom: 10px;" id="sales-kpi-board"></div>
-                
-                <!-- View Toggles & Sort -->
-                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                    <div style="display: flex; background: white; border-radius: 4px; border: 1px solid var(--border); height: 28px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                        <button id="sales-view-cust" onclick="updateSalesView('cust')" style="flex:1; padding: 0 12px; border:none; background: var(--brand); color: white; cursor:pointer; font-size: 1rem;" title="Customer View">👤</button>
-                        <button id="sales-view-item" onclick="updateSalesView('item')" style="flex:1; padding: 0 12px; border:none; background: transparent; border-left: 1px solid var(--border); color: var(--text-mut); cursor:pointer; font-size: 1rem; filter: grayscale(100%);" title="Item View">📦</button>
-                    </div>
-                    <select id="sales-sort" onchange="renderSalesFeed()" style="height: 28px; padding: 0 8px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.75rem; font-weight: 700; color: var(--brand); background: var(--brand-light);">
-                        <option value="sales">Sort: Highest Sales</option>
-                        <option value="profit">Sort: Highest Profit</option>
-                        <option value="margin">Sort: Highest Margin %</option>
-                        <option value="alpha">Sort: A-Z</option>
-                    </select>
+            <div style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+                <div class="hist-top" style="gap: 10px; flex-shrink: 0;">
+                    <input type="date" id="live-from-date" onchange="renderLiveDashboard(true)" style="flex:1;">
+                    <input type="date" id="live-to-date" onchange="renderLiveDashboard(true)" style="flex:1;">
                 </div>
+                <div id="live-sm-filter-bar" style="background:var(--bg); flex-shrink: 0;"></div>
+                <div class="scroll-area" style="padding: 0 16px 16px 16px; background: var(--bg);">
+                    <div id="live-top-dashboard"></div>
+                    <div id="live-stat-filter-bar" style="background:var(--bg);"></div>
+                    <div id="live-feed"></div>
+                </div>
+            </div>
+        </div>
 
-                <div id="sales-feed"></div>
+        <!-- ADMIN: SALES OVERLAY -->
+        <div id="admin-sales-app" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="closeAdminDashboardApp('sales')" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center"><div class="ov-title">ERP Sales</div></div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            <div style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+                <div style="background: var(--brand-dark); color: var(--brand-light); text-align: center; padding: 6px; font-size: 0.7rem; font-weight: 700; flex-shrink: 0;">
+                    <i class="fas fa-sync-alt"></i> Last Synced: <span id="sales-last-sync">Loading...</span>
+                </div>
+                <div class="hist-top" style="gap: 10px; flex-shrink: 0;">
+                    <input type="date" id="sales-from-date" onchange="fetchAndRenderSales()" style="flex:1;">
+                    <input type="date" id="sales-to-date" onchange="fetchAndRenderSales()" style="flex:1;">
+                </div>
+                <div id="sales-subgroup-bar" style="background:var(--bg); flex-shrink: 0;"></div>
+                <div class="scroll-area" style="padding: 0 16px 16px 16px; background: var(--bg);">
+                    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom: 10px;" id="sales-kpi-board"></div>
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                        <div style="display: flex; background: white; border-radius: 4px; border: 1px solid var(--border); height: 28px; overflow: hidden; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                            <button id="sales-view-cust" onclick="updateSalesView('cust')" style="flex:1; padding: 0 12px; border:none; background: var(--brand); color: white; cursor:pointer; font-size: 1rem;" title="Customer View">👤</button>
+                            <button id="sales-view-item" onclick="updateSalesView('item')" style="flex:1; padding: 0 12px; border:none; background: transparent; border-left: 1px solid var(--border); color: var(--text-mut); cursor:pointer; font-size: 1rem; filter: grayscale(100%);" title="Item View">📦</button>
+                        </div>
+                        <select id="sales-sort" onchange="renderSalesFeed()" style="height: 28px; padding: 0 8px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.75rem; font-weight: 700; color: var(--brand); background: var(--brand-light);">
+                            <option value="sales">Sort: Highest Sales</option>
+                            <option value="profit">Sort: Highest Profit</option>
+                            <option value="margin">Sort: Highest Margin %</option>
+                            <option value="alpha">Sort: A-Z</option>
+                        </select>
+                    </div>
+                    <div id="sales-feed"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMIN: DELIVERY OVERLAY -->
+        <div id="admin-delivery-app" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="closeAdminDashboardApp('delivery')" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center"><div class="ov-title">ERP Delivery Status</div></div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            <div style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+                <div class="hist-top" style="gap: 10px; flex-shrink: 0;">
+                    <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Batch Date:</span>
+                    <input type="date" id="admin-del-date" onchange="renderAdminDeliveryDash()" style="flex:1;">
+                </div>
+                <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="admin-delivery-feed"></div>
             </div>
         </div>
 
@@ -733,7 +780,56 @@
             <div class="scroll-area" style="padding: 16px;" id="bill-col-feed"></div>
         </div>
 
-        <!-- ========================================== -->
+        <!-- DELIVERY: STOP DETAIL VIEW -->
+        <div id="delivery-stop-view" class="order-view hidden" style="z-index: 2100;">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="exitDeliveryStop()" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center">
+                    <div class="ov-title" id="ds-cust-name">Customer Name</div>
+                    <div class="ov-sub" id="ds-bills">Bills...</div>
+                </div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB;">
+                <span style="font-size: 0.9rem; font-weight: 800; color: var(--brand);">Total: <span id="ds-amt">₹0</span></span>
+                <span style="font-size: 0.75rem; color: var(--text-mut); font-weight: 600;">Verify Items (Optional)</span>
+            </div>
+            <div class="scroll-area" style="background: var(--bg); padding: 12px;" id="delivery-stop-list"></div>
+            <div style="padding: 14px; background: white; border-top: 1px solid var(--border); box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05);">
+                <button onclick="triggerPhotoCaptureFromStop()" id="btn-del-stop" style="width:100%; background:var(--brand); color:white; border:none; padding:12px; border-radius:6px; font-weight:700; font-size:1rem; cursor:pointer;"><i class="fas fa-camera"></i> Verify & Deliver</button>
+            </div>
+        </div>
+
+        <!-- ADMIN: DELIVERY BATCH DETAIL VIEW -->
+        <div id="admin-delivery-batch-view" class="order-view hidden" style="z-index: 2100; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="exitAdminDeliveryBatch()" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center">
+                    <div class="ov-title" id="adb-title">BATXXXX</div>
+                    <div class="ov-sub">Delivery Status</div>
+                </div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            <div style="background: white; padding: 16px; border-bottom: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); z-index:10;">
+                <div style="display:flex; justify-content:space-between; margin-bottom: 12px;">
+                    <div style="text-align:center; flex:1; border-right: 1px solid var(--border);">
+                        <div style="font-size: 1.2rem; font-weight: 800; color: var(--success);" id="adb-del-amt">₹0</div>
+                        <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-mut); text-transform: uppercase;">Delivered</div>
+                    </div>
+                    <div style="text-align:center; flex:1;">
+                        <div style="font-size: 1.2rem; font-weight: 800; color: #B45309;" id="adb-pend-amt">₹0</div>
+                        <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-mut); text-transform: uppercase;">Pending</div>
+                    </div>
+                </div>
+                <div style="background: #F3F4F6; border-radius: 8px; height: 8px; overflow: hidden; width: 100%;">
+                    <div id="adb-progress" style="background: var(--success); height: 100%; width: 0%; transition: width 0.5s ease;"></div>
+                </div>
+                <div style="text-align:center; font-size: 0.75rem; font-weight: 700; color: var(--text-mut); margin-top: 8px;" id="adb-stops-text">0 / 0 Stops Delivered</div>
+            </div>
+            <div class="scroll-area" style="padding: 12px; background: var(--bg);" id="admin-delivery-batch-list"></div>
+        </div>
+
+       <!-- ========================================== -->
         <!-- SHARED PROFILE                             -->
         <!-- ========================================== -->
 
@@ -763,11 +859,10 @@
         </div>
 
         <div class="bottom-nav admin-nav hidden">
-            <div class="nav-item active" onclick="switchTab('catalog')" data-target="catalog"><i class="fas fa-box-open"></i>Cat</div>
+            <div class="nav-item" onclick="switchTab('catalog')" data-target="catalog"><i class="fas fa-box-open"></i>Cat</div>
             <div class="nav-item" onclick="switchTab('pricing')" data-target="pricing"><i class="fas fa-tags"></i>Price</div>
-            <div class="nav-item" onclick="switchTab('live')" data-target="live"><i class="fas fa-bolt"></i>Live</div>
+            <div class="nav-item active" onclick="switchTab('dashboard')" data-target="dashboard"><i class="fas fa-chart-pie"></i>Dash</div>
             <div class="nav-item" onclick="switchTab('admin-customers')" data-target="admin-customers"><i class="fas fa-users"></i>Cust</div>
-            <div class="nav-item" onclick="switchTab('admin-sales')" data-target="admin-sales"><i class="fas fa-chart-pie"></i>Sales</div>
             <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Me</div>
         </div>
         
@@ -791,7 +886,7 @@
             <div class="nav-item" onclick="switchTab('bill-col')" data-target="bill-col"><i class="fas fa-rupee-sign"></i>Collects</div>
             <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
         </div>
-    </div>
+    </div> <!-- END OF MAIN APP -->
 
     <!-- ========================================== -->
     <!-- OVERLAYS (Full Screen Views)               -->
@@ -944,7 +1039,7 @@
                 <div class="ov-title" id="pack-cust-name">Loading...</div>
                 <div class="ov-sub" id="pack-order-id">ORD-XXXX</div>
             </div>
-            <i class="fas fa-check" style="color: transparent;"></i> <!-- Spacer -->
+            <i class="fas fa-check" style="color: transparent;"></i>
         </div>
         <div class="pack-top-bar">
             <div class="pack-summary">
@@ -954,28 +1049,6 @@
             <button class="btn-pack-add" onclick="openPackAddModal()">+ Add Item</button>
         </div>
         <div class="scroll-area" style="background: var(--bg);" id="packing-item-list"></div>
-        <div style="padding: 14px; background: white; border-top: 1px solid var(--border);">
-            <button class="btn-checkout" onclick="confirmPackingFinal()">Confirm Packing</button>
-        </div>
-    </div>
-        <div class="ov-head">
-            <i class="fas fa-arrow-left" onclick="exitPacking()"></i>
-            <div class="ov-center">
-                <div class="ov-title" id="pack-cust-name">Loading...</div>
-                <div class="ov-sub" id="pack-order-id">ORD-XXXX</div>
-            </div>
-            <i class="fas fa-check" style="color: transparent;"></i> <!-- Spacer -->
-        </div>
-        <div class="pack-top-bar">
-            <div class="pack-summary">
-                <span>Total: <span id="pack-total-count" style="color:var(--brand);">0</span></span>
-                <span>Packed: <span id="pack-done-count" style="color:var(--success);">0</span></span>
-            </div>
-            <button class="btn-pack-add" onclick="openPackAddModal()">+ Add Item</button>
-        </div>
-        <div class="scroll-area" style="background: var(--bg);" id="packing-item-list">
-            <!-- Injected via JS -->
-        </div>
         <div style="padding: 14px; background: white; border-top: 1px solid var(--border);">
             <button class="btn-checkout" onclick="confirmPackingFinal()">Confirm Packing</button>
         </div>
@@ -1092,7 +1165,7 @@
             const today = new Date().toISOString().split('T')[0];
             
             // Set default date for all single-date filters
-            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter', 'batch-from-date', 'batch-to-date', 'del-date-filter', 'del-hist-date-filter', 'live-from-date', 'live-to-date', 'rem-from-date', 'rem-to-date', 'sales-from-date', 'sales-to-date', 'batch-hist-date'].forEach(id => {
+            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter', 'batch-from-date', 'batch-to-date', 'del-date-filter', 'del-hist-date-filter', 'live-from-date', 'live-to-date', 'rem-from-date', 'rem-to-date', 'sales-from-date', 'sales-to-date', 'batch-hist-date', 'admin-del-date'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.value = today;
             });
@@ -1322,8 +1395,7 @@
                 if(typeof renderCatalogCats === 'function') renderCatalogCats();
                 if(typeof renderCatalogView === 'function') renderCatalogView();
                 if(typeof renderPricingTable === 'function') renderPricingTable();
-                if(typeof renderLiveDashboard === 'function') renderLiveDashboard();
-                switchTab('live'); 
+                switchTab('dashboard'); 
             } else if (currentUserRole === 'Packing') {
                 if(pNav) pNav.classList.remove('hidden');
                 if(typeof renderPackingOrders === 'function') renderPackingOrders();
@@ -1361,9 +1433,7 @@
 
             if (tabId === 'catalog' && (currentUserRole === 'Admin' || currentUserRole === 'Manager')) renderCatalogView();
             if (tabId === 'pricing' && currentUserRole === 'Admin') renderPricingTable();
-            if (tabId === 'live' && currentUserRole === 'Admin') renderLiveDashboard();
             if (tabId === 'admin-customers' && currentUserRole === 'Admin') renderAdminCustomers();
-            if (tabId === 'admin-sales' && currentUserRole === 'Admin') fetchAndRenderSales();
             if (tabId === 'history' && currentUserRole === 'Salesman') renderSalesmanHistory();
             if (tabId === 'collection' && currentUserRole === 'Salesman') renderCollectionCustomers();
             if (tabId === 'packing' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman')) renderPackingOrders();
@@ -1375,6 +1445,125 @@
             if (tabId === 'delivery' && currentUserRole === 'Delivery') renderDelivery();
             if (tabId === 'del-hist' && currentUserRole === 'Delivery') renderDelHistory();
         }
+
+        /* --- ADMIN DASHBOARD ROUTING --- */
+        function openAdminDashboardApp(app) {
+            if (app === 'live') {
+                renderLiveDashboard();
+                document.getElementById('admin-live-app').classList.remove('hidden');
+            } else if (app === 'sales') {
+                fetchAndRenderSales();
+                document.getElementById('admin-sales-app').classList.remove('hidden');
+            } else if (app === 'delivery') {
+                renderAdminDeliveryDash();
+                document.getElementById('admin-delivery-app').classList.remove('hidden');
+            }
+        }
+        function closeAdminDashboardApp(app) {
+            if (app === 'live') {
+                document.getElementById('admin-live-app').classList.add('hidden');
+            } else if (app === 'sales') {
+                document.getElementById('admin-sales-app').classList.add('hidden');
+            } else if (app === 'delivery') {
+                document.getElementById('admin-delivery-app').classList.add('hidden');
+            }
+        }
+
+        /* --- ADMIN DELIVERY DASHBOARD --- */
+        function renderAdminDeliveryDash() {
+            const feed = document.getElementById('admin-delivery-feed');
+            if(!feed) return;
+            const filterDate = document.getElementById('admin-del-date').value;
+
+            let filtered = ERP_DELIVERIES.filter(o => o.batch_id && o.batch_date === filterDate);
+            const batches = {};
+            filtered.forEach(o => {
+                if (!batches[o.batch_id]) batches[o.batch_id] = { id: o.batch_id, stops: [] };
+                batches[o.batch_id].stops.push(o);
+            });
+
+            const batchList = Object.values(batches).sort((a,b) => b.id.localeCompare(a.id));
+
+            if (batchList.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No delivery batches found for this date.</div>`;
+                return;
+            }
+
+            feed.innerHTML = batchList.map(b => {
+                const totalStops = b.stops.length;
+                const deliveredStops = b.stops.filter(s => s.status === 'Delivered').length;
+                const delivAmt = b.stops.filter(s => s.status === 'Delivered').reduce((sum, s) => sum + (s.amount || 0), 0);
+                const isComplete = totalStops > 0 && deliveredStops === totalStops;
+
+                return `
+                <div style="background: white; border-radius: 6px; border: 1px solid ${isComplete ? 'var(--success)' : 'var(--border)'}; margin-bottom: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);" onclick="openAdminDeliveryBatch('${b.id}')">
+                    <div style="flex:1;">
+                        <div style="font-weight: 800; font-size: 1.15rem; color:var(--brand); margin-bottom: 6px;">${b.id}</div>
+                        <div style="font-size: 0.8rem; color:var(--text-mut); font-weight:700;">
+                            <span style="color:${isComplete ? 'var(--success)' : '#B45309'}; font-weight:800; font-size:0.95rem;">${deliveredStops} / ${totalStops}</span> Stops Done
+                        </div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-weight: 800; font-size: 1.15rem; color:var(--text); margin-bottom:6px;">₹${fmt(delivAmt)}</div>
+                        <span style="color:var(--brand); font-size:0.8rem; font-weight:700;">View Details <i class="fas fa-arrow-right"></i></span>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function openAdminDeliveryBatch(batchId) {
+            const filterDate = document.getElementById('admin-del-date').value;
+            const stops = ERP_DELIVERIES.filter(o => o.batch_id === batchId && o.batch_date === filterDate);
+
+            document.getElementById('adb-title').innerText = batchId;
+
+            const totalStops = stops.length;
+            const deliveredStops = stops.filter(s => s.status === 'Delivered').length;
+            const totalAmt = stops.reduce((sum, s) => sum + (s.amount || 0), 0);
+            const delivAmt = stops.filter(s => s.status === 'Delivered').reduce((sum, s) => sum + (s.amount || 0), 0);
+            const pendAmt = totalAmt - delivAmt;
+            const progress = totalAmt > 0 ? (delivAmt / totalAmt) * 100 : 0;
+
+            document.getElementById('adb-del-amt').innerText = `₹${fmt(delivAmt)}`;
+            document.getElementById('adb-pend-amt').innerText = `₹${fmt(pendAmt)}`;
+            document.getElementById('adb-progress').style.width = `${progress}%`;
+            document.getElementById('adb-stops-text').innerText = `${deliveredStops} / ${totalStops} Stops Delivered`;
+
+            const list = document.getElementById('admin-delivery-batch-list');
+            list.innerHTML = stops.sort((s1, s2) => s1.customer_name.localeCompare(s2.customer_name)).map(s => {
+                const isDelivered = s.status === 'Delivered';
+                const timeStr = isDelivered && s.delivered_at ? new Date(s.delivered_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Pending';
+                const statusColor = isDelivered ? 'var(--success)' : '#B45309';
+                const icon = isDelivered ? 'fa-check-circle' : 'fa-clock';
+                const bg = isDelivered ? '#F0FDF4' : 'white';
+                const border = isDelivered ? '#BBF7D0' : 'var(--border)';
+
+                return `
+                <div style="background: ${bg}; padding: 14px; border-radius: 6px; border: 1px solid ${border}; margin-bottom: 10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="color:var(--text); font-weight:800; font-size:0.95rem; flex:1; padding-right:10px;">
+                            ${s.customer_name}
+                            <div style="font-size:0.75rem; color:var(--text-mut); margin-top:6px;">
+                                <i class="fas fa-file-invoice" style="margin-right:2px;"></i> ${s.document_numbers ? s.document_numbers.join(', ') : ''}
+                            </div>
+                        </div>
+                        <div style="text-align:right; flex-shrink:0;">
+                            <span style="font-weight:800; color:var(--text); font-size:1.05rem;">₹${fmt(s.amount)}</span><br>
+                            <span style="color:${statusColor}; font-weight:700; font-size:0.75rem; margin-top:6px; display:inline-block; background:${isDelivered?'#DCFCE7':'#FEF3C7'}; padding:4px 8px; border-radius:4px;">
+                                <i class="fas ${icon}"></i> ${timeStr}
+                            </span>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            document.getElementById('admin-delivery-batch-view').classList.remove('hidden');
+        }
+
+        function exitAdminDeliveryBatch() {
+            document.getElementById('admin-delivery-batch-view').classList.add('hidden');
+        }
+
         /* --- HELPERS --- */
         function fmt(num) { return Number(parseFloat(num).toFixed(2)); }
         function getRate(cost, markup) { return parseFloat((cost + (cost * (markup / 100))).toFixed(2)); }
@@ -3282,10 +3471,7 @@
 
         function renderDeliveryDetailList() {
             const list = document.getElementById('delivery-detail-list');
-            
-            // Pull ONLY from ERP Deliveries. App Orders are closed silently in the background.
             let batchOrders = ERP_DELIVERIES.filter(o => o.batch_id === currentActiveBatchId);
-            
             document.getElementById('del-batch-count').innerText = `${batchOrders.length} Stops`;
 
             if (deliverySearchQuery) {
@@ -3293,14 +3479,8 @@
                     const custName = (o.customer_name || CUSTOMERS.find(c => c.code === o.customer_code)?.name || o.customer_code || "").toLowerCase();
                     const orderIdStr = (o.id || "").toLowerCase();
                     let docSearchStr = "";
-                    
-                    if (o.document_numbers && Array.isArray(o.document_numbers)) {
-                        docSearchStr = o.document_numbers.join(' ').toLowerCase();
-                    }
-                    
-                    return custName.includes(deliverySearchQuery) || 
-                           orderIdStr.includes(deliverySearchQuery) || 
-                           docSearchStr.includes(deliverySearchQuery);
+                    if (o.document_numbers && Array.isArray(o.document_numbers)) docSearchStr = o.document_numbers.join(' ').toLowerCase();
+                    return custName.includes(deliverySearchQuery) || orderIdStr.includes(deliverySearchQuery) || docSearchStr.includes(deliverySearchQuery);
                 });
             }
 
@@ -3311,10 +3491,9 @@
 
             list.innerHTML = batchOrders.map((order, idx) => {
                 const custName = order.customer_name || CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
-                const isDelivered = order.status === 'Delivered';
                 const billsStr = order.document_numbers ? order.document_numbers.join(', ') : '';
 
-                if (isDelivered) {
+                if (order.status === 'Delivered') {
                     return `
                     <div style="background: #F0FDF4; padding: 12px; border-radius: 6px; border: 1px solid #BBF7D0; margin-bottom: 10px;">
                         <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 4px;">${custName}</div>
@@ -3324,46 +3503,64 @@
                         </div>
                     </div>`;
                 } else {
-                    // Safe Check: Only attempt to filter items if document_numbers exists (ERP Order)
-                    let myItems = [];
-                    if (order.document_numbers && Array.isArray(order.document_numbers)) {
-                        myItems = currentDeliveryItems.filter(i => order.document_numbers.includes(i.document_number));
-                    }
-                    
-                    const checklistHTML = myItems.map(item => {
-                        // Generate a safe unique ID for the specific item in the specific bill
-                        const cleanId = (item.document_number + '_' + item.item_name).replace(/[^a-zA-Z0-9]/g, '');
-                        return `
-                        <label class="pack-row" style="padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.8rem; display:flex; align-items:center; gap:10px; cursor:pointer;">
-                            <input type="checkbox" class="pack-chk del-chk-${order.id}" data-item-id="${cleanId}" style="width:18px; height:18px;">
-                            <div style="flex:1; padding-left:8px;">
-                                <div style="font-weight:700; color:var(--text);">${item.item_name}</div>
-                                <div style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-top:2px;">${item.document_number}</div>
-                            </div>
-                            <div style="font-weight:800; color:var(--brand);">${item.issue_quantity} Pcs</div>
-                        </label>`;
-                    }).join('');
-
                     return `
-                    <div style="background: white; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; overflow:hidden;">
-                        <div style="padding: 12px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onclick="toggleAccordion('del-acc-${idx}', 'del-icon-${idx}')">
-                            <div style="flex:1;">
-                                <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 4px;">${custName}</div>
-                                <div style="font-size: 0.75rem; color:var(--brand); font-weight:700;"><i class="fas fa-file-invoice" style="margin-right:4px;"></i>${billsStr}</div>
-                            </div>
-                            <div style="text-align:right;">
-                                <div style="font-weight: 800; font-size: 1rem; color:var(--text); margin-bottom:4px;">₹${fmt(order.amount)}</div>
-                                <i class="fas fa-chevron-down" id="del-icon-${idx}" style="color:var(--text-mut);"></i>
-                            </div>
+                    <div style="background: white; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; padding: 14px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 2px rgba(0,0,0,0.02);" onclick="openDeliveryStop('${order.id}')">
+                        <div style="flex:1;">
+                            <div style="font-weight: 800; font-size: 1rem; color:var(--text); margin-bottom: 4px;">${custName}</div>
+                            <div style="font-size: 0.75rem; color:var(--brand); font-weight:700;"><i class="fas fa-file-invoice" style="margin-right:4px;"></i>${billsStr}</div>
                         </div>
-                        <div id="del-acc-${idx}" class="hidden" style="padding: 0 12px 12px 12px; background: #F9FAFB; border-top: 1px solid var(--border);">
-                            <div style="margin-bottom:10px; color:var(--text-mut); font-size:0.75rem; font-weight:700;">Verify items (Optional):</div>
-                            ${checklistHTML}
-                            <button onclick="triggerPhotoCapture('${order.id}')" style="width:100%; background:var(--brand); color:white; border:none; padding:12px; border-radius:4px; font-weight:700; font-size:1rem; margin-top:12px; cursor:pointer;"><i class="fas fa-camera"></i> Verify & Deliver</button>
+                        <div style="text-align:right;">
+                            <div style="font-weight: 800; font-size: 1.1rem; color:var(--text); margin-bottom:6px;">₹${fmt(order.amount)}</div>
+                            <span style="background:var(--warning); color:white; padding: 4px 10px; border-radius:4px; font-size:0.75rem; font-weight:700; display:inline-block;">Deliver <i class="fas fa-chevron-right" style="margin-left:4px;"></i></span>
                         </div>
                     </div>`;
                 }
             }).join('');
+        }
+
+        let currentDeliveryStopId = null;
+
+        function openDeliveryStop(orderId) {
+            currentDeliveryStopId = orderId;
+            const order = ERP_DELIVERIES.find(o => o.id === orderId);
+            if(!order) return;
+
+            document.getElementById('ds-cust-name').innerText = order.customer_name || CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
+            document.getElementById('ds-bills').innerText = order.document_numbers ? order.document_numbers.join(', ') : '';
+            document.getElementById('ds-amt').innerText = `₹${fmt(order.amount)}`;
+
+            let myItems = [];
+            if (order.document_numbers && Array.isArray(order.document_numbers)) {
+                myItems = currentDeliveryItems.filter(i => order.document_numbers.includes(i.document_number));
+            }
+
+            const list = document.getElementById('delivery-stop-list');
+            if (myItems.length === 0) {
+                list.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No item details found for these bills.</div>`;
+            } else {
+                list.innerHTML = myItems.map(item => {
+                    const cleanId = (item.document_number + '_' + item.item_name).replace(/[^a-zA-Z0-9]/g, '');
+                    return `
+                    <label class="pack-row" style="background: white; border-radius: 6px; border: 1px solid var(--border); padding: 12px; margin-bottom: 8px; display:flex; align-items:center; gap:12px; cursor:pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                        <input type="checkbox" class="pack-chk del-chk-${order.id}" data-item-id="${cleanId}" style="width:22px; height:22px;">
+                        <div style="flex:1; padding-left:4px;">
+                            <div style="font-weight:700; color:var(--text); font-size:0.9rem;">${item.item_name}</div>
+                            <div style="font-size:0.7rem; color:var(--text-mut); font-weight:700; margin-top:4px;">${item.document_number}</div>
+                        </div>
+                        <div style="font-weight:800; color:var(--brand); font-size:1.05rem;">${item.issue_quantity} Pcs</div>
+                    </label>`;
+                }).join('');
+            }
+            document.getElementById('delivery-stop-view').classList.remove('hidden');
+        }
+
+        function exitDeliveryStop() {
+            currentDeliveryStopId = null;
+            document.getElementById('delivery-stop-view').classList.add('hidden');
+        }
+
+        function triggerPhotoCaptureFromStop() {
+            triggerPhotoCapture(currentDeliveryStopId);
         }
 
         let tempBase64Photo = null;
@@ -3405,17 +3602,19 @@
             proceedToSaveDelivery();
         }
 
-        async function proceedToSaveDelivery() {
+       async function proceedToSaveDelivery() {
             const cash = parseFloat(document.getElementById('del-cash').value) || 0;
             const gpay = parseFloat(document.getElementById('del-gpay').value) || 0;
             
             closeModal('del-confirm-modal');
             
-            // Show a visual loading indicator so the user knows it's uploading
-            const btn = document.getElementById(`btn-del-${currentPhotoOrderId}`);
-            if(btn) btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Saving...`;
+            const btn = document.getElementById(`btn-del-stop`);
+            if(btn) btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Saving Delivery...`;
             
             await saveDeliveryToCloud(currentPhotoOrderId, tempBase64Photo, cash, gpay);
+            
+            if(btn) btn.innerHTML = `<i class="fas fa-camera"></i> Verify & Deliver`; // Reset for next time
+            exitDeliveryStop(); // Closes the stop view instantly on success
         }
 
         function openDeliveryPayment(orderId, isErp) {
@@ -4442,12 +4641,7 @@
             // 5. Apply Status Filter for Feed
             let feedOrders = filteredOrders;
             if (adminLiveStatusFilter !== "All") {
-                // Notice 'Billed' is treated as 'Loaded' in this new pipeline structure
-                if (adminLiveStatusFilter === 'Loaded') {
-                    feedOrders = feedOrders.filter(o => o.status === 'Loaded' || o.status === 'Billed');
-                } else {
-                    feedOrders = feedOrders.filter(o => (o.status || 'Pending') === adminLiveStatusFilter);
-                }
+                feedOrders = feedOrders.filter(o => (o.status || 'Pending') === adminLiveStatusFilter);
             }
 
             // 6. Sort Feed Orders
@@ -4530,9 +4724,8 @@
                 <div style="background:white; border-radius:8px; border:1px solid var(--border); margin-bottom:16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); display:flex; overflow:hidden;">
                     <div onclick="updateLiveFilters('status', 'All')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:var(--text); ${getPipeStyle('All')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${totalOrderCount}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">All<br>Orders</div></div>
                     <div onclick="updateLiveFilters('status', 'Pending')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:#B45309; border-left:1px solid var(--border); ${getPipeStyle('Pending')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${stPendingPack}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">Pend<br>Packing</div></div>
-                    <div onclick="updateLiveFilters('status', 'Packed')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:#166534; border-left:1px solid var(--border); ${getPipeStyle('Packed')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${stPendingBill}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">Pend<br>Billing</div></div>
-                    <div onclick="updateLiveFilters('status', 'Loaded')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:#5B21B6; border-left:1px solid var(--border); ${getPipeStyle('Loaded')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${stPendingDel + stPendingLoad}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">Pend<br>Delivery</div></div>
-                    <div onclick="updateLiveFilters('status', 'Delivered')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:var(--success); border-left:1px solid var(--border); ${getPipeStyle('Delivered')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${stDelivered}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">Done</div></div>
+                    <div onclick="updateLiveFilters('status', 'Packed')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:#166534; border-left:1px solid var(--border); ${getPipeStyle('Packed')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${stPendingBill}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">Packed</div></div>
+                    <div onclick="updateLiveFilters('status', 'Billed')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:#1E3A8A; border-left:1px solid var(--border); ${getPipeStyle('Billed')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${stPendingLoad}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">Billed</div></div>
                 </div>
 
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
