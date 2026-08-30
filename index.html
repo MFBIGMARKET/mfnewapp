@@ -465,12 +465,38 @@
             </div>
         </div>
 
-        <div id="view-history" class="tab-content hidden salesman-view">
-            <div class="hist-top">
-                <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
-                <input type="date" id="salesman-date-filter" onchange="renderSalesmanHistory()">
+        <div id="view-credit" class="tab-content hidden salesman-view">
+            <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB; padding: 8px 16px; border-bottom: 1px solid var(--border);">
+                <span style="font-size: 0.85rem; font-weight: 600;">Total: <span id="cr-total-bal" style="color:var(--accent);">₹0</span></span>
+                <select id="cr-sort-select" onchange="renderCreditView()" style="padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.75rem; font-weight: 700; color: var(--brand); background: white;">
+                    <option value="high">Highest Bal</option>
+                    <option value="low">Lowest Bal</option>
+                    <option value="alpha">A-Z Name</option>
+                </select>
             </div>
-            <div class="scroll-area" style="padding: 12px;" id="salesman-history-feed"></div>
+            <div class="search-bar" style="border-bottom: 1px solid var(--border);">
+                <i class="fas fa-search" style="color:var(--text-mut);"></i>
+                <input type="text" placeholder="Search customer..." id="cr-search-input" oninput="renderCreditView()">
+            </div>
+            <div class="scroll-area" style="padding: 10px;" id="credit-feed"></div>
+        </div>
+
+        <div id="view-history" class="tab-content hidden salesman-view">
+            <div class="hist-top" style="gap: 10px; border-bottom: none; flex-shrink: 0;">
+                <div style="display:flex; flex-direction:column; flex:1;">
+                    <span style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-bottom:4px;">From:</span>
+                    <input type="date" id="salesman-from-date" onchange="renderSalesmanHistory()">
+                </div>
+                <div style="display:flex; flex-direction:column; flex:1;">
+                    <span style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-bottom:4px;">To:</span>
+                    <input type="date" id="salesman-to-date" onchange="renderSalesmanHistory()">
+                </div>
+            </div>
+            <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); flex-shrink: 0;">
+                <span style="font-size: 0.85rem; font-weight: 600; color: var(--text-mut);">Total Value:</span>
+                <span style="font-size: 1rem; font-weight: 800; color: var(--brand);" id="salesman-hist-total">₹0</span>
+            </div>
+            <div class="scroll-area" style="padding: 12px; background: var(--bg);" id="salesman-history-feed"></div>
         </div>
 
         <!-- ========================================== -->
@@ -564,6 +590,10 @@
                     <div style="font-size: 2.5rem; color: #10B981; margin-bottom: 10px;"><i class="fas fa-truck"></i></div>
                     <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Delivery</div>
                 </div>
+                <div onclick="openAdminDashboardApp('credit')" style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;">
+                    <div style="font-size: 2.5rem; color: #EF4444; margin-bottom: 10px;"><i class="fas fa-wallet"></i></div>
+                    <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Credit</div>
+                </div>
                 <div style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer; opacity: 0.7;">
                     <div style="font-size: 2.5rem; color: #6366F1; margin-bottom: 10px;"><i class="fas fa-shopping-bag"></i></div>
                     <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Purchase</div>
@@ -652,6 +682,31 @@
             </div>
         </div>
 
+        <!-- ADMIN: CREDIT OVERLAY -->
+        <div id="admin-credit-app" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="closeAdminDashboardApp('credit')" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center"><div class="ov-title">Pending Credit</div></div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            <div style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+                <div id="admin-credit-subgroup-bar" style="background:var(--bg); flex-shrink: 0;"></div>
+                <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB; padding: 8px 16px; border-bottom: 1px solid var(--border);">
+                    <span style="font-size: 0.85rem; font-weight: 600;">Total: <span id="admin-credit-total" style="color:var(--accent);">₹0</span></span>
+                    <select id="admin-credit-sort" onchange="updateAdminCreditSort(this.value)" style="padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.75rem; font-weight: 700; color: var(--brand); background: white;">
+                        <option value="high">Highest Bal</option>
+                        <option value="low">Lowest Bal</option>
+                        <option value="alpha">A-Z Name</option>
+                    </select>
+                </div>
+                <div class="search-bar" style="border-bottom: 1px solid var(--border); flex-shrink: 0;">
+                    <i class="fas fa-search" style="color:var(--text-mut);"></i>
+                    <input type="text" placeholder="Search customer..." id="admin-credit-search" oninput="renderAdminCreditDash()">
+                </div>
+                <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="admin-credit-feed"></div>
+            </div>
+        </div>
+
         <!-- ADMIN: SALES DRILL-DOWN VIEW -->
         <div id="admin-sales-detail-view" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
             <div class="ov-head">
@@ -702,7 +757,7 @@
             </div>
             
             <div id="batch-new-view" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
-                <div class="hist-top" style="gap: 10px; flex-shrink: 0;">
+                <div class="hist-top" style="gap: 10px; flex-shrink: 0; border-bottom: none;">
                     <div style="display:flex; flex-direction:column; flex:1;">
                         <span style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-bottom:4px;">From:</span>
                         <input type="date" id="batch-from-date" onchange="fetchBatchingData()">
@@ -712,6 +767,7 @@
                         <input type="date" id="batch-to-date" onchange="fetchBatchingData()">
                     </div>
                 </div>
+                <div id="batch-subgroup-bar" style="flex-shrink: 0;"></div>
                 <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB; padding: 8px 16px; flex-shrink: 0;">
                     <span style="font-size: 0.85rem; font-weight: 600;">Selected: <span id="batch-sel-count" style="color:var(--brand);">0</span></span>
                     <div style="display:flex; gap:8px; align-items:center;">
@@ -736,7 +792,11 @@
         </div>
 
         <div id="view-delivery" class="tab-content hidden delivery-view">
-            <div class="hist-top">
+            <div id="offline-sync-bar" class="hidden" style="background: var(--warning); color: white; padding: 10px 16px; display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 0.85rem; flex-shrink: 0;">
+                <span><i class="fas fa-wifi-slash"></i> <span id="offline-sync-count">0</span> Pending Syncs</span>
+                <button onclick="syncOfflineDeliveries()" style="background: white; color: var(--warning); border: none; padding: 4px 10px; border-radius: 4px; font-weight: 800; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">Sync Now</button>
+            </div>
+            <div class="hist-top" style="flex-shrink: 0;">
                 <span style="font-weight: 600; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
                 <input type="date" id="del-date-filter" onchange="renderDelivery()">
             </div>
@@ -848,9 +908,10 @@
         <div class="bottom-nav salesman-nav hidden">
             <div class="nav-item active" onclick="switchTab('customers')" data-target="customers"><i class="fas fa-users"></i>Orders</div>
             <div class="nav-item" onclick="switchTab('collection')" data-target="collection"><i class="fas fa-rupee-sign"></i>Collect</div>
+            <div class="nav-item" onclick="switchTab('credit')" data-target="credit"><i class="fas fa-wallet"></i>Credit</div>
             <div class="nav-item" onclick="switchTab('packing')" data-target="packing"><i class="fas fa-box"></i>Pack</div>
             <div class="nav-item" onclick="switchTab('history')" data-target="history"><i class="fas fa-history"></i>History</div>
-            <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
+            <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Me</div>
         </div>
 
         <div class="bottom-nav manager-nav hidden">
@@ -991,7 +1052,7 @@
     </div>
 
     <!-- ADMIN: LIVE ORDER DETAIL VIEW -->
-    <div id="admin-live-detail-view" class="order-view hidden">
+    <div id="admin-live-detail-view" class="order-view hidden" style="z-index: 2100; background: var(--bg);">
         <div class="ov-head">
             <i class="fas fa-arrow-left" onclick="exitAdminLiveDetail()" style="cursor:pointer; padding:4px;"></i>
             <div class="ov-center">
@@ -1165,7 +1226,7 @@
             const today = new Date().toISOString().split('T')[0];
             
             // Set default date for all single-date filters
-            ['salesman-date-filter', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter', 'batch-from-date', 'batch-to-date', 'del-date-filter', 'del-hist-date-filter', 'live-from-date', 'live-to-date', 'rem-from-date', 'rem-to-date', 'sales-from-date', 'sales-to-date', 'batch-hist-date', 'admin-del-date'].forEach(id => {
+            ['salesman-from-date', 'salesman-to-date', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter', 'batch-from-date', 'batch-to-date', 'del-date-filter', 'del-hist-date-filter', 'live-from-date', 'live-to-date', 'rem-from-date', 'rem-to-date', 'sales-from-date', 'sales-to-date', 'batch-hist-date', 'admin-del-date'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.value = today;
             });
@@ -1264,75 +1325,60 @@
 
         async function fetchDataFromSupabase() {
             try {
-                // Fetch profiles globally to map names cleanly
-                const { data: profData } = await sbClient.from('profiles').select('*');
-                if (profData) PROFILES = profData;
+                // ALL HEAVY TRANSACTIONAL DATA IS NOW LAZY-LOADED. WE ONLY FETCH MASTER DATA HERE TO MAKE APP BOOT INSTANT.
+                const fetchTasks = [];
 
-                const { data: itemsData, error: itemsError } = await sbClient.from('items').select('*');
-                if (itemsError) alert("Supabase DB Blocked (Items): " + itemsError.message);
+                fetchTasks.push(sbClient.from('profiles').select('*').then(({data}) => {
+                    if (data) PROFILES = data;
+                }));
 
-                if (itemsData && itemsData.length > 0) {
-                    // SANITIZE DATA: Bulletproof all values to prevent rendering crashes
-                    INVENTORY = itemsData.map(item => {
-                        item.code = item.code || "UNKNOWN";
-                        item.name = item.name || "Unnamed Item";
-                        item.category = item.category || "All";
-                        item.cost = parseFloat(item.cost) || 0;
-                        item.mrp = parseFloat(item.mrp) || 0;
-                        item.price2 = parseFloat(item.price2) || 0;
-                        item.price3 = parseFloat(item.price3) || 0;
-                        item.price4 = parseFloat(item.price4) || 0;
-                        item.stock = parseInt(item.stock) || 0;
-                        item.caseQty = parseInt(item.caseQty) || null;
-                        
-                        // Allow variable slabs (1 to 4). Clean missing data gracefully.
-                        if (!item.slabs || !Array.isArray(item.slabs) || item.slabs.length === 0) {
-                            item.slabs = [{min: 0, max: 99999, markup: 0}];
-                        } else {
-                            item.slabs = item.slabs.map(s => ({
-                                min: parseInt(s?.min) || 0,
-                                max: parseInt(s?.max) || 0,
-                                markup: parseFloat(s?.markup) || 0
-                            }));
-                            // Ensure the very last slab in the array is capped at 99999
-                            if (item.slabs.length > 0) item.slabs[item.slabs.length - 1].max = 99999;
+                fetchTasks.push((async () => {
+                    let itemsData = []; let iMore = true; let iPage = 0;
+                    while (iMore) {
+                        const { data } = await sbClient.from('items').select('*').range(iPage * 1000, (iPage + 1) * 1000 - 1);
+                        if (data) itemsData.push(...data);
+                        if (!data || data.length < 1000) iMore = false; iPage++;
+                    }
+                    if (itemsData.length > 0) {
+                        INVENTORY = itemsData.map(item => {
+                            item.code = item.code || "UNKNOWN"; item.name = item.name || "Unnamed Item"; item.category = item.category || "All";
+                            item.cost = parseFloat(item.cost) || 0; item.mrp = parseFloat(item.mrp) || 0; item.price2 = parseFloat(item.price2) || 0;
+                            item.stock = parseInt(item.stock) || 0; item.caseQty = parseInt(item.caseQty) || null;
+                            if (!item.slabs || !Array.isArray(item.slabs) || item.slabs.length === 0) item.slabs = [{min: 0, max: 99999, markup: 0}];
+                            else {
+                                item.slabs = item.slabs.map(s => ({ min: parseInt(s?.min) || 0, max: parseInt(s?.max) || 0, markup: parseFloat(s?.markup) || 0 }));
+                                if (item.slabs.length > 0) item.slabs[item.slabs.length - 1].max = 99999;
+                            }
+                            const realSlabs = item.slabs.filter(s => s.markup > 0 || (s.max > 0 && s.max < 99999));
+                            if (realSlabs.length <= 1) item.has_slabs = false;
+                            return item;
+                        });
+                        CATEGORIES = ["All", ...new Set(INVENTORY.map(i => i.category).filter(Boolean))];
+                    }
+                })());
+
+                if (currentUserRole !== 'Manager') {
+                    fetchTasks.push((async () => {
+                        let custData = []; let cMore = true; let cPage = 0;
+                        while (cMore) {
+                            const { data } = await sbClient.from('customers').select('*').range(cPage * 1000, (cPage + 1) * 1000 - 1);
+                            if (data) custData.push(...data);
+                            if (!data || data.length < 1000) cMore = false; cPage++;
                         }
-
-                        // STRICT TOGGLE FIX: Force switch OFF if there are no valid multi-slabs
-                        const realSlabs = item.slabs.filter(s => s.markup > 0 || (s.max > 0 && s.max < 99999));
-                        if (realSlabs.length <= 1) {
-                            item.has_slabs = false;
+                        if (custData.length > 0) {
+                            const uniqueMap = new Map();
+                            custData.forEach(c => {
+                                const cleanCode = (c.code || "").trim().toUpperCase();
+                                if (cleanCode) uniqueMap.set(cleanCode, c);
+                            });
+                            CUSTOMERS = Array.from(uniqueMap.values());
                         }
-
-                        return item;
-                    });
-
-                    const rawCats = INVENTORY.map(i => i.category).filter(Boolean);
-                    CATEGORIES = ["All", ...new Set(rawCats)];
+                    })());
                 }
 
-                // Fetch Master Data globally so no role gets starved of data
-                const { data: custData } = await sbClient.from('customers').select('*');
-                if (custData) CUSTOMERS = custData;
+                await Promise.all(fetchTasks); // Fetches everything above simultaneously
 
-                const { data: orderData } = await sbClient.from('orders').select('*').order('created_at', { ascending: false });
-                if (orderData) {
-                    SUBMITTED_ORDERS = orderData;
-                    MY_ORDERS = orderData.filter(o => o.salesman_id === (userSession ? userSession.user.id : "local_dev"));
-                }
-                
-                const { data: erpDelData } = await sbClient.from('erp_deliveries').select('*').order('created_at', { ascending: false });
-                if (erpDelData) ERP_DELIVERIES = erpDelData;
-
-                const { data: colData } = await sbClient.from('collections').select('*').order('created_at', { ascending: false });
-                if (colData) {
-                    ALL_COLLECTIONS = colData;
-                    MY_COLLECTIONS = colData.filter(c => c.salesman_id === (userSession ? userSession.user.id : "local_dev"));
-                }
-
-            } catch (e) {
-                console.warn("Cloud Fetch Failed: ", e);
-            }
+            } catch (e) { console.warn("Cloud Fetch Failed: ", e); }
         }
 
         function switchRole(role) {
@@ -1436,6 +1482,7 @@
             if (tabId === 'admin-customers' && currentUserRole === 'Admin') renderAdminCustomers();
             if (tabId === 'history' && currentUserRole === 'Salesman') renderSalesmanHistory();
             if (tabId === 'collection' && currentUserRole === 'Salesman') renderCollectionCustomers();
+            if (tabId === 'credit' && currentUserRole === 'Salesman') renderCreditView();
             if (tabId === 'packing' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman')) renderPackingOrders();
             if (tabId === 'pack-hist' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman')) renderPackerHistory();
             if (tabId === 'billing' && currentUserRole === 'Billing') renderBillingOrders();
@@ -1457,6 +1504,9 @@
             } else if (app === 'delivery') {
                 renderAdminDeliveryDash();
                 document.getElementById('admin-delivery-app').classList.remove('hidden');
+            } else if (app === 'credit') {
+                renderAdminCreditDash(true);
+                document.getElementById('admin-credit-app').classList.remove('hidden');
             }
         }
         function closeAdminDashboardApp(app) {
@@ -1466,16 +1516,25 @@
                 document.getElementById('admin-sales-app').classList.add('hidden');
             } else if (app === 'delivery') {
                 document.getElementById('admin-delivery-app').classList.add('hidden');
+            } else if (app === 'credit') {
+                document.getElementById('admin-credit-app').classList.add('hidden');
             }
         }
 
         /* --- ADMIN DELIVERY DASHBOARD --- */
-        function renderAdminDeliveryDash() {
+        async function renderAdminDeliveryDash() {
             const feed = document.getElementById('admin-delivery-feed');
             if(!feed) return;
             const filterDate = document.getElementById('admin-del-date').value;
 
-            let filtered = ERP_DELIVERIES.filter(o => o.batch_id && o.batch_date === filterDate);
+            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br><b>Loading Batches...</b></div>`;
+            
+            if (filterDate) {
+                const { data } = await sbClient.from('erp_deliveries').select('*').eq('batch_date', filterDate);
+                if (data) ERP_DELIVERIES = data;
+            }
+
+            let filtered = (ERP_DELIVERIES || []).filter(o => o.batch_id && o.batch_date === filterDate);
             const batches = {};
             filtered.forEach(o => {
                 if (!batches[o.batch_id]) batches[o.batch_id] = { id: o.batch_id, stops: [] };
@@ -1492,7 +1551,7 @@
             feed.innerHTML = batchList.map(b => {
                 const totalStops = b.stops.length;
                 const deliveredStops = b.stops.filter(s => s.status === 'Delivered').length;
-                const delivAmt = b.stops.filter(s => s.status === 'Delivered').reduce((sum, s) => sum + (s.amount || 0), 0);
+                const totalAmt = b.stops.reduce((sum, s) => sum + (s.amount || 0), 0);
                 const isComplete = totalStops > 0 && deliveredStops === totalStops;
 
                 return `
@@ -1504,7 +1563,7 @@
                         </div>
                     </div>
                     <div style="text-align:right;">
-                        <div style="font-weight: 800; font-size: 1.15rem; color:var(--text); margin-bottom:6px;">₹${fmt(delivAmt)}</div>
+                        <div style="font-weight: 800; font-size: 1.15rem; color:var(--text); margin-bottom:6px;">₹${fmt(totalAmt)}</div>
                         <span style="color:var(--brand); font-size:0.8rem; font-weight:700;">View Details <i class="fas fa-arrow-right"></i></span>
                     </div>
                 </div>`;
@@ -1562,6 +1621,196 @@
 
         function exitAdminDeliveryBatch() {
             document.getElementById('admin-delivery-batch-view').classList.add('hidden');
+        }
+
+        /* --- ADMIN CREDIT DASHBOARD --- */
+        let adminCreditSubFilter = "All";
+        let adminCreditSortMode = "high";
+
+        function updateAdminCreditSubFilter(val) {
+            adminCreditSubFilter = val;
+            renderAdminCreditDash(false);
+        }
+
+        function updateAdminCreditSort(val) {
+            adminCreditSortMode = val;
+            renderAdminCreditDash(false);
+        }
+
+        function renderAdminCreditDash(rebuildFilter = false) {
+            const feed = document.getElementById('admin-credit-feed');
+            if(!feed) return;
+
+            // Build Subgroup Filter Bar dynamically based on all subgroups available
+            const filterBar = document.getElementById('admin-credit-subgroup-bar');
+            if (rebuildFilter && filterBar) {
+                const subSet = new Set();
+                CUSTOMERS.forEach(c => {
+                    if (c.subgroup) {
+                        let sg = c.subgroup.trim().toUpperCase();
+                        // Normalize the name so RIYAS NEW goes into RIYAS
+                        if (sg.includes('SUNNY')) sg = 'SUNNY';
+                        else if (sg.includes('RIYAS')) sg = 'RIYAS';
+                        else if (sg.includes('METRO')) sg = 'METRO';
+                        subSet.add(sg);
+                    }
+                });
+                
+                const commonPills = ['SUNNY', 'RIYAS', 'METRO'];
+                const allPills = ['All', ...commonPills];
+                
+                subSet.forEach(sg => { if (!commonPills.includes(sg)) allPills.push(sg); });
+                if (!allPills.includes('COUNTER')) allPills.push('COUNTER');
+
+                let fHTML = `<div class="cat-scroll" style="padding: 12px 16px 12px 16px; border-bottom: 1px solid var(--border);">`;
+                allPills.forEach(p => {
+                    fHTML += `<div id="ac-sg-${p.replace(/\s+/g, '-')}" class="cat-pill ${adminCreditSubFilter === p ? 'active' : ''}" onclick="updateAdminCreditSubFilter('${p}')">${p}</div>`;
+                });
+                fHTML += `</div>`;
+                filterBar.innerHTML = fHTML;
+            } else if (filterBar) {
+                Array.from(filterBar.querySelectorAll('.cat-pill')).forEach(el => el.classList.remove('active'));
+                const aEl = document.getElementById(`ac-sg-${adminCreditSubFilter.replace(/\s+/g, '-')}`);
+                if (aEl) aEl.classList.add('active');
+            }
+
+            const searchQ = (document.getElementById('admin-credit-search').value || "").toLowerCase();
+
+            // Filter Customers (Only showing balance > 0 to keep the page clean)
+            let filtered = CUSTOMERS.filter(c => (c.bal || 0) > 0); 
+
+            // Apply Subgroup Filter
+            if (adminCreditSubFilter !== 'All') {
+                filtered = filtered.filter(c => {
+                    const rawSg = (c.subgroup || '').trim().toUpperCase();
+                    let sg = 'COUNTER';
+                    if (rawSg) {
+                        if (rawSg.includes('SUNNY')) sg = 'SUNNY';
+                        else if (rawSg.includes('RIYAS')) sg = 'RIYAS';
+                        else if (rawSg.includes('METRO')) sg = 'METRO';
+                        else sg = rawSg; // keep original if it's something else
+                    }
+                    return sg === adminCreditSubFilter; // Strict match fixes overlap bug
+                });
+            }
+
+            // Apply Search
+            if (searchQ) {
+                filtered = filtered.filter(c => c.name.toLowerCase().includes(searchQ) || c.code.toLowerCase().includes(searchQ));
+            }
+
+            // Calculate Total
+            let totalCredit = 0;
+            filtered.forEach(c => totalCredit += (c.bal || 0));
+            document.getElementById('admin-credit-total').innerText = `₹${fmt(totalCredit)}`;
+
+            // Apply Sort
+            filtered.sort((a,b) => {
+                if(adminCreditSortMode === 'high') return b.bal - a.bal;
+                if(adminCreditSortMode === 'low') return a.bal - b.bal;
+                return a.name.localeCompare(b.name);
+            });
+
+            if(filtered.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No credit balances found.</div>`;
+                return;
+            }
+
+            feed.innerHTML = filtered.map(c => {
+                const safeId = c.code.replace(/[^a-zA-Z0-9]/g, '_');
+                const safeName = c.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+                return `
+                <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
+                    <div style="padding: 14px; display:flex; justify-content:space-between; align-items:center; cursor: pointer;" onclick="toggleCreditSales('${safeId}', '${safeName}')">
+                        
+                        <div style="flex: 0 0 70%; padding-right: 10px; min-width: 0;">
+                            <div style="font-weight: 800; font-size: 0.85rem; color:var(--text); margin-bottom: 4px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;" title="${c.name}">
+                                ${c.name}
+                            </div>
+                            <div style="font-size: 0.7rem; color:var(--text-mut); font-weight:700;">
+                                <i class="fas fa-users" style="margin-right:4px;"></i>${c.subgroup || 'No Subgroup'}
+                            </div>
+                        </div>
+                        
+                        <div style="flex: 0 0 30%; text-align: right; min-width: 0;">
+                            <span style="font-size: 0.6rem; color:var(--text-mut); text-transform:uppercase; font-weight:700;">Balance</span><br>
+                            <b style="color:var(--accent); font-size: 1.1rem; word-break: break-word;">₹${fmt(c.bal)}</b>
+                        </div>
+
+                    </div>
+                    <div id="cr-sales-${safeId}" class="hidden" style="padding: 0 14px 14px 14px; background: #F9FAFB; border-top: 1px dashed var(--border);" data-loaded="false"></div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        async function toggleCreditSales(safeId, custName) {
+            const listDiv = document.getElementById(`cr-sales-${safeId}`);
+            
+            // Toggle close if already open
+            if (!listDiv.classList.contains('hidden')) {
+                listDiv.classList.add('hidden');
+                return;
+            }
+
+            // Open accordion
+            listDiv.classList.remove('hidden');
+            
+            // Check the exact state flag so we don't accidentally abort on empty HTML
+            if (listDiv.getAttribute('data-loaded') === 'true') return;
+
+            listDiv.innerHTML = '<div style="text-align:center; font-size:0.75rem; color:var(--brand); padding:10px;"><i class="fas fa-spinner fa-spin"></i> Fetching recent sales...</div>';
+
+            try {
+                const { data, error } = await sbClient.from('erp_sales')
+                    .select('doc_date, document_number, sales_amt')
+                    .eq('customer_name', custName)
+                    .order('doc_date', { ascending: false })
+                    .limit(100); 
+
+                if (error || !data || data.length === 0) {
+                    listDiv.innerHTML = '<div style="font-size:0.75rem; color:var(--text-mut); padding: 8px 0; text-align: center;">No recent sales found in ERP.</div>';
+                    listDiv.setAttribute('data-loaded', 'true');
+                    return;
+                }
+
+                // Group by document_number to get full invoice totals
+                const docs = {};
+                data.forEach(r => {
+                    if (!docs[r.document_number]) {
+                        docs[r.document_number] = { date: r.doc_date, amt: 0 };
+                    }
+                    docs[r.document_number].amt += r.sales_amt;
+                });
+
+                // Sort invoices by date and grab the top 3
+                const sortedDocs = Object.entries(docs)
+                    .map(([doc, val]) => ({ doc, ...val }))
+                    .sort((a,b) => new Date(b.date) - new Date(a.date))
+                    .slice(0, 3);
+
+                if (sortedDocs.length === 0) {
+                    listDiv.innerHTML = '<div style="font-size:0.75rem; color:var(--text-mut); padding: 8px 0; text-align: center;">No recent sales found.</div>';
+                } else {
+                    listDiv.innerHTML = `<div style="font-size: 0.65rem; font-weight: 700; color: var(--text-mut); text-transform: uppercase; margin-bottom: 6px; margin-top: 10px;">Last ${sortedDocs.length} Sales</div>` + 
+                        sortedDocs.map(d => {
+                            const dObj = new Date(d.date);
+                            const dateStr = `${String(dObj.getDate()).padStart(2, '0')}/${String(dObj.getMonth()+1).padStart(2, '0')}/${dObj.getFullYear()}`;
+                            return `
+                            <div style="display:flex; justify-content:space-between; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 0.85rem;">
+                                <span style="color:var(--text-mut); font-weight: 600;">${dateStr}</span>
+                                <span style="font-weight:800; color:var(--text);">₹${fmt(d.amt)}</span>
+                            </div>`;
+                        }).join('');
+                }
+                
+                // Set the flag to true so we never fetch again for this customer session
+                listDiv.setAttribute('data-loaded', 'true');
+
+            } catch (err) {
+                listDiv.innerHTML = '<div style="font-size:0.75rem; color:var(--accent); padding: 8px 0; text-align: center;">Failed to load sales.</div>';
+            }
         }
 
         /* --- HELPERS --- */
@@ -1645,6 +1894,8 @@
         }
 
         let ALL_COLLECTIONS = []; // Global collections for billing
+        let offlineDeliveries = []; // Offline sync queue
+
         function loadState() {
             if (localStorage.getItem('b2b_carts')) allCarts = JSON.parse(localStorage.getItem('b2b_carts'));
             if (localStorage.getItem('b2b_u')) activeCust = JSON.parse(localStorage.getItem('b2b_u'));
@@ -1653,8 +1904,15 @@
             else cart = {};
             
             if (localStorage.getItem('b2b_packs')) allPacks = JSON.parse(localStorage.getItem('b2b_packs'));
+            if (localStorage.getItem('b2b_offline_dels')) offlineDeliveries = JSON.parse(localStorage.getItem('b2b_offline_dels'));
+            if (localStorage.getItem('b2b_erp_del_cache')) ERP_DELIVERIES = JSON.parse(localStorage.getItem('b2b_erp_del_cache'));
             
             updateBadge();
+
+            // Auto-trigger sync if coming back online
+            window.addEventListener('online', syncOfflineDeliveries);
+            // Run on boot in case they closed app while offline
+            setTimeout(syncOfflineDeliveries, 2000);
         }
         
         function saveLocalState() {
@@ -1664,6 +1922,9 @@
             
             if (currentPackOrder) allPacks[currentPackOrder.id] = currentPackOrder;
             localStorage.setItem('b2b_packs', JSON.stringify(allPacks));
+            
+            localStorage.setItem('b2b_offline_dels', JSON.stringify(offlineDeliveries));
+            localStorage.setItem('b2b_erp_del_cache', JSON.stringify(ERP_DELIVERIES));
         }
 
         /* ========================================== */
@@ -1672,11 +1933,18 @@
         
         function handleCustSearch(val) { custSearchQuery = val.toLowerCase(); renderCustomersView(); }
 
+        // HELPER: Get only customers assigned to logged-in Salesman
+        function getMyCustomers() {
+            if (currentUserRole === 'Admin' || currentUserRole === 'Manager') return CUSTOMERS;
+            const myName = currentUserFullName.split(' ')[0].toUpperCase();
+            return CUSTOMERS.filter(c => (c.subgroup || '').toUpperCase().includes(myName));
+        }
+
         function renderCustomersView() {
             const list = document.getElementById('full-cust-list');
             if(!list) return;
 
-            let filtered = CUSTOMERS;
+            let filtered = getMyCustomers();
             if(custSearchQuery) {
                 filtered = filtered.filter(c => c.name.toLowerCase().includes(custSearchQuery) || c.code.toLowerCase().includes(custSearchQuery));
             }
@@ -2005,6 +2273,7 @@
                     btnElement.style.color = "white";
                 }
             } else {
+                if (!wasInCart) d.added_at = Date.now(); // Track exact addition order
                 cart[code] = {...d}; 
                 if (btnElement) {
                     btnElement.innerText = wasInCart ? "UPDATED" : "ADDED";
@@ -2061,7 +2330,13 @@
 
             let tMrpTotal = 0, tPay = 0, tRetailerSav = 0;
 
-            const cartKeys = Object.keys(cart);
+            // Sort by added_at to guarantee addition order (oldest first)
+            const cartKeys = Object.keys(cart).sort((a, b) => {
+                const tA = cart[a].added_at || 0;
+                const tB = cart[b].added_at || 0;
+                return tA - tB; 
+            });
+
             const countEl = document.getElementById('cart-item-count');
             if (countEl) countEl.innerText = `${cartKeys.length} Item${cartKeys.length !== 1 ? 's' : ''}`;
 
@@ -2112,13 +2387,18 @@
                 return `
                 <div class="cart-tile">
                     <div class="ct-body">
-                        <div class="ct-title" style="display: block;">
-                            <div style="display:-webkit-box; -webkit-line-clamp:2; overflow:hidden; word-break: break-word; margin-bottom: 6px;">
-                                <span style="color: var(--text-mut); font-weight: 800; margin-right: 4px;">${index + 1}.</span>${item.name}
+                        <div class="ct-title" style="display: flex; flex-direction: column; gap: 8px;">
+                            <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                                <div style="display:-webkit-box; -webkit-line-clamp:2; overflow:hidden; word-break: break-word; padding-right: 8px; flex: 1;">
+                                    <span style="color: var(--text-mut); font-weight: 800; margin-right: 4px;">${index + 1}.</span>${item.name}
+                                </div>
+                                <div style="text-align: right; flex-shrink: 0;">
+                                    <span style="color: var(--accent); font-size: 0.95rem; font-weight: 800;">₹${fmt(item.mrp)}</span>
+                                </div>
                             </div>
                             <div style="font-size: 0.8rem; color: var(--text-mut); font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
-                                <span style="background: var(--brand-light); color: var(--brand); padding: 2px 6px; border-radius: 4px;">₹${fmt(rate)} × ${totalPcs} Pcs</span>
-                                <span style="color:var(--text); font-size: 1rem;">₹${fmt(itemSellPrice)}</span>
+                                <span style="background: var(--brand-light); color: var(--brand); padding: 3px 6px; border-radius: 4px;">₹${fmt(rate)} × ${totalPcs} Pcs</span>
+                                <span style="color:var(--text); font-size: 1.1rem; font-weight: 800;">₹${fmt(itemSellPrice)}</span>
                             </div>
                         </div>
                         <div class="ct-controls">
@@ -2264,22 +2544,33 @@
             }
         }
 
-        function renderSalesmanHistory() {
+        async function renderSalesmanHistory() {
             const feed = document.getElementById('salesman-history-feed');
             if(!feed) return;
-            const filterDate = document.getElementById('salesman-date-filter').value;
             
-            let filtered = MY_ORDERS;
-            if (filterDate) {
-                filtered = filtered.filter(item => {
-                    const d = new Date(item.created_at);
-                    const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                    return localDate === filterDate;
-                });
+            const fromDate = document.getElementById('salesman-from-date').value;
+            const toDate = document.getElementById('salesman-to-date').value;
+            
+            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+
+            if (fromDate && toDate) {
+                const { data } = await sbClient.from('orders').select('*')
+                    .eq('salesman_id', userSession ? userSession.user.id : "local_dev")
+                    .gte('created_at', fromDate)
+                    .lte('created_at', toDate + 'T23:59:59.999Z')
+                    .order('created_at', { ascending: false });
+                if (data) MY_ORDERS = data;
             }
+
+            let filtered = MY_ORDERS || [];
+
+            let totalAmt = 0;
+            filtered.forEach(o => totalAmt += (o.total_amount || 0));
+            const totalEl = document.getElementById('salesman-hist-total');
+            if (totalEl) totalEl.innerText = `₹${fmt(totalAmt)}`;
             
             if (filtered.length === 0) {
-                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No orders found for this date.</div>`;
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No orders found for this period.</div>`;
                 return;
             }
 
@@ -2360,6 +2651,16 @@
                 const totalItemCost = isRemoved ? 0 : (totalQty * rate);
                 const dimStyle = isRemoved ? "opacity: 0.5; text-decoration: line-through;" : "";
 
+                // CHECK FOR EDITED QUANTITY
+                let qtyDisplay = `${totalQty} NOS`;
+                if ((data.old_p !== undefined || data.old_c !== undefined) && !isRemoved) {
+                    const oldTotal = ((data.old_c || 0) * cQty) + (data.old_p || 0);
+                    if (oldTotal !== totalQty) {
+                        qtyDisplay = `<del style="color:#9CA3AF; margin-right:4px;">${oldTotal}</del> ${totalQty} NOS`;
+                        badgeHTML += `<span class="pack-new-badge" style="background:var(--warning); color:#B45309; margin-left:4px;">QTY EDITED</span>`;
+                    }
+                }
+
                 return `
                 <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; ${isRemoved ? 'background: #FEF2F2; border-color: #FEE2E2;' : ''}">
                     <div style="display:flex; justify-content:space-between; margin-bottom: 8px; ${dimStyle}">
@@ -2371,12 +2672,12 @@
                         </div>
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; ${dimStyle}">
-                        <div style="display:flex; align-items:center; gap:6px;">
+                        <div style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
                             <span style="font-size:0.75rem; color:var(--text-mut); font-weight:600;">MRP: ${mrpText}</span>
                             ${badgeHTML}
                         </div>
-                        <span style="background: var(--brand-light); color: var(--brand); padding: 3px 8px; border-radius: 4px; font-size:0.75rem; font-weight:700;">
-                            ₹${fmt(rate)} × ${totalQty} NOS
+                        <span style="background: var(--brand-light); color: var(--brand); padding: 3px 8px; border-radius: 4px; font-size:0.75rem; font-weight:700; white-space:nowrap; flex-shrink:0; margin-left: 6px;">
+                            ₹${fmt(rate)} × ${qtyDisplay}
                         </span>
                     </div>
                 </div>`;
@@ -2455,11 +2756,11 @@
         }
 
         function renderCollectionCustomers() {
-            updateTodayCollectionTile(); // Ensure the top tile is always updated when you open the tab
+            updateTodayCollectionTile(); 
             const list = document.getElementById('collection-cust-list');
             if(!list) return;
 
-            let filtered = CUSTOMERS;
+            let filtered = getMyCustomers();
             if(colSearchQuery) {
                 filtered = filtered.filter(c => c.name.toLowerCase().includes(colSearchQuery) || c.code.toLowerCase().includes(colSearchQuery));
             }
@@ -2564,11 +2865,131 @@
             }
         }
 
-        function renderPackingOrders() {
+        /* --- SALESMAN CREDIT LOGIC --- */
+        function renderCreditView() {
+            const feed = document.getElementById('credit-feed');
+            if(!feed) return;
+            
+            const searchQ = (document.getElementById('cr-search-input').value || "").toLowerCase();
+            const sortMode = document.getElementById('cr-sort-select').value;
+            
+            let filtered = getMyCustomers();
+            if(searchQ) filtered = filtered.filter(c => c.name.toLowerCase().includes(searchQ) || c.code.toLowerCase().includes(searchQ));
+            
+            let totalCredit = 0;
+            filtered.forEach(c => totalCredit += (c.bal || 0));
+            document.getElementById('cr-total-bal').innerText = `₹${fmt(totalCredit)}`;
+
+            let sorted = [...filtered];
+            sorted.sort((a,b) => {
+                if(sortMode === 'high') return b.bal - a.bal;
+                if(sortMode === 'low') return a.bal - b.bal;
+                return a.name.localeCompare(b.name);
+            });
+
+            if(sorted.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No customers found.</div>`;
+                return;
+            }
+
+            feed.innerHTML = sorted.map(c => {
+                const safeId = c.code.replace(/[^a-zA-Z0-9]/g, '_');
+                const safeName = c.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+                return `
+                <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
+                    <div style="padding: 14px; display:flex; justify-content:space-between; align-items:center; cursor: pointer;" onclick="toggleSalesmanCreditSales('${safeId}', '${safeName}')">
+                        
+                        <div style="flex: 0 0 70%; padding-right: 10px; min-width: 0;">
+                            <div style="font-weight: 800; font-size: 0.85rem; color:var(--text); margin-bottom: 4px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;" title="${c.name}">
+                                ${c.name}
+                            </div>
+                            <div style="font-size: 0.7rem; color:var(--text-mut); font-weight:700;">
+                                <i class="fas fa-users" style="margin-right:4px;"></i>${c.subgroup || 'No Subgroup'}
+                            </div>
+                        </div>
+                        
+                        <div style="flex: 0 0 30%; text-align: right; min-width: 0;">
+                            <span style="font-size: 0.6rem; color:var(--text-mut); text-transform:uppercase; font-weight:700;">Balance</span><br>
+                            <b style="color:var(--accent); font-size: 1.1rem; word-break: break-word;">₹${fmt(c.bal)}</b>
+                        </div>
+
+                    </div>
+                    <div id="sm-cr-sales-${safeId}" class="hidden" style="padding: 0 14px 14px 14px; background: #F9FAFB; border-top: 1px dashed var(--border);" data-loaded="false"></div>
+                </div>
+                `;
+            }).join('');
+        }
+
+        async function toggleSalesmanCreditSales(safeId, custName) {
+            const listDiv = document.getElementById(`sm-cr-sales-${safeId}`);
+            
+            if (!listDiv.classList.contains('hidden')) {
+                listDiv.classList.add('hidden');
+                return;
+            }
+
+            listDiv.classList.remove('hidden');
+            if (listDiv.getAttribute('data-loaded') === 'true') return;
+
+            listDiv.innerHTML = '<div style="text-align:center; font-size:0.75rem; color:var(--brand); padding:10px;"><i class="fas fa-spinner fa-spin"></i> Fetching recent sales...</div>';
+
+            try {
+                const { data, error } = await sbClient.from('erp_sales')
+                    .select('doc_date, document_number, sales_amt')
+                    .eq('customer_name', custName)
+                    .order('doc_date', { ascending: false })
+                    .limit(100); 
+
+                if (error || !data || data.length === 0) {
+                    listDiv.innerHTML = '<div style="font-size:0.75rem; color:var(--text-mut); padding: 8px 0; text-align: center;">No recent sales found in ERP.</div>';
+                    listDiv.setAttribute('data-loaded', 'true');
+                    return;
+                }
+
+                const docs = {};
+                data.forEach(r => {
+                    if (!docs[r.document_number]) {
+                        docs[r.document_number] = { date: r.doc_date, amt: 0 };
+                    }
+                    docs[r.document_number].amt += r.sales_amt;
+                });
+
+                const sortedDocs = Object.entries(docs)
+                    .map(([doc, val]) => ({ doc, ...val }))
+                    .sort((a,b) => new Date(b.date) - new Date(a.date))
+                    .slice(0, 3);
+
+                if (sortedDocs.length === 0) {
+                    listDiv.innerHTML = '<div style="font-size:0.75rem; color:var(--text-mut); padding: 8px 0; text-align: center;">No recent sales found.</div>';
+                } else {
+                    listDiv.innerHTML = `<div style="font-size: 0.65rem; font-weight: 700; color: var(--text-mut); text-transform: uppercase; margin-bottom: 6px; margin-top: 10px;">Last ${sortedDocs.length} Sales</div>` + 
+                        sortedDocs.map(d => {
+                            const dObj = new Date(d.date);
+                            const dateStr = `${String(dObj.getDate()).padStart(2, '0')}/${String(dObj.getMonth()+1).padStart(2, '0')}/${dObj.getFullYear()}`;
+                            return `
+                            <div style="display:flex; justify-content:space-between; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 0.85rem;">
+                                <span style="color:var(--text-mut); font-weight: 600;">${dateStr}</span>
+                                <span style="font-weight:800; color:var(--text);">₹${fmt(d.amt)}</span>
+                            </div>`;
+                        }).join('');
+                }
+                
+                listDiv.setAttribute('data-loaded', 'true');
+            } catch (err) {
+                listDiv.innerHTML = '<div style="font-size:0.75rem; color:var(--accent); padding: 8px 0; text-align: center;">Failed to load sales.</div>';
+            }
+        }
+
+        async function renderPackingOrders() {
             const feed = document.getElementById('packing-feed');
             if(!feed) return;
             
-            let filtered = SUBMITTED_ORDERS.filter(o => o.status === 'Pending' || !o.status);
+            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+            const { data } = await sbClient.from('orders').select('*').in('status', ['Pending', 'Packed', 'Billed']).order('created_at', { ascending: false });
+            if (data) SUBMITTED_ORDERS = data;
+
+            let filtered = (SUBMITTED_ORDERS || []).filter(o => o.status === 'Pending' || !o.status);
             
             if (filtered.length === 0) {
                 feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No pending orders to pack.</div>`;
@@ -2887,8 +3308,17 @@
             const item = INVENTORY.find(i => i.code === realCode);
             const data = currentPackOrder.items[key];
 
+            const cQty = parseInt(item.caseQty) || 0;
+            const currentTotal = (data.c * cQty) + data.p;
+
             let newTotalPcs = parseInt(document.getElementById('pack-edit-p').value) || 0;
             let newMRP = parseFloat(document.getElementById('pack-edit-mrp').value);
+
+            // Track original quantity if changed
+            if (newTotalPcs !== currentTotal) {
+                if (data.old_c === undefined) data.old_c = data.c;
+                if (data.old_p === undefined) data.old_p = data.p;
+            }
 
             data.c = 0; data.p = newTotalPcs;
 
@@ -2952,7 +3382,10 @@
                 return; 
             }
 
-            // Apply Math
+            // Apply Math and track original quantity of the parent item
+            if (data.old_c === undefined) data.old_c = data.c;
+            if (data.old_p === undefined) data.old_p = data.p;
+            
             data.c = 0;
             data.p = currentTotal - splitQty;
 
@@ -3080,7 +3513,8 @@
         let currentPhotoOrderId = null;
         let currentDeliveryItems = [];
         let unbatchedBillsCache = [];
-        let batchSortMode = 'doc'; // default sort
+        let batchSortMode = 'doc'; 
+        let batchSubgroupFilter = 'All'; 
 
         async function fetchBatchingData() {
             const feed = document.getElementById('batching-feed');
@@ -3102,16 +3536,28 @@
                     existingBatches.forEach(b => { if(b.document_numbers) b.document_numbers.forEach(doc => batchedDocs.add(doc)); });
                 }
 
-                // 3. Group by Bill Number
+                // 3. Group by Bill Number & Assign Subgroup
                 const bills = {};
                 currentBatchingSales.forEach(s => {
                     if(!bills[s.document_number]) {
+                        // Find subgroup dynamically
+                        const cust = CUSTOMERS.find(c => c.name.toLowerCase() === s.customer_name.toLowerCase());
+                        const rawSub = cust ? cust.subgroup : null;
+                        let sg = 'COUNTER';
+                        if (rawSub) {
+                            const up = rawSub.toUpperCase();
+                            if (up.includes('SUNNY')) sg = 'SUNNY';
+                            else if (up.includes('RIYAS')) sg = 'RIYAS';
+                            else if (up.includes('METRO')) sg = 'METRO';
+                        }
+                        
                         bills[s.document_number] = { 
                             doc: s.document_number, 
                             cust: s.customer_name, 
                             amt: 0, 
                             isReturn: s.document_number.toUpperCase().includes('R'), 
-                            batched: batchedDocs.has(s.document_number) 
+                            batched: batchedDocs.has(s.document_number),
+                            subgroup: sg
                         };
                     }
                     bills[s.document_number].amt += s.sales_amt;
@@ -3125,6 +3571,11 @@
             }
         }
 
+        function updateBatchSubFilter(val) {
+            batchSubgroupFilter = val;
+            renderBatchingUI();
+        }
+
         function sortBatchingData(mode) {
             batchSortMode = mode;
             renderBatchingUI();
@@ -3134,15 +3585,37 @@
             const feed = document.getElementById('batching-feed');
             if(!feed) return;
 
-            if(unbatchedBillsCache.length === 0) {
-                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No unbatched bills found for these dates.</div>`;
+            // Build Subgroup Filter Bar
+            const filterBar = document.getElementById('batch-subgroup-bar');
+            if (filterBar) {
+                const pills = ['All', 'SUNNY', 'RIYAS', 'METRO', 'COUNTER'];
+                let fHTML = `<div class="cat-scroll" style="padding: 10px 16px; border-bottom: 1px solid var(--border); background: var(--bg);">`;
+                pills.forEach(p => {
+                    fHTML += `<div class="cat-pill ${batchSubgroupFilter === p ? 'active' : ''}" onclick="updateBatchSubFilter('${p}')">${p}</div>`;
+                });
+                fHTML += `</div>`;
+                filterBar.innerHTML = fHTML;
+            }
+
+            // Apply Filter
+            let filteredBills = unbatchedBillsCache;
+            if (batchSubgroupFilter !== 'All') {
+                filteredBills = filteredBills.filter(b => b.subgroup === batchSubgroupFilter);
+            }
+
+            if(filteredBills.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No unbatched bills found for these filters.</div>`;
+                document.getElementById('batch-sel-count').innerText = "0";
                 return;
             }
 
-            document.getElementById('batch-sel-count').innerText = batchSelections.size;
+            // Ensure selections are accurate based on current view
+            let currentViewSelections = 0;
+            filteredBills.forEach(b => { if(batchSelections.has(b.doc)) currentViewSelections++; });
+            document.getElementById('batch-sel-count').innerText = currentViewSelections;
 
             // Apply Sort
-            let sortedBills = [...unbatchedBillsCache];
+            let sortedBills = [...filteredBills];
             sortedBills.sort((a, b) => {
                 if (batchSortMode === 'doc') {
                     // Extract number from HC-XXXX
@@ -3389,13 +3862,39 @@
         }
 
         // --- DELIVERY APP ---
-        function renderDelivery() {
+        async function renderDelivery() {
             const feed = document.getElementById('delivery-feed');
             if(!feed) return;
             const filterDate = document.getElementById('del-date-filter').value;
             
-            let filtered = ERP_DELIVERIES.filter(o => o.status === 'Loaded');
-            if (filterDate) filtered = filtered.filter(o => o.batch_date === filterDate);
+            // Offline UI update
+            const syncBar = document.getElementById('offline-sync-bar');
+            if (syncBar) {
+                if (offlineDeliveries.length > 0) {
+                    syncBar.classList.remove('hidden');
+                    document.getElementById('offline-sync-count').innerText = offlineDeliveries.length;
+                } else {
+                    syncBar.classList.add('hidden');
+                }
+            }
+
+            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+            
+            if (filterDate) {
+                try {
+                    if (!navigator.onLine) throw new Error("Offline");
+                    const { data, error } = await sbClient.from('erp_deliveries').select('*').eq('batch_date', filterDate).in('status', ['Loaded', 'Delivered']);
+                    if (error) throw error;
+                    if (data) {
+                        ERP_DELIVERIES = data;
+                        saveLocalState(); // Cache for offline use
+                    }
+                } catch(e) {
+                    console.warn("Using offline delivery cache");
+                }
+            }
+
+            let filtered = (ERP_DELIVERIES || []).filter(o => o.status === 'Loaded');
             
             const batches = {};
             filtered.forEach(o => {
@@ -3436,6 +3935,8 @@
             batchOrders.forEach(o => { if(o.document_numbers) allDocs.push(...o.document_numbers); });
 
             try {
+                if (!navigator.onLine) throw new Error("Offline");
+                
                 // Safely fetch items in chunks of 50 to prevent URL length crashes
                 currentDeliveryItems = [];
                 for (let i = 0; i < allDocs.length; i += 50) {
@@ -3445,9 +3946,16 @@
                     if (data) currentDeliveryItems.push(...data);
                 }
                 
+                localStorage.setItem('b2b_del_items_cache', JSON.stringify(currentDeliveryItems));
                 renderDeliveryDetailList();
             } catch(e) {
-                list.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--accent);">Failed to load bill items.<br><span style="font-size:0.7rem;">${e.message || ''}</span></div>`;
+                const cached = localStorage.getItem('b2b_del_items_cache');
+                if (cached) {
+                    currentDeliveryItems = JSON.parse(cached);
+                    renderDeliveryDetailList();
+                } else {
+                    list.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--accent);">Failed to load bill items.<br><span style="font-size:0.7rem;">You are offline and have no cached data for this batch.</span></div>`;
+                }
             }
         }
 
@@ -3634,102 +4142,168 @@
         }
 
         async function saveDeliveryToCloud(orderId, base64Photo, cashAmt = 0, gpayAmt = 0) {
+            const now = new Date().toISOString();
+            const isErp = orderId.startsWith('ERP') || orderId.startsWith('BAT');
+            
+            let verifiedItems = [];
             try {
-                const now = new Date().toISOString();
-                const isErp = orderId.startsWith('ERP') || orderId.startsWith('BAT');
-                const tableName = isErp ? 'erp_deliveries' : 'orders';
+                const checkboxes = document.querySelectorAll(`.del-chk-${orderId}:checked`);
+                checkboxes.forEach(chk => verifiedItems.push(chk.getAttribute('data-item-id')));
+            } catch(err) {}
 
-                let verifiedItems = [];
-                // Handle CSS query safely 
-                try {
-                    const checkboxes = document.querySelectorAll(`.del-chk-${orderId}:checked`);
-                    checkboxes.forEach(chk => verifiedItems.push(chk.getAttribute('data-item-id')));
-                } catch(err) { console.warn("Checklist DOM scan skipped"); }
+            // 1. ADD TO OFFLINE QUEUE
+            offlineDeliveries.push({
+                orderId, isErp, base64Photo, cashAmt, gpayAmt, verifiedItems, timestamp: now
+            });
 
+            // 2. UPDATE MEMORY LOCALLY INSTANTLY
+            const targetArray = isErp ? ERP_DELIVERIES : SUBMITTED_ORDERS;
+            const idx = targetArray.findIndex(o => o.id === orderId);
+            
+            let custCode = orderId;
+            let custName = "Unknown";
+            
+            if (idx > -1) {
+                targetArray[idx].status = 'Delivered';
+                targetArray[idx].delivery_photo = base64Photo;
+                targetArray[idx].delivered_at = now;
+                if (isErp) targetArray[idx].verified_items = verifiedItems;
+                
+                custCode = targetArray[idx].customer_code || targetArray[idx].customer_name; 
+                custName = targetArray[idx].customer_name || CUSTOMERS.find(c => c.code === targetArray[idx].customer_code)?.name || "";
+            }
+
+            if (isErp && custName) {
+                const appOrdersToClose = SUBMITTED_ORDERS.filter(o => 
+                    o.status === 'Loaded' && 
+                    (CUSTOMERS.find(c => c.code === o.customer_code)?.name === custName || o.customer_code === custName)
+                );
+                if (appOrdersToClose.length > 0) {
+                    appOrdersToClose.forEach(o => {
+                        o.status = 'Delivered'; o.delivery_photo = base64Photo; o.delivered_at = now;
+                    });
+                }
+            }
+            
+            const totalCol = cashAmt + gpayAmt;
+            if (totalCol > 0) {
+                let nextRecNum = 1;
+                if (ALL_COLLECTIONS.length > 0) {
+                    nextRecNum = Math.max(...ALL_COLLECTIONS.map(o => parseInt(o.id.replace(/\D/g, '')) || 0)) + 1;
+                }
+                const colId = 'REC' + String(nextRecNum).padStart(4, '0');
+                
+                const colPayload = {
+                    id: colId,
+                    customer_code: custCode,
+                    salesman_id: userSession ? userSession.user.id : "local_dev",
+                    amount_cash: cashAmt,
+                    amount_gpay: gpayAmt,
+                    total_amount: totalCol,
+                    created_at: now
+                };
+                MY_COLLECTIONS.unshift(colPayload);
+                ALL_COLLECTIONS.unshift(colPayload);
+            }
+
+            saveLocalState();
+            
+            // 3. INSTANT UI FEEDBACK
+            const isOnline = navigator.onLine;
+            showSuccess(totalCol > 0 ? `${isOnline?'Saved!':'Offline Save!'} Delivered and ₹${totalCol} Collected!` : `${isOnline?'Saved!':'Offline Save!'} Order marked as Delivered.`);
+            
+            renderDeliveryDetailList();
+            renderDelivery(); // Updates sync bar
+
+            // 4. ATTEMPT BACKGROUND SYNC
+            syncOfflineDeliveries();
+        }
+
+        let isSyncingDels = false;
+        async function syncOfflineDeliveries() {
+            if (isSyncingDels || offlineDeliveries.length === 0 || !navigator.onLine) return;
+            isSyncingDels = true;
+            
+            const syncBtn = document.querySelector('#offline-sync-bar button');
+            if (syncBtn) syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
+
+            let successfulIndexes = [];
+
+            for (let i = 0; i < offlineDeliveries.length; i++) {
+                const task = offlineDeliveries[i];
+                const tableName = task.isErp ? 'erp_deliveries' : 'orders';
+                
                 const payload = {
                     status: 'Delivered',
-                    delivery_photo: base64Photo,
-                    delivered_at: now
+                    delivery_photo: task.base64Photo,
+                    delivered_at: task.timestamp
                 };
-                if (isErp) payload.verified_items = verifiedItems;
+                if (task.isErp) payload.verified_items = task.verifiedItems;
 
-                // 1. Update the Delivery/Order in the Cloud
-                const { error } = await sbClient.from(tableName).update(payload).eq('id', orderId);
-                if (error) throw error;
-                
-                // 2. Update Local Memory
-                const targetArray = isErp ? ERP_DELIVERIES : SUBMITTED_ORDERS;
-                const idx = targetArray.findIndex(o => o.id === orderId);
-                
-                let custCode = orderId;
-                let custName = "Unknown";
-                
-                if (idx > -1) {
-                    targetArray[idx].status = 'Delivered';
-                    targetArray[idx].delivery_photo = base64Photo;
-                    targetArray[idx].delivered_at = now;
-                    if (isErp) targetArray[idx].verified_items = verifiedItems;
-                    
-                    custCode = targetArray[idx].customer_code || targetArray[idx].customer_name; 
-                    custName = targetArray[idx].customer_name || CUSTOMERS.find(c => c.code === targetArray[idx].customer_code)?.name || "";
-                }
+                try {
+                    // Push delivery status
+                    const { error: err1 } = await sbClient.from(tableName).update(payload).eq('id', task.orderId);
+                    if (err1) throw err1;
 
-                // 3. AUTO-LINK BRIDGE: Pull 'Loaded' App Orders to 'Delivered'
-                if (isErp && custName) {
-                    const appOrdersToClose = SUBMITTED_ORDERS.filter(o => 
-                        o.status === 'Loaded' && 
-                        (CUSTOMERS.find(c => c.code === o.customer_code)?.name === custName || o.customer_code === custName)
-                    );
-                    
-                    if (appOrdersToClose.length > 0) {
-                        const idsToUpdate = appOrdersToClose.map(o => o.id);
-                        sbClient.from('orders').update({ 
-                            status: 'Delivered', 
-                            delivery_photo: base64Photo, 
-                            delivered_at: now 
-                        }).in('id', idsToUpdate).then();
+                    // Push auto-link app orders if ERP
+                    if (task.isErp) {
+                        const targetOrder = ERP_DELIVERIES.find(o => o.id === task.orderId);
+                        const custName = targetOrder ? (targetOrder.customer_name || CUSTOMERS.find(c => c.code === targetOrder.customer_code)?.name) : null;
                         
-                        appOrdersToClose.forEach(o => {
-                            o.status = 'Delivered'; o.delivery_photo = base64Photo; o.delivered_at = now;
+                        if (custName) {
+                            const appOrdersToClose = SUBMITTED_ORDERS.filter(o => 
+                                o.status === 'Delivered' && o.delivered_at === task.timestamp &&
+                                (CUSTOMERS.find(c => c.code === o.customer_code)?.name === custName || o.customer_code === custName)
+                            );
+                            if (appOrdersToClose.length > 0) {
+                                const idsToUpdate = appOrdersToClose.map(o => o.id);
+                                await sbClient.from('orders').update({ status: 'Delivered', delivery_photo: task.base64Photo, delivered_at: task.timestamp }).in('id', idsToUpdate);
+                            }
+                        }
+                    }
+
+                    // Push Collection if exists
+                    const totalCol = task.cashAmt + task.gpayAmt;
+                    if (totalCol > 0) {
+                        const targetOrder = ERP_DELIVERIES.find(o => o.id === task.orderId) || SUBMITTED_ORDERS.find(o => o.id === task.orderId);
+                        const custCode = targetOrder ? (targetOrder.customer_code || targetOrder.customer_name) : task.orderId;
+                        
+                        // Re-calculate ID securely on cloud push
+                        let nextRecNum = 1;
+                        const { data: latestCol } = await sbClient.from('collections').select('id').order('created_at', { ascending: false }).limit(1);
+                        if (latestCol && latestCol.length > 0) {
+                            nextRecNum = (parseInt(latestCol[0].id.replace(/\D/g, '')) || 0) + 1;
+                        }
+                        const colId = 'REC' + String(nextRecNum).padStart(4, '0');
+
+                        await sbClient.from('collections').insert({
+                            id: colId,
+                            customer_code: custCode,
+                            salesman_id: userSession ? userSession.user.id : "local_dev",
+                            amount_cash: task.cashAmt,
+                            amount_gpay: task.gpayAmt,
+                            total_amount: totalCol,
+                            created_at: task.timestamp
                         });
                     }
-                }
-                
-                // 4. Process Collection if entered
-                const totalCol = cashAmt + gpayAmt;
-                if (totalCol > 0) {
-                    let nextRecNum = 1;
-                    if (ALL_COLLECTIONS.length > 0) {
-                        nextRecNum = Math.max(...ALL_COLLECTIONS.map(o => parseInt(o.id.replace(/\D/g, '')) || 0)) + 1;
-                    }
-                    const colId = 'REC' + String(nextRecNum).padStart(4, '0');
-                    
-                    const colPayload = {
-                        id: colId,
-                        customer_code: custCode,
-                        salesman_id: userSession ? userSession.user.id : "local_dev",
-                        amount_cash: cashAmt,
-                        amount_gpay: gpayAmt,
-                        total_amount: totalCol,
-                        created_at: now
-                    };
-                    
-                    await sbClient.from('collections').insert(colPayload);
-                    MY_COLLECTIONS.unshift(colPayload);
-                    ALL_COLLECTIONS.unshift(colPayload);
-                }
 
-                showSuccess(totalCol > 0 ? `Delivered and ₹${totalCol} Collected!` : "Order marked as Delivered!");
-                renderDeliveryDetailList();
-
-            } catch (e) {
-                // EXPLICITLY SHOW THE ERROR MESSAGE NOW
-                showWarning("Delivery Failed", `Could not save delivery.<br><br><b>Error:</b> ${e.message}`);
-                
-                // Reset button UI if failed
-                const btn = document.getElementById(`btn-del-${orderId}`);
-                if(btn) btn.innerHTML = `<i class="fas fa-camera"></i> Verify & Deliver`;
+                    successfulIndexes.push(i);
+                } catch(e) {
+                    console.warn("Sync failed for task", task.orderId, e);
+                    break; // Stop trying other tasks if network failed
+                }
             }
+
+            // Remove successful syncs from the queue (reverse order to avoid shifting issues)
+            for (let i = successfulIndexes.length - 1; i >= 0; i--) {
+                offlineDeliveries.splice(successfulIndexes[i], 1);
+            }
+
+            saveLocalState();
+            renderDelivery(); // Updates sync bar UI
+            
+            if (syncBtn) syncBtn.innerHTML = 'Sync Now';
+            isSyncingDels = false;
         }
 
         function showPhotoModal(base64) {
@@ -3817,11 +4391,15 @@
         let currentViewedColList = [];
 
         // --- PENDING VIEWS ---
-        function renderBillingOrders() {
+        async function renderBillingOrders() {
             const feed = document.getElementById('billing-feed');
             if(!feed) return;
             
-            let filtered = SUBMITTED_ORDERS.filter(o => o.status === 'Packed');
+            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+            const { data } = await sbClient.from('orders').select('*').in('status', ['Packed', 'Billed']).order('created_at', { ascending: false });
+            if(data) SUBMITTED_ORDERS = data;
+
+            let filtered = (SUBMITTED_ORDERS || []).filter(o => o.status === 'Packed');
             
             if (filtered.length === 0) {
                 feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No packed orders pending for billing.</div>`;
@@ -4323,16 +4901,31 @@
                 }
             } catch(e) {}
 
-            // 2. Fetch specific dates directly from cloud to save memory
+            // 2. Fetch specific dates directly from cloud (Paginated to bypass 1000 row limit)
             try {
-                // Ensure we capture the entire end day by setting time to 23:59:59 if needed by DB
-                const { data, error } = await sbClient.from('erp_sales')
-                    .select('*')
-                    .gte('doc_date', fromD)
-                    .lte('doc_date', toD);
+                let allSales = [];
+                let hasMore = true;
+                let page = 0;
+                const pageSize = 1000;
+
+                // Loop until we fetch all line items for the date range
+                while (hasMore) {
+                    const { data, error } = await sbClient.from('erp_sales')
+                        .select('*')
+                        .gte('doc_date', fromD)
+                        .lte('doc_date', toD + 'T23:59:59.999Z') // Ensure end of day is included
+                        .range(page * pageSize, (page + 1) * pageSize - 1);
+                    
+                    if (error) throw error;
+                    allSales.push(...data);
+                    
+                    if (data.length < pageSize) {
+                        hasMore = false; // We reached the end
+                    }
+                    page++;
+                }
                 
-                if (error) throw error;
-                adminSalesData = data || [];
+                adminSalesData = allSales;
                 
                 // Pre-process Data: Assign Customer Subgroups
                 adminSalesData.forEach(sale => {
@@ -4542,16 +5135,30 @@
             renderLiveDashboard(false); // False prevents the scrollbars from rebuilding
         }
 
-        function renderLiveDashboard(rebuildFilters = true) {
+        async function renderLiveDashboard(rebuildFilters = true) {
             const feed = document.getElementById('live-feed');
             const smBar = document.getElementById('live-sm-filter-bar');
             if(!feed || !smBar) return;
             
             const fromDate = document.getElementById('live-from-date').value;
             const toDate = document.getElementById('live-to-date').value;
+
+            // Fetch from Cloud if dates changed or app just opened
+            if (rebuildFilters && fromDate && toDate) {
+                document.getElementById('live-top-dashboard').innerHTML = '';
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br><b>Loading Live Data...</b></div>`;
+                
+                const [ordRes, colRes] = await Promise.all([
+                    sbClient.from('orders').select('*').gte('created_at', fromDate).lte('created_at', toDate + 'T23:59:59.999Z').order('created_at', { ascending: false }),
+                    sbClient.from('collections').select('*').gte('created_at', fromDate).lte('created_at', toDate + 'T23:59:59.999Z').order('created_at', { ascending: false })
+                ]);
+                
+                if (ordRes.data) SUBMITTED_ORDERS = ordRes.data;
+                if (colRes.data) ALL_COLLECTIONS = colRes.data;
+            }
             
-            let filteredOrders = SUBMITTED_ORDERS;
-            let filteredCols = ALL_COLLECTIONS;
+            let filteredOrders = SUBMITTED_ORDERS || [];
+            let filteredCols = ALL_COLLECTIONS || [];
             
             // 1. Filter by Date Range
             if (fromDate && toDate) {
