@@ -4453,20 +4453,30 @@
         }
 
         async function setNextStop(stopId, batchId) {
-            closeModal('next-stop-modal');
+            // Close modal if open
+            const modal = document.getElementById('next-stop-modal');
+            if (modal && !modal.classList.contains('hidden')) {
+                closeModal('next-stop-modal');
+            }
             
             // 1. Update local memory instantly
-            ERP_DELIVERIES.forEach(o => {
+            (ERP_DELIVERIES || []).forEach(o => {
                 if (o.batch_id === batchId && o.status === 'Loaded') o.is_next_stop = (o.id === stopId);
             });
             saveLocalState();
-            renderDeliveryDetailList();
+            
+            if (typeof renderDeliveryDetailList === 'function') renderDeliveryDetailList();
 
-            // 2. Sync to cloud (or queue if offline)
+            // 2. Sync to cloud (Bypassing bulk-update restrictions by targeting IDs directly)
             if (navigator.onLine) {
                 try {
-                    await sbClient.from('erp_deliveries').update({ is_next_stop: false }).eq('batch_id', batchId).eq('status', 'Loaded');
-                    await sbClient.from('erp_deliveries').update({ is_next_stop: true }).eq('id', stopId);
+                    const stopsToUpdate = (ERP_DELIVERIES || []).filter(o => o.batch_id === batchId && o.status === 'Loaded');
+                    for (const s of stopsToUpdate) {
+                        const { error } = await sbClient.from('erp_deliveries')
+                            .update({ is_next_stop: (s.id === stopId) })
+                            .eq('id', s.id);
+                        if (error) console.error("Supabase Save Error:", error.message);
+                    }
                 } catch(e) { console.warn("Failed to set next stop", e); }
             } else {
                 let offlineNextStops = JSON.parse(localStorage.getItem('b2b_offline_next_stops') || '[]');
@@ -4480,12 +4490,16 @@
             if (offlineNextStops.length === 0 || !navigator.onLine) return;
             
             const latestStops = {};
-            offlineNextStops.forEach(req => latestStops[req.batchId] = req.stopId); // Only process the most recent click per batch
+            offlineNextStops.forEach(req => latestStops[req.batchId] = req.stopId); 
             
             for (const batchId in latestStops) {
                 try {
-                    await sbClient.from('erp_deliveries').update({ is_next_stop: false }).eq('batch_id', batchId).eq('status', 'Loaded');
-                    await sbClient.from('erp_deliveries').update({ is_next_stop: true }).eq('id', latestStops[batchId]);
+                    const stopsToUpdate = (ERP_DELIVERIES || []).filter(o => o.batch_id === batchId && o.status === 'Loaded');
+                    for (const s of stopsToUpdate) {
+                        await sbClient.from('erp_deliveries')
+                            .update({ is_next_stop: (s.id === latestStops[batchId]) })
+                            .eq('id', s.id);
+                    }
                 } catch(e) {}
             }
             localStorage.removeItem('b2b_offline_next_stops');
