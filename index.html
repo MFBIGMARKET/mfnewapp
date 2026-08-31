@@ -1110,19 +1110,17 @@
                 <div class="prof-email" id="prof-email">email@domain.com</div>
                 <div class="prof-role" id="prof-role-pill">ROLE</div>
 
-                <div id="att-status-text" style="font-size: 0.8rem; color: var(--success); font-weight: 700; margin-bottom: 20px; display: none;"></div>
+                <div id="att-status-text" style="font-size: 0.8rem; color: var(--success); font-weight: 700; margin-bottom: 20px; display: none; text-align: center; background: #DCFCE7; padding: 4px 12px; border-radius: 20px;"></div>
 
                 <div class="prof-menu">
-                    <!-- Mark Attendance Button -->
-                    <button id="btn-mark-att" class="prof-menu-item" onclick="markMyAttendance()">
+                    <button class="prof-menu-item" onclick="openAttendanceView()">
                         <div class="prof-menu-left">
                             <div class="prof-icon-box pi-blue"><i class="fas fa-map-marker-alt"></i></div>
-                            <div class="prof-menu-text" id="btn-mark-text">Mark Attendance</div>
+                            <div class="prof-menu-text">Mark Attendance</div>
                         </div>
                         <div class="prof-chev"><i class="fas fa-chevron-right"></i></div>
                     </button>
 
-                    <!-- My Attendance History -->
                     <div class="prof-menu-item" onclick="viewMyAttendanceHistory()">
                         <div class="prof-menu-left">
                             <div class="prof-icon-box pi-blue"><i class="fas fa-calendar-alt"></i></div>
@@ -1131,10 +1129,8 @@
                         <div class="prof-chev"><i class="fas fa-chevron-right"></i></div>
                     </div>
 
-                    <!-- Spacer -->
                     <div style="height: 15px;"></div>
 
-                    <!-- Log Out -->
                     <div class="prof-menu-item" onclick="handleLogout()">
                         <div class="prof-menu-left">
                             <div class="prof-icon-box pi-red"><i class="fas fa-sign-out-alt"></i></div>
@@ -1143,6 +1139,26 @@
                         <div class="prof-chev"><i class="fas fa-chevron-right"></i></div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ATTENDANCE ACTION VIEW -->
+        <div id="att-action-view" class="order-view hidden" style="z-index: 3500; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="closeAttView()" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center"><div class="ov-title">Daily Attendance</div></div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding: 20px; text-align:center;">
+                <div id="att-action-time" style="font-size:2.8rem; font-weight:800; color:var(--text); margin-bottom:5px; font-variant-numeric: tabular-nums;">00:00:00</div>
+                <div id="att-action-date" style="font-size:0.95rem; font-weight:600; color:var(--text-mut); margin-bottom:50px;">Date</div>
+                
+                <button id="btn-circle-att" onclick="processAttendance()" style="width: 170px; height: 170px; border-radius: 50%; font-size: 1.3rem; font-weight: 800; background: var(--success); color: white; border: 8px solid #D1FAE5; box-shadow: 0 4px 15px rgba(15, 157, 88, 0.3); cursor: pointer; transition: 0.2s; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; outline:none;">
+                    <i class="fas fa-sign-in-alt" id="att-circle-icon" style="font-size: 2.5rem;"></i>
+                    <span id="att-circle-text" style="letter-spacing: 1px;">CHECK IN</span>
+                </button>
+                
+                <div id="att-action-status" style="margin-top: 50px; font-size: 0.85rem; color: var(--text-mut); font-weight: 600; padding: 12px 20px; background: white; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.02);">Ready to check in</div>
             </div>
         </div>
 
@@ -1704,11 +1720,15 @@
             const todayStr = new Date().toISOString().split('T')[0];
             const todayAtt = window.MY_ATTENDANCE.find(a => a.date === todayStr);
             if (todayAtt) {
-                const tObj = new Date(todayAtt.check_in_time);
+                const tObjIn = new Date(todayAtt.check_in_time);
+                let txt = `In: ${tObjIn.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                if (todayAtt.check_out_time) {
+                    const tObjOut = new Date(todayAtt.check_out_time);
+                    txt += ` | Out: ${tObjOut.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                }
                 const attText = document.getElementById('att-status-text');
-                attText.innerText = `Checked in today at ${tObj.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                attText.innerText = txt;
                 attText.style.display = 'block';
-                document.getElementById('btn-mark-att').style.display = 'none';
             }
             
             applyRoleUI();
@@ -7272,12 +7292,68 @@
             return R * c;
         }
 
-        async function markMyAttendance() {
-            const btn = document.getElementById('btn-mark-att');
-            const btnText = document.getElementById('btn-mark-text');
+        let attClockInterval;
+        
+        function openAttendanceView() {
+            const now = new Date();
+            document.getElementById('att-action-date').innerText = now.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            
+            const timeEl = document.getElementById('att-action-time');
+            timeEl.innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+            
+            clearInterval(attClockInterval);
+            attClockInterval = setInterval(() => {
+                timeEl.innerText = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+            }, 1000);
+
+            const todayStr = now.toISOString().split('T')[0];
+            const todayAtt = window.MY_ATTENDANCE.find(a => a.date === todayStr);
+            
+            const btn = document.getElementById('btn-circle-att');
+            const icon = document.getElementById('att-circle-icon');
+            const text = document.getElementById('att-circle-text');
+            const status = document.getElementById('att-action-status');
+
+            if (!todayAtt) {
+                btn.style.background = 'var(--success)';
+                btn.style.borderColor = '#D1FAE5';
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+                icon.className = 'fas fa-sign-in-alt';
+                text.innerText = 'CHECK IN';
+                status.innerText = 'Ready to check in for the day.';
+            } else if (!todayAtt.check_out_time) {
+                btn.style.background = '#059669'; // Darker Green
+                btn.style.borderColor = '#A7F3D0';
+                btn.style.pointerEvents = 'auto';
+                btn.style.opacity = '1';
+                icon.className = 'fas fa-sign-out-alt';
+                text.innerText = 'CHECK OUT';
+                status.innerHTML = `Checked in at <b>${new Date(todayAtt.check_in_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</b>`;
+            } else {
+                btn.style.background = 'var(--text-mut)';
+                btn.style.borderColor = '#E5E7EB';
+                btn.style.pointerEvents = 'none';
+                btn.style.opacity = '0.7';
+                icon.className = 'fas fa-check-double';
+                text.innerText = 'COMPLETED';
+                status.innerHTML = `Shift completed for today.`;
+            }
+
+            document.getElementById('att-action-view').classList.remove('hidden');
+        }
+
+        function closeAttView() {
+            clearInterval(attClockInterval);
+            closeModal('att-action-view');
+        }
+
+        async function processAttendance() {
+            const btn = document.getElementById('btn-circle-att');
+            const origHTML = btn.innerHTML;
             
             if (!window.SHOP_LOCATION || window.SHOP_LOCATION.lat === 0) {
-                showWarning("Configuration Error", "The shop location has not been set by the Admin yet. Cannot verify location.");
+                showWarning("Configuration Error", "The shop location has not been set by the Admin yet.");
                 return;
             }
 
@@ -7286,8 +7362,8 @@
                 return;
             }
 
-            btnText.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:4px;"></i> Verifying...';
-            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin" style="font-size:2.5rem;"></i><span style="font-size:0.9rem; margin-top:8px; letter-spacing:1px;">VERIFYING...</span>';
+            btn.style.pointerEvents = 'none';
 
             navigator.geolocation.getCurrentPosition(async (position) => {
                 const myLat = position.coords.latitude;
@@ -7297,50 +7373,55 @@
 
                 const distance = getDistanceInMeters(myLat, myLng, shopLat, shopLng);
                 
-                // STRICT 10 METER LIMIT (Given a 5 meter GPS drift buffer = 15m absolute strict cutoff)
                 if (distance > 15) {
-                    btnText.innerHTML = 'Mark Attendance';
-                    btn.disabled = false;
-                    showWarning("Too Far Away", `You are ${Math.round(distance)} meters away from the shop.<br><br>You must be within 10 meters to mark attendance.`);
+                    btn.innerHTML = origHTML;
+                    btn.style.pointerEvents = 'auto';
+                    showWarning("Too Far Away", `You are ${Math.round(distance)} meters away from the shop.<br><br>You must be within 10 meters.`);
                     return;
                 }
 
-                // If within 10m, save to Supabase
                 const now = new Date();
                 const todayStr = now.toISOString().split('T')[0];
                 const userId = userSession.user.id;
+                const todayAtt = window.MY_ATTENDANCE.find(a => a.date === todayStr);
 
-                const payload = {
-                    id: `ATT_${userId}_${todayStr}`,
-                    user_id: userId,
-                    date: todayStr,
-                    status: 'Present',
-                    check_in_time: now.toISOString(),
-                    lat: myLat,
-                    lng: myLng
-                };
+                let payload = {};
+                if (!todayAtt) {
+                    payload = { id: `ATT_${userId}_${todayStr}`, user_id: userId, date: todayStr, status: 'Present', check_in_time: now.toISOString(), lat: myLat, lng: myLng };
+                } else {
+                    payload = { ...todayAtt, check_out_time: now.toISOString(), lat: myLat, lng: myLng };
+                }
 
                 try {
                     const { error } = await sbClient.from('attendance').upsert([payload]);
                     if (error) throw error;
                     
-                    window.MY_ATTENDANCE.push(payload);
+                    if (!todayAtt) window.MY_ATTENDANCE.push(payload);
+                    else todayAtt.check_out_time = payload.check_out_time;
+
+                    // Update Profile Background UI
+                    const tObjIn = new Date(payload.check_in_time);
+                    let profileText = `In: ${tObjIn.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                    if (payload.check_out_time) {
+                        const tObjOut = new Date(payload.check_out_time);
+                        profileText += ` | Out: ${tObjOut.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                    }
                     const attText = document.getElementById('att-status-text');
-                    attText.innerText = `Checked in today at ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                    attText.innerText = profileText;
                     attText.style.display = 'block';
-                    btn.style.display = 'none';
-                    showSuccess("Attendance marked successfully!");
+
+                    showSuccess(todayAtt ? "Successfully checked out!" : "Checked in successfully!");
+                    closeAttView();
 
                 } catch(e) {
-                    showWarning("Network Error", "Failed to save attendance to the cloud.");
-                    btnText.innerHTML = 'Mark Attendance';
-                    btn.disabled = false;
+                    showWarning("Network Error", "Failed to save attendance.");
+                    btn.innerHTML = origHTML;
+                    btn.style.pointerEvents = 'auto';
                 }
-
             }, (error) => {
-                btnText.innerHTML = 'Mark Attendance';
-                btn.disabled = false;
-                showWarning("GPS Error", "Please enable location services and give the app permission to access your location.");
+                btn.innerHTML = origHTML;
+                btn.style.pointerEvents = 'auto';
+                showWarning("GPS Error", "Please enable location services for the app.");
             }, { enableHighAccuracy: true });
         }
 
@@ -7364,12 +7445,14 @@
             }
 
             feed.innerHTML = filtered.map(a => {
-                const tObj = new Date(a.check_in_time);
+                const tIn = new Date(a.check_in_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                const tOut = a.check_out_time ? new Date(a.check_out_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : 'Pending';
+                
                 return `
                 <div style="background: white; padding: 14px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <div style="font-weight: 800; color: var(--text); font-size: 0.95rem;">${a.date}</div>
-                        <div style="font-size: 0.75rem; color: var(--text-mut); margin-top: 4px;"><i class="fas fa-clock"></i> In: ${tObj.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-mut); margin-top: 4px;"><i class="fas fa-clock"></i> In: ${tIn} | Out: ${tOut}</div>
                     </div>
                     <span style="background: #DCFCE7; color: #166534; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 800;">PRESENT</span>
                 </div>`;
@@ -7396,20 +7479,20 @@
             const feed = document.getElementById('hr-today-feed');
             const targetDate = document.getElementById('hr-today-date').value;
             
-            // Get all employees from profiles
-            const employees = PROFILES.filter(p => p.role !== 'Admin'); // Hide admins from attendance
+            const employees = PROFILES.filter(p => p.role !== 'Admin'); 
             
             feed.innerHTML = employees.map(emp => {
-                // Find if this employee marked attendance on this date
                 const att = window.ALL_ATTENDANCE.find(a => a.user_id === emp.id && a.date === targetDate);
                 
                 let statusUI = `<span style="background: #FEE2E2; color: #991B1B; padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 800;">ABSENT</span>`;
                 let subText = `Did not check in`;
 
                 if (att) {
-                    const tObj = new Date(att.check_in_time);
+                    const tIn = new Date(att.check_in_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                    const tOut = att.check_out_time ? new Date(att.check_out_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
+                    
                     statusUI = `<span style="background: #DCFCE7; color: #166534; padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 800;">PRESENT</span>`;
-                    subText = `Checked in at ${tObj.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                    subText = `In: ${tIn} | Out: ${tOut}`;
                 }
 
                 return `
@@ -7430,7 +7513,7 @@
 
         function renderHRMonthly() {
             const empId = document.getElementById('hr-emp-select').value;
-            const monthStr = document.getElementById('hr-month-select').value; // YYYY-MM
+            const monthStr = document.getElementById('hr-month-select').value; 
             const feed = document.getElementById('hr-monthly-feed');
 
             if (!empId || !monthStr) return;
@@ -7445,11 +7528,13 @@
 
             feed.innerHTML = `<div style="font-size:0.85rem; font-weight:800; color:var(--brand); margin-bottom:12px; text-align:center;">Total Present: ${attList.length} Days</div>` + 
             attList.map(a => {
-                const tObj = new Date(a.check_in_time);
+                const tIn = new Date(a.check_in_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                const tOut = a.check_out_time ? new Date(a.check_out_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
+                
                 return `
                 <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
                     <div style="font-weight: 800; color: var(--text); font-size: 0.9rem;">${a.date}</div>
-                    <div style="font-size: 0.8rem; color: var(--success); font-weight:700;">In: ${tObj.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                    <div style="font-size: 0.75rem; color: var(--text-mut); font-weight:700;">In: ${tIn} | Out: ${tOut}</div>
                 </div>`;
             }).join('');
         }
