@@ -211,8 +211,29 @@
         .modal-header { padding: 16px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-weight: 700; font-size: 1.1rem; }
         .modal-body { padding: 16px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
 
-        .prof-view { padding: 20px; text-align: center; }
-        .btn-logout { background: var(--accent); color: white; border: none; padding: 12px 24px; border-radius: 6px; font-weight: 600; width: 90%; cursor: pointer; margin-top: 20px;}
+        /* --- MODERN PROFILE & HR VIEWS --- */
+        .prof-wrapper { display: flex; flex-direction: column; align-items: center; padding: 40px 20px; background: white; height: 100%; }
+        .prof-avatar-ring { width: 90px; height: 90px; border-radius: 50%; border: 2px solid #3B82F6; padding: 3px; margin-bottom: 12px; }
+        .prof-avatar-inner { width: 100%; height: 100%; border-radius: 50%; background: #F3F4F6; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; color: #9CA3AF; }
+        .prof-name { font-size: 1.3rem; font-weight: 800; color: #111827; margin-bottom: 2px; text-align: center; }
+        .prof-email { font-size: 0.8rem; color: #6B7280; font-weight: 500; margin-bottom: 6px; text-align: center; }
+        .prof-role { font-size: 0.65rem; font-weight: 800; color: #3B82F6; text-transform: uppercase; background: #EFF6FF; padding: 3px 10px; border-radius: 12px; margin-bottom: 25px; }
+        
+        .prof-menu { width: 100%; display: flex; flex-direction: column; }
+        .prof-menu-item { display: flex; align-items: center; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid #F3F4F6; cursor: pointer; transition: 0.2s; background: none; border-top: none; border-left: none; border-right: none; width: 100%; text-align: left; font-family: inherit; }
+        .prof-menu-item:active { opacity: 0.6; }
+        .prof-menu-item:last-child { border-bottom: none; }
+        .prof-menu-left { display: flex; align-items: center; gap: 16px; }
+        .prof-icon-box { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+        .pi-blue { background: #EFF6FF; color: #3B82F6; }
+        .pi-red { background: #FEF2F2; color: #EF4444; }
+        .prof-menu-text { font-weight: 700; color: #374151; font-size: 0.95rem; }
+        .prof-chev { width: 24px; height: 24px; border-radius: 50%; background: #F3F4F6; display: flex; align-items: center; justify-content: center; color: #9CA3AF; font-size: 0.7rem; }
+
+        .hr-sub-nav { position: absolute; bottom: 0; left: 0; width: 100%; background: white; display: flex; border-top: 1px solid var(--border); box-shadow: 0 -2px 10px rgba(0,0,0,0.05); z-index: 10; }
+        .hr-sub-nav-item { flex: 1; padding: 12px 0; text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--text-mut); cursor: pointer; display: flex; flex-direction: column; gap: 4px; align-items: center; }
+        .hr-sub-nav-item i { font-size: 1.1rem; }
+        .hr-sub-nav-item.active { color: var(--brand); }
 
         /* --- MOBILE RESPONSIVE TWEAKS --- */
         @media (max-width: 768px) {
@@ -234,6 +255,17 @@
                 border-right: 2px solid var(--border-dark) !important; /* Clean separator line */
             }
         }
+    /* --- ACCOUNTANT CALENDAR --- */
+        .acc-cal-header { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: white; font-weight: 800; font-size: 1.1rem; border-bottom: 1px solid var(--border); }
+        .acc-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); }
+        .acc-cal-day-header { background: #F9FAFB; padding: 8px 0; text-align: center; font-size: 0.7rem; font-weight: 700; color: var(--text-mut); }
+        .acc-cal-day { background: white; min-height: 70px; padding: 4px; display: flex; flex-direction: column; cursor: pointer; transition: 0.2s; }
+        .acc-cal-day.empty { background: #F9FAFB; color: #D1D5DB; }
+        .acc-cal-day.active { background: var(--brand-light); border: 1px solid var(--brand); }
+        .acc-date-num { font-size: 0.8rem; font-weight: 700; margin-bottom: 4px; }
+        .acc-ind { font-size: 0.6rem; font-weight: 800; text-align: right; margin-top: 2px; padding: 2px; border-radius: 3px; word-break: break-all; }
+        .acc-ind.out { background: #FEE2E2; color: #991B1B; }
+        .acc-ind.in { background: #DCFCE7; color: #166534; }
     </style>
 </head>
 <body>
@@ -609,10 +641,65 @@
                     <div style="font-size: 2.5rem; color: #EF4444; margin-bottom: 10px;"><i class="fas fa-wallet"></i></div>
                     <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Credit</div>
                 </div>
-                <div style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer; opacity: 0.7;">
+                <div onclick="openAdminDashboardApp('hr')" style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;">
+                    <div style="font-size: 2.5rem; color: #8B5CF6; margin-bottom: 10px;"><i class="fas fa-user-clock"></i></div>
+                    <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">HR & Att.</div>
+                </div>
+                <div style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer; opacity: 0.5; pointer-events: none;">
                     <div style="font-size: 2.5rem; color: #6366F1; margin-bottom: 10px;"><i class="fas fa-shopping-bag"></i></div>
                     <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Purchase</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ADMIN: HR OVERLAY -->
+        <div id="admin-hr-app" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="closeAdminDashboardApp('hr')" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center"><div class="ov-title">Human Resources</div></div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            
+            <div id="hr-view-today" class="scroll-area" style="padding-bottom: 60px;">
+                <div class="pack-top-bar" style="background: white; border-bottom: 1px solid var(--border);">
+                    <span style="font-size: 0.9rem; font-weight: 800;">Today's Attendance</span>
+                    <input type="date" id="hr-today-date" onchange="renderHRToday()" style="border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-weight:700; outline:none;">
+                </div>
+                <div id="hr-today-feed" style="padding: 16px;"></div>
+            </div>
+
+            <div id="hr-view-monthly" class="scroll-area hidden" style="padding-bottom: 60px;">
+                <div class="pack-top-bar" style="background: white; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <span style="font-size: 0.95rem; font-weight: 800;">Logs</span>
+                    <div style="display: flex; gap: 8px; align-items: center;">
+                        <input type="month" id="hr-month-select" onchange="renderHRMonthly()" style="border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-weight:700; outline:none; max-width: 140px;">
+                        <select id="hr-emp-select" onchange="renderHRMonthly()" style="border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-weight:700; outline:none; max-width: 130px;"></select>
+                    </div>
+                </div>
+                <div id="hr-monthly-feed" style="padding: 16px;"></div>
+            </div>
+
+            <div id="hr-view-settings" class="scroll-area hidden" style="padding: 20px; padding-bottom: 60px;">
+                <div style="background: white; padding: 20px; border-radius: 8px; border: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                    <h3 style="margin-bottom: 15px; color: var(--brand);"><i class="fas fa-map-marker-alt"></i> Set Shop Location</h3>
+                    <p style="font-size: 0.8rem; color: var(--text-mut); margin-bottom: 20px;">Employees must be within 10 meters of these GPS coordinates to mark attendance.</p>
+                    
+                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Latitude</span>
+                    <input type="number" id="hr-shop-lat" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:12px; font-weight:700; margin-bottom:16px; outline:none;" placeholder="e.g. 11.8745">
+
+                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Longitude</span>
+                    <input type="number" id="hr-shop-lng" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:12px; font-weight:700; margin-bottom:24px; outline:none;" placeholder="e.g. 75.3721">
+
+                    <button onclick="saveShopLocation()" style="width:100%; background:var(--brand); color:white; border:none; padding:14px; border-radius:6px; font-weight:800; cursor:pointer;">Save Location</button>
+                    
+                    <button onclick="autoDetectShopLocation()" style="width:100%; background:var(--bg); color:var(--text); border:1px solid var(--border); padding:12px; border-radius:6px; font-weight:700; cursor:pointer; margin-top:10px;"><i class="fas fa-crosshairs"></i> Use Current Location</button>
+                </div>
+            </div>
+
+            <div class="hr-sub-nav">
+                <div class="hr-sub-nav-item active" id="hr-nav-today" onclick="switchHRTab('today')"><i class="fas fa-clipboard-list"></i>Today</div>
+                <div class="hr-sub-nav-item" id="hr-nav-monthly" onclick="switchHRTab('monthly')"><i class="fas fa-calendar-alt"></i>Monthly</div>
+                <div class="hr-sub-nav-item" id="hr-nav-settings" onclick="switchHRTab('settings')"><i class="fas fa-cog"></i>Settings</div>
             </div>
         </div>
 
@@ -905,18 +992,171 @@
         </div>
 
        <!-- ========================================== -->
-        <!-- SHARED PROFILE                             -->
+        <!-- ACCOUNTANT VIEWS                           -->
         <!-- ========================================== -->
+        <!-- PENDING CHEQUES TAB -->
+        <div id="view-acc-pending" class="tab-content hidden accountant-view">
+            <div class="pack-top-bar" style="justify-content: space-between; background: white; border-bottom: 1px solid var(--border); flex-shrink: 0; padding: 16px;">
+                <span style="font-size: 0.95rem; font-weight: 800; color: var(--text);">Pending Cheques</span>
+                <span style="font-size: 1.1rem; font-weight: 800; color: var(--accent);" id="acc-pending-total">₹0</span>
+            </div>
+            <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="acc-pending-feed">
+                <!-- Injected via JS -->
+            </div>
+        </div>
 
-        <div id="view-profile" class="tab-content hidden shared-view">
-            <div class="scroll-area">
-                <div class="prof-view">
-                    <div style="width: 80px; height: 80px; background: var(--brand-light); color: var(--brand); border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 2rem; margin: 20px auto 10px auto;"><i class="fas fa-user"></i></div>
-                    <h2 id="prof-name" style="font-size: 1.3rem;">User</h2>
-                    <p style="color:var(--text-mut); margin-bottom: 30px; font-weight: 500;">Authenticated Session</p>
-                    <button class="btn-logout" onclick="handleLogout()">Secure Logout</button>
+        <!-- MANAGE VENDORS & BANKS -->
+        <div id="view-acc-manage" class="tab-content hidden accountant-view">
+            <div class="pack-top-bar" style="justify-content: space-between; background: white; border-bottom: 1px solid var(--border); flex-shrink: 0; padding: 16px;">
+                <span style="font-size: 0.95rem; font-weight: 800; color: var(--text);">Manage Master Data</span>
+                <button onclick="document.getElementById('csv-upload-vendors').click()" style="background:var(--success); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:700; font-size:0.75rem; cursor:pointer;"><i class="fas fa-file-excel"></i> Bulk Vendors</button>
+                <input type="file" id="csv-upload-vendors" class="hidden" accept=".csv" onchange="handleVendorCSV(event)">
+            </div>
+            <div class="scroll-area" style="padding: 16px; display: flex; flex-direction: column; gap: 20px;">
+                <!-- Banks Section -->
+                <div style="background:white; border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+                    <div style="background:var(--bg); padding:10px; font-weight:800; border-bottom:1px solid var(--border);">1. Add Bank Account</div>
+                    <div style="padding:12px; display:flex; flex-direction:column; gap:10px;">
+                        <input type="text" id="add-bank-name" placeholder="Bank Name" style="padding:10px; border:1px solid var(--border); border-radius:4px; outline:none; font-weight:600;">
+                        <div style="display:flex; gap:10px;">
+                            <input type="number" id="add-bank-bal" placeholder="Opening Bal (₹)" style="flex:1; padding:10px; border:1px solid var(--border); border-radius:4px; outline:none; font-weight:600;">
+                            <input type="date" id="add-bank-date" style="flex:1; padding:10px; border:1px solid var(--border); border-radius:4px; outline:none; font-weight:600;">
+                        </div>
+                        <button onclick="saveAccBank()" style="background:var(--brand); color:white; border:none; padding:10px; border-radius:4px; font-weight:700; cursor:pointer;">Add Bank</button>
+                    </div>
+                    <div id="acc-bank-list" style="background:#F9FAFB; padding:10px; border-top:1px solid var(--border); font-size:0.8rem; display:flex; flex-direction:column; gap:6px;"></div>
+                </div>
+
+                <!-- Vendors Section -->
+                <div style="background:white; border:1px solid var(--border); border-radius:8px; overflow:hidden;">
+                    <div style="background:var(--bg); padding:10px; font-weight:800; border-bottom:1px solid var(--border);">2. Add Vendor</div>
+                    <div style="padding:12px; display:flex; gap:10px;">
+                        <input type="text" id="add-vendor-name" placeholder="Vendor Name" style="flex:1; padding:10px; border:1px solid var(--border); border-radius:4px; outline:none; font-weight:600;">
+                        <button onclick="saveAccVendor()" style="background:var(--brand); color:white; border:none; padding:10px 16px; border-radius:4px; font-weight:700; cursor:pointer;">Add</button>
+                    </div>
+                    <div id="acc-vendor-list" style="background:#F9FAFB; padding:10px; border-top:1px solid var(--border); font-size:0.8rem; display:flex; flex-direction:column; gap:6px; max-height:200px; overflow-y:auto;"></div>
                 </div>
             </div>
+        </div>
+
+        <!-- ENTRY TAB -->
+        <div id="view-acc-entry" class="tab-content hidden accountant-view">
+            <div class="pack-top-bar" style="justify-content: space-between; background: white; border-bottom: 1px solid var(--border); flex-shrink: 0; padding: 16px;">
+                <span style="font-size: 0.95rem; font-weight: 800; color: var(--text);">Transaction Entry</span>
+            </div>
+            <div class="scroll-area" style="padding: 16px;">
+                <div style="background:white; padding:16px; border-radius:8px; border:1px solid var(--border); box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Bank Account</span>
+                    <select id="acc-txn-bank" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:700; margin-bottom:12px; outline:none; background:#F9FAFB;"></select>
+
+                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Transaction Type</span>
+                    <select id="acc-txn-type" onchange="toggleAccVendorDropdown()" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:700; margin-bottom:12px; outline:none; background:#F9FAFB;">
+                        <option value="OUT">Cheque Issued (Pending Clearance)</option>
+                        <option value="IN">Cash Injected (Instant Clear)</option>
+                    </select>
+
+                    <div id="acc-vendor-wrap">
+                        <span class="step-lbl" style="display:block; margin-bottom:6px;">Select Vendor</span>
+                        <select id="acc-txn-vendor" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:700; margin-bottom:12px; outline:none; background:#F9FAFB;"></select>
+                    </div>
+
+                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Issue Date</span>
+                    <input type="date" id="acc-txn-date" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:700; margin-bottom:12px; outline:none;">
+
+                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Amount (₹)</span>
+                    <input type="number" id="acc-txn-amount" placeholder="0.00" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:12px; font-weight:800; margin-bottom:12px; outline:none; font-size:1.2rem; color:var(--brand);">
+
+                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Particulars / Cheque No.</span>
+                    <input type="text" id="acc-txn-note" placeholder="Details" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:600; margin-bottom:16px; outline:none;">
+
+                    <button onclick="saveAccountantTxn()" id="btn-acc-save" style="width:100%; background:var(--brand); color:white; border:none; padding:14px; border-radius:6px; font-weight:800; font-size:1.05rem; cursor:pointer;">Save Transaction</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 75/25 CALENDAR TAB -->
+        <div id="view-acc-calendar" class="tab-content hidden accountant-view" style="background:var(--bg); flex-direction: row; overflow:hidden;">
+            <!-- LEFT: 75% CALENDAR -->
+            <div style="flex: 0 0 72%; display: flex; flex-direction: column; border-right: 1px solid var(--border); background: white;">
+                <div class="acc-cal-header" style="padding: 10px;">
+                    <i class="fas fa-chevron-left" onclick="changeAccMonth(-1)" style="cursor:pointer; padding:8px; color:var(--brand);"></i>
+                    <div id="acc-cal-title" style="font-size:0.95rem;">Month YYYY</div>
+                    <i class="fas fa-chevron-right" onclick="changeAccMonth(1)" style="cursor:pointer; padding:8px; color:var(--brand);"></i>
+                </div>
+                <div class="acc-cal-grid" style="border-bottom:none;">
+                    <div class="acc-cal-day-header">SUN</div><div class="acc-cal-day-header">MON</div><div class="acc-cal-day-header">TUE</div><div class="acc-cal-day-header">WED</div><div class="acc-cal-day-header">THU</div><div class="acc-cal-day-header">FRI</div><div class="acc-cal-day-header">SAT</div>
+                </div>
+                <div class="acc-cal-grid" id="acc-cal-days" style="flex: 1; grid-auto-rows: 1fr; overflow: hidden;"></div>
+            </div>
+            
+            <!-- RIGHT: 28% DETAILS PANEL -->
+            <div style="flex: 0 0 28%; background: #F9FAFB; display: flex; flex-direction: column; overflow-y: auto; padding: 6px;">
+                <div id="acc-day-details-title" style="font-weight: 800; color: var(--brand); margin-bottom: 8px; font-size: 0.75rem; text-align: center; border-bottom: 1px solid var(--border); padding-bottom: 6px;">Select Date</div>
+                <div id="acc-day-details-list" style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-size:0.65rem; color:var(--text-mut); text-align:center;">Tap a day</div>
+                </div>
+            </div>
+        </div>
+
+       <!-- ========================================== -->
+        <!-- MODERN PROFILE & ATTENDANCE                -->
+        <!-- ========================================== -->
+        <div id="view-profile" class="tab-content hidden shared-view" style="background: white;">
+            <div class="prof-wrapper">
+                <div class="prof-avatar-ring">
+                    <div class="prof-avatar-inner"><i class="fas fa-user"></i></div>
+                </div>
+                <div class="prof-name" id="prof-name">User Name</div>
+                <div class="prof-email" id="prof-email">email@domain.com</div>
+                <div class="prof-role" id="prof-role-pill">ROLE</div>
+
+                <div id="att-status-text" style="font-size: 0.8rem; color: var(--success); font-weight: 700; margin-bottom: 20px; display: none;"></div>
+
+                <div class="prof-menu">
+                    <!-- Mark Attendance Button -->
+                    <button id="btn-mark-att" class="prof-menu-item" onclick="markMyAttendance()">
+                        <div class="prof-menu-left">
+                            <div class="prof-icon-box pi-blue"><i class="fas fa-map-marker-alt"></i></div>
+                            <div class="prof-menu-text" id="btn-mark-text">Mark Attendance</div>
+                        </div>
+                        <div class="prof-chev"><i class="fas fa-chevron-right"></i></div>
+                    </button>
+
+                    <!-- My Attendance History -->
+                    <div class="prof-menu-item" onclick="viewMyAttendanceHistory()">
+                        <div class="prof-menu-left">
+                            <div class="prof-icon-box pi-blue"><i class="fas fa-calendar-alt"></i></div>
+                            <div class="prof-menu-text">My Attendance</div>
+                        </div>
+                        <div class="prof-chev"><i class="fas fa-chevron-right"></i></div>
+                    </div>
+
+                    <!-- Spacer -->
+                    <div style="height: 15px;"></div>
+
+                    <!-- Log Out -->
+                    <div class="prof-menu-item" onclick="handleLogout()">
+                        <div class="prof-menu-left">
+                            <div class="prof-icon-box pi-red"><i class="fas fa-sign-out-alt"></i></div>
+                            <div class="prof-menu-text">Log out</div>
+                        </div>
+                        <div class="prof-chev"><i class="fas fa-chevron-right"></i></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- MY ATTENDANCE HISTORY MODAL -->
+        <div id="my-att-modal" class="order-view hidden" style="z-index: 3500; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="closeModal('my-att-modal')" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center"><div class="ov-title">My Attendance</div></div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            <div style="display:flex; justify-content:center; gap:10px; padding:12px; background:white; border-bottom:1px solid var(--border);">
+                <input type="month" id="my-att-month" onchange="renderMyAttendanceHistory()" style="border:1px solid var(--border); border-radius:4px; padding:6px 12px; font-weight:700; outline:none;">
+            </div>
+            <div class="scroll-area" style="padding: 16px;" id="my-att-feed"></div>
         </div>
 
         <!-- Role Navs -->
@@ -960,6 +1200,19 @@
             <div class="nav-item" onclick="switchTab('batching')" data-target="batching"><i class="fas fa-layer-group"></i>Batch</div>
             <div class="nav-item" onclick="switchTab('bill-hist')" data-target="bill-hist"><i class="fas fa-check-circle"></i>History</div>
             <div class="nav-item" onclick="switchTab('bill-col')" data-target="bill-col"><i class="fas fa-rupee-sign"></i>Collects</div>
+            <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
+        </div>
+
+        <div class="bottom-nav accountant-nav hidden">
+            <div class="nav-item active" onclick="switchTab('acc-entry')" data-target="acc-entry"><i class="fas fa-money-check-alt"></i>Entry</div>
+            <div class="nav-item" onclick="switchTab('acc-calendar')" data-target="acc-calendar"><i class="fas fa-calendar-alt"></i>Calendar</div>
+            <div class="nav-item" onclick="switchTab('acc-pending')" data-target="acc-pending"><i class="fas fa-clock"></i>Pending</div>
+            <div class="nav-item" onclick="switchTab('acc-manage')" data-target="acc-manage"><i class="fas fa-cog"></i>Manage</div>
+            <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
+        </div>
+
+        <div class="bottom-nav driver-nav hidden">
+            <div class="nav-item active" onclick="switchTab('delivery')" data-target="delivery"><i class="fas fa-truck"></i>Deliveries</div>
             <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
         </div>
     </div> <!-- END OF MAIN APP -->
@@ -1347,6 +1600,17 @@
                     if (data) PROFILES = data;
                 }));
 
+                // Fetch Global Shop Coordinates
+                fetchTasks.push(sbClient.from('shop_settings').select('*').eq('id', 1).single().then(({data}) => {
+                    if (data && data.lat) window.SHOP_LOCATION = data;
+                }));
+
+                // Fetch Personal Attendance for Profile Tab
+                const currentUserId = userSession ? userSession.user.id : "local_dev";
+                fetchTasks.push(sbClient.from('attendance').select('*').eq('user_id', currentUserId).then(({data}) => {
+                    if (data) window.MY_ATTENDANCE = data;
+                }));
+
                 fetchTasks.push((async () => {
                     let itemsData = []; let iMore = true; let iPage = 0;
                     while (iMore) {
@@ -1391,10 +1655,32 @@
                     })());
                 }
 
+                if (currentUserRole === 'Admin') {
+                    fetchTasks.push(sbClient.from('attendance').select('*').then(({data}) => {
+                        if (data) window.ALL_ATTENDANCE = data;
+                    }));
+                } else if (currentUserRole === 'Accountant') {
+                    fetchTasks.push(sbClient.from('bank_transactions').select('*').order('trans_date', { ascending: false }).then(({data}) => {
+                        if (data) window.BANK_TXNS = data;
+                    }));
+                    fetchTasks.push(sbClient.from('banks').select('*').then(({data}) => {
+                        if (data) window.BANKS = data;
+                    }));
+                    fetchTasks.push(sbClient.from('vendors').select('*').then(({data}) => {
+                        if (data) window.VENDORS = data;
+                    }));
+                }
+
                 await Promise.all(fetchTasks); // Fetches everything above simultaneously
 
             } catch (e) { console.warn("Cloud Fetch Failed: ", e); }
         }
+
+        // Ensure global variables exist
+        window.BANK_TXNS = window.BANK_TXNS || [];
+        window.SHOP_LOCATION = { lat: 0, lng: 0 };
+        window.MY_ATTENDANCE = [];
+        window.ALL_ATTENDANCE = [];
 
         function switchRole(role) {
             currentUserRole = role;
@@ -1405,7 +1691,25 @@
             if(role === 'Admin') profTitle = 'System Admin';
             if(role === 'Packing') profTitle = 'Packer';
             if(role === 'Billing') profTitle = 'Billing Dept';
-            document.getElementById('prof-name').innerText = profTitle;
+            if(role === 'Accountant') profTitle = 'Accountant';
+            if(role === 'Driver') profTitle = 'Driver';
+            
+            document.getElementById('prof-name').innerText = currentUserFullName;
+            document.getElementById('prof-role-pill').innerText = role;
+            if(userSession && userSession.user) {
+                document.getElementById('prof-email').innerText = userSession.user.email;
+            }
+
+            // Update Profile Tab Attendance Status immediately
+            const todayStr = new Date().toISOString().split('T')[0];
+            const todayAtt = window.MY_ATTENDANCE.find(a => a.date === todayStr);
+            if (todayAtt) {
+                const tObj = new Date(todayAtt.check_in_time);
+                const attText = document.getElementById('att-status-text');
+                attText.innerText = `Checked in today at ${tObj.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                attText.style.display = 'block';
+                document.getElementById('btn-mark-att').style.display = 'none';
+            }
             
             applyRoleUI();
         }
@@ -1416,16 +1720,21 @@
             const aNav = document.querySelector('.admin-nav');
             const pNav = document.querySelector('.packing-nav');
             const bNav = document.querySelector('.billing-nav');
+            const dNav = document.querySelector('.delivery-nav');
+            const accNav = document.querySelector('.accountant-nav');
+            const drvNav = document.querySelector('.driver-nav');
 
             if(sNav) sNav.classList.add('hidden');
             if(mNav) mNav.classList.add('hidden');
             if(aNav) aNav.classList.add('hidden');
             if(pNav) pNav.classList.add('hidden');
             if(bNav) bNav.classList.add('hidden');
+            if(dNav) dNav.classList.add('hidden');
+            if(accNav) accNav.classList.add('hidden');
+            if(drvNav) drvNav.classList.add('hidden');
             
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             
-            // Build the Salesman Packing History Strip
             const smPackStrip = document.getElementById('salesman-pack-hist-strip');
             if (smPackStrip) {
                 if (currentUserRole === 'Salesman') {
@@ -1435,9 +1744,7 @@
                             <i class="fas fa-chevron-right" style="color: var(--brand); font-size: 0.85rem;"></i>
                         </div>
                     `;
-                } else {
-                    smPackStrip.innerHTML = ''; // Hide for everyone else
-                }
+                } else { smPackStrip.innerHTML = ''; }
             }
 
             if(currentUserRole === 'Salesman') {
@@ -1450,19 +1757,18 @@
                 if(typeof renderCatalogCats === 'function') renderCatalogCats();
                 if(typeof renderCatalogView === 'function') renderCatalogView();
                 switchTab('catalog');
-            } else if (currentUserRole === 'Admin') {
+           } else if (currentUserRole === 'Admin') {
                 if(aNav) aNav.classList.remove('hidden');
                 catalogCat = "All"; 
                 if(typeof renderCatalogCats === 'function') renderCatalogCats();
                 if(typeof renderCatalogView === 'function') renderCatalogView();
                 if(typeof renderPricingTable === 'function') renderPricingTable();
-                switchTab('dashboard'); 
+                switchTab('dashboard');
             } else if (currentUserRole === 'Packing') {
                 if(pNav) pNav.classList.remove('hidden');
                 if(typeof renderPackingOrders === 'function') renderPackingOrders();
                 switchTab('packing');
             } else if (currentUserRole === 'Delivery') {
-                const dNav = document.querySelector('.delivery-nav');
                 if(dNav) dNav.classList.remove('hidden');
                 if(typeof renderPackingOrders === 'function') renderPackingOrders();
                 switchTab('packing');
@@ -1470,6 +1776,14 @@
                 if(bNav) bNav.classList.remove('hidden');
                 if(typeof renderBillingOrders === 'function') renderBillingOrders();
                 switchTab('billing');
+            } else if (currentUserRole === 'Accountant') {
+                if(accNav) accNav.classList.remove('hidden');
+                const dInput = document.getElementById('acc-txn-date');
+                if(dInput) dInput.value = new Date().toISOString().split('T')[0];
+                switchTab('acc-entry');
+            } else if (currentUserRole === 'Driver') {
+                if(drvNav) drvNav.classList.remove('hidden');
+                switchTab('delivery');
             }
         }
 
@@ -1486,6 +1800,8 @@
             if (currentUserRole === 'Packing') activeNav = document.querySelector('.packing-nav');
             if (currentUserRole === 'Delivery') activeNav = document.querySelector('.delivery-nav');
             if (currentUserRole === 'Billing') activeNav = document.querySelector('.billing-nav');
+            if (currentUserRole === 'Accountant') activeNav = document.querySelector('.accountant-nav');
+            if (currentUserRole === 'Driver') activeNav = document.querySelector('.driver-nav');
             
             if (activeNav) {
                 const navBtn = activeNav.querySelector(`[data-target="${tabId}"]`);
@@ -1504,8 +1820,9 @@
             if (tabId === 'batching' && currentUserRole === 'Billing') fetchBatchingData();
             if (tabId === 'bill-hist' && currentUserRole === 'Billing') renderBillingHistory();
             if (tabId === 'bill-col' && currentUserRole === 'Billing') renderBillingCollections();
-            if (tabId === 'delivery' && currentUserRole === 'Delivery') renderDelivery();
+            if (tabId === 'delivery' && (currentUserRole === 'Delivery' || currentUserRole === 'Driver')) renderDelivery();
             if (tabId === 'del-hist' && currentUserRole === 'Delivery') renderDelHistory();
+            if (tabId === 'acc-calendar' && currentUserRole === 'Accountant') initAccCalendar();
         }
 
         /* --- ADMIN DASHBOARD ROUTING --- */
@@ -1523,6 +1840,21 @@
                 renderAdminCreditDash(true);
                 document.getElementById('admin-credit-app').classList.remove('hidden');
             }
+             else if (app === 'hr') {
+                const todayStr = new Date().toISOString().split('T')[0];
+                document.getElementById('hr-today-date').value = todayStr;
+                
+                // Populate Employee Select Dropdown
+                const sel = document.getElementById('hr-emp-select');
+                sel.innerHTML = PROFILES.map(p => `<option value="${p.id}">${p.full_name}</option>`).join('');
+                document.getElementById('hr-month-select').value = todayStr.substring(0,7); // YYYY-MM
+                
+                document.getElementById('hr-shop-lat').value = window.SHOP_LOCATION.lat || '';
+                document.getElementById('hr-shop-lng').value = window.SHOP_LOCATION.lng || '';
+                
+                switchHRTab('today');
+                document.getElementById('admin-hr-app').classList.remove('hidden');
+            }
         }
         function closeAdminDashboardApp(app) {
             if (app === 'live') {
@@ -1533,6 +1865,9 @@
                 document.getElementById('admin-delivery-app').classList.add('hidden');
             } else if (app === 'credit') {
                 document.getElementById('admin-credit-app').classList.add('hidden');
+            }
+             else if (app === 'hr') {
+                document.getElementById('admin-hr-app').classList.add('hidden');
             }
         }
 
@@ -1993,6 +2328,9 @@
         }
 
         let ALL_COLLECTIONS = []; // Global collections for billing
+        let BANK_TXNS = [];
+        let BANKS = [];
+        let VENDORS = [];
         let offlineDeliveries = []; // Offline sync queue
 
         function loadState() {
@@ -4122,16 +4460,17 @@
                 } else {
                     let nextStopBadge = '';
                     let markNextBtn = '';
+                    const isDriver = (currentUserRole === 'Driver');
 
                     if (order.is_next_stop) {
                         nextStopBadge = `<div style="margin-bottom: 6px;"><span style="background: #FEF08A; color: #854D0E; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-location-dot"></i> NEXT DESTINATION</span></div>`;
-                    } else if (!hasNextStop) {
-                        // Only show this button if NO order is marked as next
+                    } else if (!hasNextStop && !isDriver) {
+                        // Drivers cannot mark as next
                         markNextBtn = `<div style="margin-top: 8px;"><button onclick="event.stopPropagation(); setNextStop('${order.id}', '${order.batch_id}')" style="background: white; color: var(--text-mut); border: 1px solid var(--border-dark); padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-map-marker-alt"></i> Mark as Next</button></div>`;
                     }
                     
                     return `
-                    <div style="background: white; border-radius: 6px; border: 1px solid ${order.is_next_stop ? '#FDE047' : 'var(--border)'}; margin-bottom: 10px; padding: 14px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);" onclick="openDeliveryStop('${order.id}')">
+                    <div style="background: white; border-radius: 6px; border: 1px solid ${order.is_next_stop ? '#FDE047' : 'var(--border)'}; margin-bottom: 10px; padding: 14px; cursor:${isDriver ? 'default' : 'pointer'}; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);" ${isDriver ? '' : `onclick="openDeliveryStop('${order.id}')"`}>
                         <div style="flex:1; padding-right: 10px;">
                             ${nextStopBadge}
                             <div style="font-weight: 800; font-size: 1rem; color:var(--text); margin-bottom: 4px;">${custName}</div>
@@ -4140,7 +4479,10 @@
                         </div>
                         <div style="text-align:right;">
                             <div style="font-weight: 800; font-size: 1.1rem; color:var(--text); margin-bottom:6px;">₹${fmt(order.amount)}</div>
-                            <span style="background:var(--warning); color:white; padding: 4px 10px; border-radius:4px; font-size:0.75rem; font-weight:700; display:inline-block;">Deliver <i class="fas fa-chevron-right" style="margin-left:4px;"></i></span>
+                            ${isDriver 
+                                ? `<span style="background:var(--brand-light); color:var(--brand); border: 1px solid var(--brand); padding: 4px 10px; border-radius:4px; font-size:0.75rem; font-weight:700; display:inline-block;">Loaded</span>`
+                                : `<span style="background:var(--warning); color:white; padding: 4px 10px; border-radius:4px; font-size:0.75rem; font-weight:700; display:inline-block;">Deliver <i class="fas fa-chevron-right" style="margin-left:4px;"></i></span>`
+                            }
                         </div>
                     </div>`;
                 }
@@ -6606,6 +6948,539 @@
                 document.getElementById('csv-upload-margins').value = ""; 
             }; reader.readAsText(file);
         }
+
+        /* ========================================== */
+        /* ACCOUNTANT LOGIC                           */
+        /* ========================================== */
+        let currAccMonth = new Date().getMonth();
+        let currAccYear = new Date().getFullYear();
+        let selectedAccDate = null;
+
+        function renderAccManage() {
+            // Render Banks
+            const bList = document.getElementById('acc-bank-list');
+            bList.innerHTML = window.BANKS.length === 0 ? "No banks added." : window.BANKS.map(b => {
+                // Calculate current balance (Opening + Cash IN - Cleared Cheque OUT)
+                let currBal = b.opening_balance || 0;
+                window.BANK_TXNS.forEach(t => {
+                    if (t.bank_id === b.id && t.status === 'Cleared') {
+                        if (t.type === 'IN') currBal += t.amount;
+                        if (t.type === 'OUT') currBal -= t.amount;
+                    }
+                });
+                return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #E5E7EB;">
+                    <span style="font-weight:700;">${b.name}</span>
+                    <span style="color:var(--brand); font-weight:800;">₹${fmt(currBal)}</span>
+                </div>`;
+            }).join('');
+
+            // Render Vendors
+            const vList = document.getElementById('acc-vendor-list');
+            vList.innerHTML = window.VENDORS.length === 0 ? "No vendors added." : window.VENDORS.map(v => 
+                `<div style="padding:4px 0; border-bottom:1px solid #E5E7EB; font-weight:600;">${v.name}</div>`
+            ).join('');
+        }
+
+        async function saveAccBank() {
+            const name = document.getElementById('add-bank-name').value;
+            const bal = parseFloat(document.getElementById('add-bank-bal').value) || 0;
+            const d = document.getElementById('add-bank-date').value;
+            if (!name || !d) { alert("Enter Name and Date!"); return; }
+
+            const payload = { id: 'BNK'+Date.now(), name, opening_balance: bal, as_of_date: d };
+            await sbClient.from('banks').insert([payload]);
+            window.BANKS.push(payload);
+            document.getElementById('add-bank-name').value = ''; document.getElementById('add-bank-bal').value = '';
+            renderAccManage(); renderAccEntry();
+        }
+
+        async function saveAccVendor() {
+            const name = document.getElementById('add-vendor-name').value;
+            if (!name) return;
+            const payload = { id: 'VND'+Date.now(), name };
+            await sbClient.from('vendors').insert([payload]);
+            window.VENDORS.push(payload);
+            document.getElementById('add-vendor-name').value = '';
+            renderAccManage(); renderAccEntry();
+        }
+
+        async function handleVendorCSV(event) {
+            const file = event.target.files[0]; if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async function(e) {
+                const rows = e.target.result.split('\n'); let upsertData = [];
+                for(let i=1; i<rows.length; i++) {
+                    const vName = rows[i].trim();
+                    if(vName) upsertData.push({ id: 'VND'+Date.now()+i, name: vName });
+                }
+                await sbClient.from('vendors').upsert(upsertData);
+                window.VENDORS.push(...upsertData);
+                alert(`${upsertData.length} vendors uploaded!`);
+                renderAccManage(); renderAccEntry();
+                document.getElementById('csv-upload-vendors').value = '';
+            }; reader.readAsText(file);
+        }
+
+        function renderAccEntry() {
+            const bSel = document.getElementById('acc-txn-bank');
+            bSel.innerHTML = window.BANKS.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+            const vSel = document.getElementById('acc-txn-vendor');
+            vSel.innerHTML = window.VENDORS.map(v => `<option value="${v.name}">${v.name}</option>`).join('');
+            toggleAccVendorDropdown();
+        }
+
+        function toggleAccVendorDropdown() {
+            const type = document.getElementById('acc-txn-type').value;
+            document.getElementById('acc-vendor-wrap').style.display = type === 'OUT' ? 'block' : 'none';
+        }
+
+        async function saveAccountantTxn() {
+            const bankId = document.getElementById('acc-txn-bank').value;
+            const type = document.getElementById('acc-txn-type').value;
+            const vendor = type === 'OUT' ? document.getElementById('acc-txn-vendor').value : null;
+            const date = document.getElementById('acc-txn-date').value;
+            const amt = parseFloat(document.getElementById('acc-txn-amount').value);
+            const note = document.getElementById('acc-txn-note').value;
+            
+            if (!bankId || !date || isNaN(amt) || amt <= 0 || !note) { showWarning("Invalid", "Fill all details."); return; }
+
+            const btn = document.getElementById('btn-acc-save');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            
+            // Cheques are pending until cleared. Cash is instant.
+            const status = type === 'OUT' ? 'Pending' : 'Cleared';
+
+            const payload = {
+                id: 'TXN' + Date.now(), bank_id: bankId, trans_date: date, type, amount: amt, 
+                particulars: note, vendor_name: vendor, status, created_at: new Date().toISOString()
+            };
+
+            try {
+                await sbClient.from('bank_transactions').insert([payload]);
+                window.BANK_TXNS.push(payload);
+                showSuccess("Saved successfully!");
+                document.getElementById('acc-txn-amount').value = ''; document.getElementById('acc-txn-note').value = '';
+            } catch(e) { showWarning("Failed", e.message); } 
+            finally { btn.innerHTML = 'Save Transaction'; }
+        }
+
+        function initAccCalendar() { renderAccCalendar(currAccMonth, currAccYear); }
+
+        function changeAccMonth(dir) {
+            currAccMonth += dir;
+            if (currAccMonth > 11) { currAccMonth = 0; currAccYear++; }
+            else if (currAccMonth < 0) { currAccMonth = 11; currAccYear--; }
+            renderAccCalendar(currAccMonth, currAccYear);
+        }
+
+        function renderAccCalendar(month, year) {
+            const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+            document.getElementById('acc-cal-title').innerText = `${monthNames[month]} ${year}`;
+            
+            const firstDay = new Date(year, month, 1).getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            
+            const totalCells = firstDay + daysInMonth;
+            const totalRows = Math.ceil(totalCells / 7);
+            const cellsToCompleteGrid = (totalRows * 7) - totalCells;
+
+            let html = '';
+            for (let i = 0; i < firstDay; i++) {
+                html += `<div class="acc-cal-day empty" style="min-height:0; padding:4px;"></div>`;
+            }
+
+            for (let d = 1; d <= daysInMonth; d++) {
+                const dateStr = `${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+                
+                let dayOut = 0; let dayIn = 0;
+                window.BANK_TXNS.forEach(txn => {
+                    // EFFECTIVE DATE LOGIC: If it's a Cleared Cheque, it moves to its cleared_date. Otherwise it stays on trans_date.
+                    const effDate = (txn.type === 'OUT' && txn.status === 'Cleared') ? txn.cleared_date : txn.trans_date;
+                    
+                    if (effDate === dateStr) {
+                        if (txn.type === 'OUT') dayOut += txn.amount;
+                        else if (txn.type === 'IN') dayIn += txn.amount;
+                    }
+                });
+
+                let indHtml = '';
+                if (dayIn > 0) indHtml += `<div class="acc-ind in" style="font-size:0.55rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; background:#DCFCE7; color:#166534;">+${Math.round(dayIn)}</div>`;
+                
+                if (dayOut > 0) {
+                    // COLOR CODING LOGIC FOR ISSUED/CLEARED TOTALS
+                    let outBg = '#DCFCE7'; let outCol = '#166534'; // Green (< 20000)
+                    if (dayOut > 50000) { outBg = '#FEE2E2'; outCol = '#991B1B'; } // Red
+                    else if (dayOut >= 20000) { outBg = '#FFEDD5'; outCol = '#9A3412'; } // Orange
+                    
+                    indHtml += `<div class="acc-ind out" style="font-size:0.55rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; background:${outBg}; color:${outCol};">-${Math.round(dayOut)}</div>`;
+                }
+
+                const activeClass = (selectedAccDate === dateStr) ? 'active' : '';
+
+                html += `
+                <div class="acc-cal-day ${activeClass}" id="cal-day-${dateStr}" onclick="selectAccDay('${dateStr}')" style="min-height:0; padding:4px;">
+                    <div class="acc-date-num" style="font-size:0.75rem;">${d}</div>
+                    <div style="flex:1; display:flex; flex-direction:column; justify-content:flex-end; min-height:0; gap:2px;">${indHtml}</div>
+                </div>`;
+            }
+
+            for (let i = 0; i < cellsToCompleteGrid; i++) {
+                html += `<div class="acc-cal-day empty" style="min-height:0; padding:4px;"></div>`;
+            }
+            
+            document.getElementById('acc-cal-days').innerHTML = html;
+            if (selectedAccDate && selectedAccDate.startsWith(`${year}-${String(month+1).padStart(2,'0')}`)) selectAccDay(selectedAccDate);
+        }
+
+        function selectAccDay(dateStr) {
+            selectedAccDate = dateStr;
+            document.querySelectorAll('.acc-cal-day').forEach(el => el.classList.remove('active'));
+            const el = document.getElementById(`cal-day-${dateStr}`);
+            if (el) el.classList.add('active');
+
+            const dObj = new Date(dateStr);
+            document.getElementById('acc-day-details-title').innerText = `${dObj.getDate()} ${dObj.toLocaleString('default', { month: 'short' })}`;
+
+            // Filter transactions that land on this exact date (using effective date)
+            const txns = window.BANK_TXNS.filter(t => {
+                const effDate = (t.type === 'OUT' && t.status === 'Cleared') ? t.cleared_date : t.trans_date;
+                return effDate === dateStr;
+            });
+            const list = document.getElementById('acc-day-details-list');
+
+            if (txns.length === 0) {
+                list.innerHTML = `<div style="font-size:0.65rem; color:var(--text-mut); text-align:center;">No scheduled data.</div>`;
+                return;
+            }
+
+            list.innerHTML = txns.map(t => {
+                const isOut = t.type === 'OUT';
+                const isPending = t.status === 'Pending';
+                
+                let actionHtml = '';
+                let statusBadge = '';
+
+                if (isOut && isPending) {
+                    statusBadge = `<div style="font-size:0.65rem; font-weight:800; color:#B45309; background:#FEF3C7; padding:2px 6px; border-radius:4px; display:inline-block;">ISSUED (PENDING)</div>`;
+                    actionHtml = `
+                    <div style="margin-top:6px; padding-top:6px; border-top:1px dashed var(--border-dark);">
+                        <div style="font-size:0.6rem; color:var(--text-mut); margin-bottom:2px;">Clearance Date:</div>
+                        <input type="date" id="clear-date-${t.id}" style="width:100%; font-size:0.65rem; padding:4px; margin-bottom:4px; border:1px solid var(--border); border-radius:4px;">
+                        <button onclick="markTxnCleared('${t.id}', 'calendar')" style="width:100%; background:var(--success); color:white; border:none; padding:4px; border-radius:4px; font-weight:700; font-size:0.65rem; cursor:pointer;">Mark Cleared</button>
+                    </div>`;
+                } else if (isOut && !isPending) {
+                    statusBadge = `<div style="font-size:0.65rem; font-weight:800; color:#166534; background:#DCFCE7; padding:2px 6px; border-radius:4px; display:inline-block;">CLEARED TODAY</div>`;
+                    actionHtml = `<div style="font-size:0.55rem; color:var(--text-mut); margin-top:4px;">(Originally issued on ${t.trans_date})</div>`;
+                } else {
+                    statusBadge = `<div style="font-size:0.65rem; font-weight:800; color:#166534; background:#DCFCE7; padding:2px 6px; border-radius:4px; display:inline-block;">CASH INJECTED</div>`;
+                }
+
+                return `
+                <div style="background:white; padding:8px; border-radius:6px; border:1px solid var(--border); margin-bottom:6px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                    <div style="font-weight:800; font-size:0.75rem; color:${isOut?'var(--accent)':'var(--success)'};">${isOut?'-':'+'}₹${fmt(t.amount)}</div>
+                    <div style="font-weight:700; font-size:0.65rem; color:var(--text); margin:4px 0;">${isOut ? t.vendor_name : 'CASH INJECT'}</div>
+                    ${statusBadge}
+                    <div style="font-size:0.6rem; color:var(--text-mut); line-height:1.2; margin-top:4px;">${t.particulars}</div>
+                    ${actionHtml}
+                </div>`;
+            }).join('');
+        }
+
+        function renderAccPending() {
+            const feed = document.getElementById('acc-pending-feed');
+            const totalEl = document.getElementById('acc-pending-total');
+            
+            // Get all pending outbound cheques and sort by oldest first
+            let pendingOut = window.BANK_TXNS.filter(t => t.type === 'OUT' && t.status === 'Pending');
+            pendingOut.sort((a, b) => new Date(a.trans_date) - new Date(b.trans_date));
+
+            let total = 0;
+            pendingOut.forEach(t => total += t.amount);
+            totalEl.innerText = `₹${fmt(total)}`;
+
+            if (pendingOut.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No pending cheques.</div>`;
+                return;
+            }
+
+            feed.innerHTML = pendingOut.map(t => {
+                return `
+                <div style="background:white; padding:14px; border-radius:8px; border:1px solid var(--border); margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="flex:1; padding-right:10px;">
+                            <div style="font-weight:800; font-size:1rem; color:var(--text);">${t.vendor_name}</div>
+                            <div style="font-size:0.75rem; color:var(--text-mut); margin-top:4px;">Issued: <b>${t.trans_date}</b></div>
+                            <div style="font-size:0.75rem; color:var(--text-mut); margin-top:2px;">${t.particulars}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="font-size:1.2rem; font-weight:800; color:var(--accent);">₹${fmt(t.amount)}</span>
+                        </div>
+                    </div>
+                    <div style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--border); display:flex; gap:10px;">
+                        <input type="date" id="pend-clear-date-${t.id}" style="flex:1; font-size:0.85rem; padding:8px; border:1px solid var(--border); border-radius:4px; outline:none;">
+                        <button onclick="markTxnCleared('${t.id}', 'pending')" style="background:var(--success); color:white; border:none; padding:8px 16px; border-radius:4px; font-weight:700; font-size:0.85rem; cursor:pointer;">Mark Cleared</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function markTxnCleared(id, source = 'calendar') {
+            const dateInputId = source === 'pending' ? `pend-clear-date-${id}` : `clear-date-${id}`;
+            const clearDate = document.getElementById(dateInputId).value;
+            
+            if (!clearDate) { alert("Please select a clearance date first."); return; }
+
+            try {
+                await sbClient.from('bank_transactions').update({ status: 'Cleared', cleared_date: clearDate }).eq('id', id);
+                
+                // Update local memory
+                const txn = window.BANK_TXNS.find(t => t.id === id);
+                if (txn) { txn.status = 'Cleared'; txn.cleared_date = clearDate; }
+                
+                // Refresh respective UI
+                if (source === 'calendar') {
+                    renderAccCalendar(currAccMonth, currAccYear); // Recalculate colors!
+                    selectAccDay(selectedAccDate); 
+                } else if (source === 'pending') {
+                    renderAccPending();
+                }
+                showSuccess("Cheque marked as Cleared!");
+            } catch(e) { alert("Failed to clear."); }
+        }
+
+        // --- HOOK TABS ---
+        const originalSwitchTab = switchTab;
+        switchTab = function(tabId) {
+            originalSwitchTab(tabId);
+            if (tabId === 'acc-manage' && currentUserRole === 'Accountant') renderAccManage();
+            if (tabId === 'acc-entry' && currentUserRole === 'Accountant') renderAccEntry();
+            if (tabId === 'acc-pending' && currentUserRole === 'Accountant') renderAccPending();
+        };
+        /* ========================================== */
+        /* HR & ATTENDANCE LOGIC                      */
+        /* ========================================== */
+
+        // Haversine formula to calculate exact distance in meters between two GPS coordinates
+        function getDistanceInMeters(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // Earth radius in meters
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        async function markMyAttendance() {
+            const btn = document.getElementById('btn-mark-att');
+            const btnText = document.getElementById('btn-mark-text');
+            
+            if (!window.SHOP_LOCATION || window.SHOP_LOCATION.lat === 0) {
+                showWarning("Configuration Error", "The shop location has not been set by the Admin yet. Cannot verify location.");
+                return;
+            }
+
+            if (!navigator.geolocation) {
+                showWarning("Error", "Geolocation is not supported by your browser.");
+                return;
+            }
+
+            btnText.innerHTML = '<i class="fas fa-spinner fa-spin" style="margin-right:4px;"></i> Verifying...';
+            btn.disabled = true;
+
+            navigator.geolocation.getCurrentPosition(async (position) => {
+                const myLat = position.coords.latitude;
+                const myLng = position.coords.longitude;
+                const shopLat = parseFloat(window.SHOP_LOCATION.lat);
+                const shopLng = parseFloat(window.SHOP_LOCATION.lng);
+
+                const distance = getDistanceInMeters(myLat, myLng, shopLat, shopLng);
+                
+                // STRICT 10 METER LIMIT (Given a 5 meter GPS drift buffer = 15m absolute strict cutoff)
+                if (distance > 15) {
+                    btnText.innerHTML = 'Mark Attendance';
+                    btn.disabled = false;
+                    showWarning("Too Far Away", `You are ${Math.round(distance)} meters away from the shop.<br><br>You must be within 10 meters to mark attendance.`);
+                    return;
+                }
+
+                // If within 10m, save to Supabase
+                const now = new Date();
+                const todayStr = now.toISOString().split('T')[0];
+                const userId = userSession.user.id;
+
+                const payload = {
+                    id: `ATT_${userId}_${todayStr}`,
+                    user_id: userId,
+                    date: todayStr,
+                    status: 'Present',
+                    check_in_time: now.toISOString(),
+                    lat: myLat,
+                    lng: myLng
+                };
+
+                try {
+                    const { error } = await sbClient.from('attendance').upsert([payload]);
+                    if (error) throw error;
+                    
+                    window.MY_ATTENDANCE.push(payload);
+                    const attText = document.getElementById('att-status-text');
+                    attText.innerText = `Checked in today at ${now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                    attText.style.display = 'block';
+                    btn.style.display = 'none';
+                    showSuccess("Attendance marked successfully!");
+
+                } catch(e) {
+                    showWarning("Network Error", "Failed to save attendance to the cloud.");
+                    btnText.innerHTML = 'Mark Attendance';
+                    btn.disabled = false;
+                }
+
+            }, (error) => {
+                btnText.innerHTML = 'Mark Attendance';
+                btn.disabled = false;
+                showWarning("GPS Error", "Please enable location services and give the app permission to access your location.");
+            }, { enableHighAccuracy: true });
+        }
+
+        function viewMyAttendanceHistory() {
+            const todayStr = new Date().toISOString().split('T')[0];
+            document.getElementById('my-att-month').value = todayStr.substring(0,7); // YYYY-MM
+            renderMyAttendanceHistory();
+            document.getElementById('my-att-modal').classList.remove('hidden');
+        }
+
+        function renderMyAttendanceHistory() {
+            const monthVal = document.getElementById('my-att-month').value; // YYYY-MM
+            const feed = document.getElementById('my-att-feed');
+            
+            const filtered = window.MY_ATTENDANCE.filter(a => a.date.startsWith(monthVal));
+            filtered.sort((a,b) => new Date(b.date) - new Date(a.date)); // Newest first
+
+            if (filtered.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No attendance records found for this month.</div>`;
+                return;
+            }
+
+            feed.innerHTML = filtered.map(a => {
+                const tObj = new Date(a.check_in_time);
+                return `
+                <div style="background: white; padding: 14px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 800; color: var(--text); font-size: 0.95rem;">${a.date}</div>
+                        <div style="font-size: 0.75rem; color: var(--text-mut); margin-top: 4px;"><i class="fas fa-clock"></i> In: ${tObj.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                    </div>
+                    <span style="background: #DCFCE7; color: #166534; padding: 4px 10px; border-radius: 4px; font-size: 0.75rem; font-weight: 800;">PRESENT</span>
+                </div>`;
+            }).join('');
+        }
+
+        /* --- ADMIN HR DASHBOARD LOGIC --- */
+        
+        function switchHRTab(tab) {
+            document.querySelectorAll('.hr-sub-nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`hr-nav-${tab}`).classList.add('active');
+            
+            document.getElementById('hr-view-today').classList.add('hidden');
+            document.getElementById('hr-view-monthly').classList.add('hidden');
+            document.getElementById('hr-view-settings').classList.add('hidden');
+            
+            document.getElementById(`hr-view-${tab}`).classList.remove('hidden');
+
+            if (tab === 'today') renderHRToday();
+            if (tab === 'monthly') renderHRMonthly();
+        }
+
+        function renderHRToday() {
+            const feed = document.getElementById('hr-today-feed');
+            const targetDate = document.getElementById('hr-today-date').value;
+            
+            // Get all employees from profiles
+            const employees = PROFILES.filter(p => p.role !== 'Admin'); // Hide admins from attendance
+            
+            feed.innerHTML = employees.map(emp => {
+                // Find if this employee marked attendance on this date
+                const att = window.ALL_ATTENDANCE.find(a => a.user_id === emp.id && a.date === targetDate);
+                
+                let statusUI = `<span style="background: #FEE2E2; color: #991B1B; padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 800;">ABSENT</span>`;
+                let subText = `Did not check in`;
+
+                if (att) {
+                    const tObj = new Date(att.check_in_time);
+                    statusUI = `<span style="background: #DCFCE7; color: #166534; padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 800;">PRESENT</span>`;
+                    subText = `Checked in at ${tObj.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                }
+
+                return `
+                <div style="background: white; padding: 14px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                    <div style="display:flex; align-items:center; gap: 12px;">
+                        <div style="width:40px; height:40px; background:var(--brand-light); color:var(--brand); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800;">
+                            ${emp.full_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                            <div style="font-weight: 800; font-size: 0.95rem; color: var(--text);">${emp.full_name}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-mut); margin-top: 2px;">${emp.role.toUpperCase()} | ${subText}</div>
+                        </div>
+                    </div>
+                    <div>${statusUI}</div>
+                </div>`;
+            }).join('');
+        }
+
+        function renderHRMonthly() {
+            const empId = document.getElementById('hr-emp-select').value;
+            const monthStr = document.getElementById('hr-month-select').value; // YYYY-MM
+            const feed = document.getElementById('hr-monthly-feed');
+
+            if (!empId || !monthStr) return;
+
+            const attList = window.ALL_ATTENDANCE.filter(a => a.user_id === empId && a.date.startsWith(monthStr));
+            attList.sort((a,b) => new Date(b.date) - new Date(a.date));
+
+            if (attList.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No attendance records found for this month.</div>`;
+                return;
+            }
+
+            feed.innerHTML = `<div style="font-size:0.85rem; font-weight:800; color:var(--brand); margin-bottom:12px; text-align:center;">Total Present: ${attList.length} Days</div>` + 
+            attList.map(a => {
+                const tObj = new Date(a.check_in_time);
+                return `
+                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-weight: 800; color: var(--text); font-size: 0.9rem;">${a.date}</div>
+                    <div style="font-size: 0.8rem; color: var(--success); font-weight:700;">In: ${tObj.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+                </div>`;
+            }).join('');
+        }
+
+        async function saveShopLocation() {
+            const lat = parseFloat(document.getElementById('hr-shop-lat').value);
+            const lng = parseFloat(document.getElementById('hr-shop-lng').value);
+
+            if (isNaN(lat) || isNaN(lng)) {
+                showWarning("Invalid", "Please enter valid coordinates."); return;
+            }
+
+            try {
+                await sbClient.from('shop_settings').upsert([{ id: 1, lat: lat, lng: lng }]);
+                window.SHOP_LOCATION = { lat, lng };
+                showSuccess("Shop location updated. Geofencing is now active!");
+            } catch(e) { showWarning("Error", "Could not save to cloud."); }
+        }
+
+        function autoDetectShopLocation() {
+            if (!navigator.geolocation) {
+                showWarning("Error", "Geolocation is not supported by your browser."); return;
+            }
+            navigator.geolocation.getCurrentPosition((pos) => {
+                document.getElementById('hr-shop-lat').value = pos.coords.latitude.toFixed(6);
+                document.getElementById('hr-shop-lng').value = pos.coords.longitude.toFixed(6);
+            }, () => {
+                showWarning("Error", "Could not get location. Ensure GPS is on.");
+            }, { enableHighAccuracy: true });
+        }
+
     </script>
 </body>
 </html>
