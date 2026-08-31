@@ -354,6 +354,21 @@
         </div>
     </div>
 
+    <!-- NEXT DESTINATION MODAL -->
+    <div id="next-stop-modal" class="modal-overlay hidden" style="z-index: 4500;">
+        <div class="modal-content" style="max-width: 350px;">
+            <div class="modal-header">
+                <span>Select Next Destination</span>
+                <i class="fas fa-times" onclick="closeModal('next-stop-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
+            </div>
+            <div class="modal-body">
+                <p style="font-size: 0.85rem; color:var(--text-mut); margin-bottom: 10px;">Delivery successful! Where are you heading next?</p>
+                <div id="next-stop-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
+                <button onclick="closeModal('next-stop-modal')" style="width: 100%; background: var(--bg); color: var(--text); border: 1px solid var(--border); padding: 12px; border-radius: 6px; font-weight: 700; cursor: pointer; margin-top: 10px;">Skip / Decide Later</button>
+            </div>
+        </div>
+    </div>
+
     <!-- DELIVERY CONFIRM MODAL -->
     <div id="del-confirm-modal" class="modal-overlay hidden" style="z-index: 4000;">
         <div class="modal-content" style="max-width: 320px;">
@@ -1554,10 +1569,54 @@
                 const totalAmt = b.stops.reduce((sum, s) => sum + (s.amount || 0), 0);
                 const isComplete = totalStops > 0 && deliveredStops === totalStops;
 
+                // Extract Salesmen Names
+                const smSet = new Set();
+                
+                // 1. Try to find actual Salesman profiles from linked App Orders
+                const linkedOrders = (SUBMITTED_ORDERS || []).filter(o => o.batch_id === b.id);
+                linkedOrders.forEach(o => {
+                    if (o.salesman_id && o.salesman_id !== 'local_dev') {
+                        const p = PROFILES.find(p => p.id === o.salesman_id);
+                        if (p && p.full_name) smSet.add(p.full_name.split(' ')[0].toUpperCase());
+                    }
+                });
+
+                // 2. If no app orders, fallback to customer subgroups safely
+                if (smSet.size === 0) {
+                    b.stops.forEach(s => {
+                        const sName = (s.customer_name || '').trim().toUpperCase();
+                        const sCode = (s.customer_code || '').trim().toUpperCase();
+                        
+                        const cust = CUSTOMERS.find(c => {
+                            const cName = (c.name || '').trim().toUpperCase();
+                            const cCode = (c.code || '').trim().toUpperCase();
+                            return cName === sName || cCode === sName || (sCode && cCode === sCode);
+                        });
+
+                        if (cust && cust.subgroup) {
+                            let sg = cust.subgroup.trim().toUpperCase();
+                            if (sg.includes('SUNNY')) smSet.add('SUNNY');
+                            else if (sg.includes('RIYAS')) smSet.add('RIYAS');
+                            else if (sg.includes('METRO')) smSet.add('METRO');
+                            else smSet.add(sg);
+                        } else {
+                            smSet.add('COUNTER');
+                        }
+                    });
+                }
+                
+                let smHtml = '';
+                if (smSet.size > 0) {
+                    smHtml = `<div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;">` + 
+                        Array.from(smSet).map(sm => `<span style="background: #F3F4F6; color: var(--text-mut); font-size: 0.65rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border);"><i class="fas fa-user-tie" style="margin-right:4px;"></i>${sm}</span>`).join('') + 
+                    `</div>`;
+                }
+
                 return `
                 <div style="background: white; border-radius: 6px; border: 1px solid ${isComplete ? 'var(--success)' : 'var(--border)'}; margin-bottom: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; cursor:pointer; box-shadow:0 1px 3px rgba(0,0,0,0.05);" onclick="openAdminDeliveryBatch('${b.id}')">
                     <div style="flex:1;">
                         <div style="font-weight: 800; font-size: 1.15rem; color:var(--brand); margin-bottom: 6px;">${b.id}</div>
+                        ${smHtml}
                         <div style="font-size: 0.8rem; color:var(--text-mut); font-weight:700;">
                             <span style="color:${isComplete ? 'var(--success)' : '#B45309'}; font-weight:800; font-size:0.95rem;">${deliveredStops} / ${totalStops}</span> Stops Done
                         </div>
@@ -1597,13 +1656,53 @@
                 const bg = isDelivered ? '#F0FDF4' : 'white';
                 const border = isDelivered ? '#BBF7D0' : 'var(--border)';
 
+                // Extract Salesman Name for this specific order safely
+                let smName = 'COUNTER'; 
+                const sName = (s.customer_name || '').trim().toUpperCase();
+                const sCode = (s.customer_code || '').trim().toUpperCase();
+
+                const linkedOrder = (SUBMITTED_ORDERS || []).find(o => {
+                    if (o.batch_id !== batchId) return false;
+                    const oCode = (o.customer_code || '').trim().toUpperCase();
+                    const cRef = CUSTOMERS.find(c => (c.code || '').trim().toUpperCase() === oCode);
+                    const oName = cRef ? (cRef.name || '').trim().toUpperCase() : '';
+                    return oCode === sCode || oCode === sName || oName === sName;
+                });
+                
+                if (linkedOrder && linkedOrder.salesman_id && linkedOrder.salesman_id !== 'local_dev') {
+                    const p = PROFILES.find(p => p.id === linkedOrder.salesman_id);
+                    if (p && p.full_name) smName = p.full_name.split(' ')[0].toUpperCase();
+                } else {
+                    const cust = CUSTOMERS.find(c => {
+                        const cName = (c.name || '').trim().toUpperCase();
+                        const cCode = (c.code || '').trim().toUpperCase();
+                        return cName === sName || cCode === sName || (sCode && cCode === sCode);
+                    });
+                    
+                    if (cust && cust.subgroup) {
+                        let sg = cust.subgroup.trim().toUpperCase();
+                        if (sg.includes('SUNNY')) smName = 'SUNNY';
+                        else if (sg.includes('RIYAS')) smName = 'RIYAS';
+                        else if (sg.includes('METRO')) smName = 'METRO';
+                        else smName = sg;
+                    }
+                }
+
+                let nextStopBadge = '';
+                if (s.is_next_stop && !isDelivered) {
+                    nextStopBadge = `<div style="margin-bottom: 4px;"><span style="background: #FEF08A; color: #854D0E; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-location-dot"></i> DRIVER HEADING HERE</span></div>`;
+                }
+
                 return `
-                <div style="background: ${bg}; padding: 14px; border-radius: 6px; border: 1px solid ${border}; margin-bottom: 10px;">
+                <div style="background: ${bg}; padding: 14px; border-radius: 6px; border: 1px solid ${s.is_next_stop && !isDelivered ? '#FDE047' : border}; margin-bottom: 10px;">
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <div style="color:var(--text); font-weight:800; font-size:0.95rem; flex:1; padding-right:10px;">
+                            ${nextStopBadge}
                             ${s.customer_name}
-                            <div style="font-size:0.75rem; color:var(--text-mut); margin-top:6px;">
-                                <i class="fas fa-file-invoice" style="margin-right:2px;"></i> ${s.document_numbers ? s.document_numbers.join(', ') : ''}
+                            <div style="font-size:0.75rem; color:var(--text-mut); margin-top:6px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                <span><i class="fas fa-file-invoice" style="margin-right:2px;"></i> ${s.document_numbers ? s.document_numbers.join(', ') : ''}</span>
+                                <span style="opacity: 0.4;">|</span>
+                                <span style="font-weight: 700; color: var(--brand);"><i class="fas fa-user-tie" style="margin-right:2px;"></i> ${smName}</span>
                             </div>
                         </div>
                         <div style="text-align:right; flex-shrink:0;">
@@ -3540,15 +3639,22 @@
                 const bills = {};
                 currentBatchingSales.forEach(s => {
                     if(!bills[s.document_number]) {
-                        // Find subgroup dynamically
-                        const cust = CUSTOMERS.find(c => c.name.toLowerCase() === s.customer_name.toLowerCase());
+                        // Find subgroup dynamically safely
+                        const sName = (s.customer_name || '').trim().toUpperCase();
+                        const cust = CUSTOMERS.find(c => {
+                            const cName = (c.name || '').trim().toUpperCase();
+                            const cCode = (c.code || '').trim().toUpperCase();
+                            return cName === sName || cCode === sName;
+                        });
+                        
                         const rawSub = cust ? cust.subgroup : null;
                         let sg = 'COUNTER';
                         if (rawSub) {
-                            const up = rawSub.toUpperCase();
+                            const up = rawSub.trim().toUpperCase();
                             if (up.includes('SUNNY')) sg = 'SUNNY';
                             else if (up.includes('RIYAS')) sg = 'RIYAS';
                             else if (up.includes('METRO')) sg = 'METRO';
+                            else sg = up; // Retain original if unique
                         }
                         
                         bills[s.document_number] = { 
@@ -3997,6 +4103,9 @@
                 return;
             }
 
+            // Check if ANY stop is currently marked as next
+            const hasNextStop = batchOrders.some(o => o.is_next_stop && o.status === 'Loaded');
+
             list.innerHTML = batchOrders.map((order, idx) => {
                 const custName = order.customer_name || CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
                 const billsStr = order.document_numbers ? order.document_numbers.join(', ') : '';
@@ -4011,11 +4120,23 @@
                         </div>
                     </div>`;
                 } else {
+                    let nextStopBadge = '';
+                    let markNextBtn = '';
+
+                    if (order.is_next_stop) {
+                        nextStopBadge = `<div style="margin-bottom: 6px;"><span style="background: #FEF08A; color: #854D0E; padding: 3px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-location-dot"></i> NEXT DESTINATION</span></div>`;
+                    } else if (!hasNextStop) {
+                        // Only show this button if NO order is marked as next
+                        markNextBtn = `<div style="margin-top: 8px;"><button onclick="event.stopPropagation(); setNextStop('${order.id}', '${order.batch_id}')" style="background: white; color: var(--text-mut); border: 1px solid var(--border-dark); padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-map-marker-alt"></i> Mark as Next</button></div>`;
+                    }
+                    
                     return `
-                    <div style="background: white; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; padding: 14px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 2px rgba(0,0,0,0.02);" onclick="openDeliveryStop('${order.id}')">
-                        <div style="flex:1;">
+                    <div style="background: white; border-radius: 6px; border: 1px solid ${order.is_next_stop ? '#FDE047' : 'var(--border)'}; margin-bottom: 10px; padding: 14px; cursor:pointer; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);" onclick="openDeliveryStop('${order.id}')">
+                        <div style="flex:1; padding-right: 10px;">
+                            ${nextStopBadge}
                             <div style="font-weight: 800; font-size: 1rem; color:var(--text); margin-bottom: 4px;">${custName}</div>
                             <div style="font-size: 0.75rem; color:var(--brand); font-weight:700;"><i class="fas fa-file-invoice" style="margin-right:4px;"></i>${billsStr}</div>
+                            ${markNextBtn}
                         </div>
                         <div style="text-align:right;">
                             <div style="font-weight: 800; font-size: 1.1rem; color:var(--text); margin-bottom:6px;">₹${fmt(order.amount)}</div>
@@ -4208,9 +4329,21 @@
 
             saveLocalState();
             
-            // 3. INSTANT UI FEEDBACK
+            // 3. INSTANT UI FEEDBACK & NEXT STOP PROMPT
             const isOnline = navigator.onLine;
-            showSuccess(totalCol > 0 ? `${isOnline?'Saved!':'Offline Save!'} Delivered and ₹${totalCol} Collected!` : `${isOnline?'Saved!':'Offline Save!'} Order marked as Delivered.`);
+            
+            if (isErp) {
+                const batchId = targetArray[idx].batch_id;
+                const remainingStops = targetArray.filter(o => o.batch_id === batchId && o.status === 'Loaded');
+                
+                if (remainingStops.length > 0) {
+                    promptNextStop(batchId, remainingStops);
+                } else {
+                    showSuccess(totalCol > 0 ? `${isOnline?'Saved!':'Offline Save!'} Delivered! Batch Complete!` : `Batch Complete!`);
+                }
+            } else {
+                showSuccess(totalCol > 0 ? `${isOnline?'Saved!':'Offline Save!'} Delivered and ₹${totalCol} Collected!` : `${isOnline?'Saved!':'Offline Save!'} Order marked as Delivered.`);
+            }
             
             renderDeliveryDetailList();
             renderDelivery(); // Updates sync bar
@@ -4305,6 +4438,62 @@
             if (syncBtn) syncBtn.innerHTML = 'Sync Now';
             isSyncingDels = false;
         }
+
+        function promptNextStop(batchId, remainingStops) {
+            const list = document.getElementById('next-stop-list');
+            list.innerHTML = remainingStops.map(s => {
+                const custName = s.customer_name || CUSTOMERS.find(c => c.code === s.customer_code)?.name || s.customer_code;
+                return `
+                <div style="background: white; padding: 12px; border: 1px solid var(--border); border-radius: 6px; display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="setNextStop('${s.id}', '${batchId}')">
+                    <div style="font-weight: 800; font-size: 0.9rem; color: var(--text);">${custName}</div>
+                    <i class="fas fa-location-arrow" style="color: var(--brand); font-size: 1.1rem;"></i>
+                </div>`;
+            }).join('');
+            document.getElementById('next-stop-modal').classList.remove('hidden');
+        }
+
+        async function setNextStop(stopId, batchId) {
+            closeModal('next-stop-modal');
+            
+            // 1. Update local memory instantly
+            ERP_DELIVERIES.forEach(o => {
+                if (o.batch_id === batchId && o.status === 'Loaded') o.is_next_stop = (o.id === stopId);
+            });
+            saveLocalState();
+            renderDeliveryDetailList();
+
+            // 2. Sync to cloud (or queue if offline)
+            if (navigator.onLine) {
+                try {
+                    await sbClient.from('erp_deliveries').update({ is_next_stop: false }).eq('batch_id', batchId).eq('status', 'Loaded');
+                    await sbClient.from('erp_deliveries').update({ is_next_stop: true }).eq('id', stopId);
+                } catch(e) { console.warn("Failed to set next stop", e); }
+            } else {
+                let offlineNextStops = JSON.parse(localStorage.getItem('b2b_offline_next_stops') || '[]');
+                offlineNextStops.push({ batchId, stopId });
+                localStorage.setItem('b2b_offline_next_stops', JSON.stringify(offlineNextStops));
+            }
+        }
+
+        async function syncOfflineNextStops() {
+            let offlineNextStops = JSON.parse(localStorage.getItem('b2b_offline_next_stops') || '[]');
+            if (offlineNextStops.length === 0 || !navigator.onLine) return;
+            
+            const latestStops = {};
+            offlineNextStops.forEach(req => latestStops[req.batchId] = req.stopId); // Only process the most recent click per batch
+            
+            for (const batchId in latestStops) {
+                try {
+                    await sbClient.from('erp_deliveries').update({ is_next_stop: false }).eq('batch_id', batchId).eq('status', 'Loaded');
+                    await sbClient.from('erp_deliveries').update({ is_next_stop: true }).eq('id', latestStops[batchId]);
+                } catch(e) {}
+            }
+            localStorage.removeItem('b2b_offline_next_stops');
+        }
+        
+        // Ensure this new sync runs when coming back online
+        window.addEventListener('online', syncOfflineNextStops);
+        setTimeout(syncOfflineNextStops, 3000);
 
         function showPhotoModal(base64) {
             document.getElementById('photo-modal-img').src = base64;
@@ -4927,16 +5116,23 @@
                 
                 adminSalesData = allSales;
                 
-                // Pre-process Data: Assign Customer Subgroups
+                // Pre-process Data: Assign Customer Subgroups safely
                 adminSalesData.forEach(sale => {
-                    const cust = CUSTOMERS.find(c => c.name.toLowerCase() === sale.customer_name.toLowerCase());
+                    const sName = (sale.customer_name || '').trim().toUpperCase();
+                    const cust = CUSTOMERS.find(c => {
+                        const cName = (c.name || '').trim().toUpperCase();
+                        const cCode = (c.code || '').trim().toUpperCase();
+                        return cName === sName || cCode === sName;
+                    });
+
                     const rawSub = cust ? cust.subgroup : null;
                     let sg = 'COUNTER';
                     if (rawSub) {
-                        const up = rawSub.toUpperCase();
+                        const up = rawSub.trim().toUpperCase();
                         if (up.includes('SUNNY')) sg = 'SUNNY';
                         else if (up.includes('RIYAS')) sg = 'RIYAS';
                         else if (up.includes('METRO')) sg = 'METRO';
+                        else sg = up;
                     }
                     sale.assigned_subgroup = sg;
                 });
