@@ -4671,9 +4671,9 @@
             const totalCol = cashAmt + gpayAmt;
             if (totalCol > 0) {
                 let nextRecNum = 1;
-                if (ALL_COLLECTIONS.length > 0) {
-                    nextRecNum = Math.max(...ALL_COLLECTIONS.map(o => parseInt(o.id.replace(/\D/g, '')) || 0)) + 1;
-                }
+                if (ALL_COLLECTIONS.length > 0) nextRecNum = Math.max(nextRecNum, ...ALL_COLLECTIONS.map(o => parseInt(o.id.replace(/\D/g, '')) || 0)) + 1;
+                if (MY_COLLECTIONS.length > 0) nextRecNum = Math.max(nextRecNum, ...MY_COLLECTIONS.map(o => parseInt(o.id.replace(/\D/g, '')) || 0)) + 1;
+                
                 const colId = 'REC' + String(nextRecNum).padStart(4, '0');
                 
                 const colPayload = {
@@ -4689,13 +4689,20 @@
                 ALL_COLLECTIONS.unshift(colPayload);
             }
 
-            saveLocalState();
+            // SAFE CACHE: If image is too big for local storage, drop the image so the critical text data still saves!
+            try {
+                saveLocalState();
+            } catch (e) {
+                offlineDeliveries[offlineDeliveries.length - 1].base64Photo = null;
+                saveLocalState();
+                showWarning("Storage Full", "Delivery saved to queue, but photo was discarded due to device storage limits.");
+            }
             
             // 3. INSTANT UI FEEDBACK & NEXT STOP PROMPT
             const isOnline = navigator.onLine;
             
             if (isErp) {
-                const batchId = targetArray[idx].batch_id;
+                const batchId = targetArray[idx]?.batch_id;
                 const remainingStops = targetArray.filter(o => o.batch_id === batchId && o.status === 'Loaded');
                 
                 if (remainingStops.length > 0) {
@@ -4763,13 +4770,13 @@
                         const targetOrder = ERP_DELIVERIES.find(o => o.id === task.orderId) || SUBMITTED_ORDERS.find(o => o.id === task.orderId);
                         const custCode = targetOrder ? (targetOrder.customer_code || targetOrder.customer_name) : task.orderId;
                         
-                        // Re-calculate ID securely on cloud push
+                        // Re-calculate ID securely on cloud push to avoid duplicate key errors in loop
                         let nextRecNum = 1;
                         const { data: latestCol } = await sbClient.from('collections').select('id').order('created_at', { ascending: false }).limit(1);
                         if (latestCol && latestCol.length > 0) {
                             nextRecNum = (parseInt(latestCol[0].id.replace(/\D/g, '')) || 0) + 1;
                         }
-                        const colId = 'REC' + String(nextRecNum).padStart(4, '0');
+                        const colId = 'REC' + String(nextRecNum).padStart(4, '0') + '_' + Math.floor(Math.random() * 100);
 
                         await sbClient.from('collections').insert({
                             id: colId,
@@ -4785,7 +4792,9 @@
                     successfulIndexes.push(i);
                 } catch(e) {
                     console.warn("Sync failed for task", task.orderId, e);
-                    break; // Stop trying other tasks if network failed
+                    // Crucial Fix: DO NOT BREAK! Continue looping so one bad photo doesn't trap the entire queue!
+                    if (!navigator.onLine) break; // Only stop if totally disconnected
+                    continue; 
                 }
             }
 
@@ -4877,11 +4886,23 @@
         }
 
         // --- DELIVERY HISTORY ---
-        function renderDelHistory() {
+        async function renderDelHistory() {
             const feed = document.getElementById('del-hist-feed');
             if(!feed) return;
             const filterDate = document.getElementById('del-hist-date-filter').value;
             
+            // Lazy load the collections for this date from the cloud
+            if (filterDate && navigator.onLine) {
+                try {
+                    const { data: cols } = await sbClient.from('collections')
+                        .select('*')
+                        .eq('salesman_id', userSession ? userSession.user.id : "local_dev")
+                        .gte('created_at', filterDate)
+                        .lte('created_at', filterDate + 'T23:59:59.999Z');
+                    if (cols) MY_COLLECTIONS = cols;
+                } catch(e) {}
+            }
+
             // Only show the actual physical ERP deliveries in history
             let filtered = ERP_DELIVERIES.filter(o => o.status === 'Delivered');
             
@@ -4931,18 +4952,56 @@
                     }
                 }
 
+                // Check for associated Collection on this specific date
+                let collectionAmt = 0;
+                let colBreakdown = '';
+                
+                if (filterDate) {
+                    const myCol = MY_COLLECTIONS.find(c => {
+                        const d = new Date(c.created_at);
+                        const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                        
+                        // Strict check to make sure the collection belongs to this customer AND this date
+                        const isMatch = (c.customer_code === order.customer_code || c.customer_code === order.customer_name || c.customer_code === order.id);
+                        return isMatch && localDate === filterDate;
+                    });
+
+                    if (myCol) {
+                        collectionAmt = myCol.total_amount;
+                        let tags = [];
+                        if (myCol.amount_cash > 0) tags.push(`C: ₹${fmt(myCol.amount_cash)}`);
+                        if (myCol.amount_gpay > 0) tags.push(`U: ₹${fmt(myCol.amount_gpay)}`);
+                        colBreakdown = tags.join(' | ');
+                    }
+                }
+
+                let paymentBadge = collectionAmt > 0 
+                    ? `<div style="text-align: right; flex-shrink: 0; display:flex; flex-direction:column; align-items:flex-end;">
+                           <span style="font-size: 1.05rem; font-weight: 800; color: var(--success);">₹${fmt(collectionAmt)}</span>
+                           <span style="font-size: 0.6rem; color: var(--text-mut); font-weight: 700; background: var(--success-bg); padding: 2px 4px; border-radius: 4px; margin-top: 2px;">${colBreakdown}</span>
+                       </div>`
+                    : `<div style="text-align: right; flex-shrink: 0;">
+                           <span style="font-size: 0.7rem; font-weight: 800; color: var(--accent); background: #FEF2F2; padding: 4px 8px; border-radius: 4px; border: 1px solid #FCA5A5;">UNPAID</span>
+                       </div>`;
+
                 return `
                 <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px;">
-                    <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
-                    ${checklistHTML}
                     
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
+                        <div style="flex:1; min-width: 0;">
+                            <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
+                            ${checklistHTML}
+                        </div>
+                        ${paymentBadge}
+                    </div>
+
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top: 1px solid var(--border); padding-top: 10px;">
                         <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
                             <span style="font-size:0.75rem; font-weight:700; color:var(--brand);"><i class="fas fa-receipt" style="margin-right:2px;"></i>${order.id.replace(order.batch_id+'_C', 'STOP ')}</span>
                             <span style="opacity:0.4; font-size:0.75rem;">•</span>
                             <span style="font-size:0.75rem; font-weight:700; color:var(--text-mut);"><i class="fas fa-layer-group" style="margin-right:2px;"></i>${order.batch_id}</span>
                         </div>
-                        <button onclick="showPhotoModal('${order.delivery_photo}')" style="background:white; color:var(--success); border:1px solid var(--success); padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:700; cursor:pointer; flex-shrink:0;"><i class="fas fa-camera"></i> Proof</button>
+                        <button onclick="showPhotoModal('${order.delivery_photo}')" style="background:var(--brand-light); color:var(--brand); border:1px solid var(--brand); padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:700; cursor:pointer; flex-shrink:0;"><i class="fas fa-camera"></i> Proof</button>
                     </div>
                 </div>`;
             }).join('');
@@ -4985,12 +5044,32 @@
         }
 
         // --- HISTORY VIEWS ---
-        function renderBillingHistory() {
+        async function renderBillingHistory() {
             const feed = document.getElementById('bill-hist-feed');
             if(!feed) return;
             const filterDate = document.getElementById('bill-hist-date-filter').value;
             
-            let filtered = SUBMITTED_ORDERS.filter(o => o.status === 'Billed');
+            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+
+            // Lazy load the billed orders for this date from the cloud
+            if (filterDate && navigator.onLine) {
+                try {
+                    const { data } = await sbClient.from('orders')
+                        .select('*')
+                        .eq('status', 'Billed')
+                        .gte('created_at', filterDate)
+                        .lte('created_at', filterDate + 'T23:59:59.999Z')
+                        .order('created_at', { ascending: false });
+                    
+                    if (data) {
+                        // Merge safely so drill-downs still work
+                        const newIds = new Set(data.map(d => d.id));
+                        SUBMITTED_ORDERS = [...(SUBMITTED_ORDERS || []).filter(o => !newIds.has(o.id)), ...data];
+                    }
+                } catch(e) {}
+            }
+
+            let filtered = (SUBMITTED_ORDERS || []).filter(o => o.status === 'Billed');
             if (filterDate) {
                 filtered = filtered.filter(o => {
                     const d = new Date(o.created_at);
@@ -5150,13 +5229,27 @@
         }
 
         // --- COLLECTIONS VIEW ---
-        function renderBillingCollections() {
+        async function renderBillingCollections() {
             const feed = document.getElementById('bill-col-feed');
             if(!feed) return;
             const filterDate = document.getElementById('bill-col-date-filter').value;
 
+            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+
+            // Lazy load the collections for this date from the cloud
+            if (filterDate && navigator.onLine) {
+                try {
+                    const { data } = await sbClient.from('collections')
+                        .select('*')
+                        .gte('created_at', filterDate)
+                        .lte('created_at', filterDate + 'T23:59:59.999Z')
+                        .order('created_at', { ascending: false });
+                    if (data) ALL_COLLECTIONS = data;
+                } catch(e) {}
+            }
+
             // Filter collections by date
-            let filtered = ALL_COLLECTIONS.filter(c => {
+            let filtered = (ALL_COLLECTIONS || []).filter(c => {
                 const d = new Date(c.created_at);
                 const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
                 return localDate === filterDate;
@@ -5167,47 +5260,75 @@
                 return;
             }
 
-            // Group by Salesman
+            // Group by Customer Subgroup (Salesman Area) safely
             const grouped = {};
             filtered.forEach(col => {
-                const sm = col.salesman_id || "Unknown";
-                if(!grouped[sm]) grouped[sm] = { count: 0, total: 0, collections: [] };
-                grouped[sm].count += 1;
-                grouped[sm].total += col.total_amount;
-                grouped[sm].collections.push(col);
+                let sg = 'COUNTER';
+                const sName = (col.customer_code || '').trim().toUpperCase();
+                const cust = CUSTOMERS.find(c => {
+                    const cName = (c.name || '').trim().toUpperCase();
+                    const cCode = (c.code || '').trim().toUpperCase();
+                    return cName === sName || cCode === sName;
+                });
+                
+                if (cust && cust.subgroup) {
+                    const up = cust.subgroup.trim().toUpperCase();
+                    if (up.includes('SUNNY')) sg = 'SUNNY';
+                    else if (up.includes('RIYAS')) sg = 'RIYAS';
+                    else if (up.includes('METRO')) sg = 'METRO';
+                    else sg = up;
+                }
+
+                if(!grouped[sg]) grouped[sg] = { count: 0, total: 0, collections: [] };
+                grouped[sg].count += 1;
+                grouped[sg].total += col.total_amount;
+                grouped[sg].collections.push(col);
             });
 
-            feed.innerHTML = Object.keys(grouped).map(smId => {
-                const grp = grouped[smId];
-                // In a real app, resolve smId to name via profiles. Here we display ID/Dev Name.
-                const smName = smId === "local_dev" ? "Dev Salesman" : "Salesman " + smId.substring(0,6);
-                
+            feed.innerHTML = Object.keys(grouped).map(sg => {
+                const grp = grouped[sg];
                 return `
                 <div class="order-card" style="align-items: flex-start; flex-direction: column; gap: 10px;">
                     <div style="width: 100%; display: flex; justify-content: space-between; border-bottom: 1px dashed var(--border); padding-bottom: 10px;">
                         <div>
-                            <b style="font-size: 1rem; color:var(--text);"><i class="fas fa-user-tie" style="color:var(--brand); margin-right:6px;"></i>${smName}</b><br>
+                            <b style="font-size: 1.05rem; color:var(--text);"><i class="fas fa-users" style="color:var(--brand); margin-right:6px;"></i>${sg}</b><br>
                             <span style="font-size:0.8rem; color:var(--text-mut);">${grp.count} Receipts</span>
                         </div>
                         <div style="text-align: right;">
                             <b style="color:var(--success); font-size:1.1rem;">₹${fmt(grp.total)}</b>
                         </div>
                     </div>
-                    <button class="btn-take-order" style="width: 100%; background: var(--brand-light); color: var(--brand); border-color: var(--brand);" onclick="openSalesmanCollections('${smId}', '${smName}', '${filterDate}')">View Details & Download</button>
+                    <button class="btn-take-order" style="width: 100%; background: var(--brand-light); color: var(--brand); border-color: var(--brand);" onclick="openSalesGroupCollections('${sg}', '${filterDate}')">View Details & Download</button>
                 </div>`;
             }).join('');
         }
 
-        function openSalesmanCollections(smId, smName, dateStr) {
-            currentViewedSalesmanId = smId;
-            document.getElementById('bill-col-sm-name').innerText = smName;
+        function openSalesGroupCollections(sg, dateStr) {
+            document.getElementById('bill-col-sm-name').innerText = sg;
             document.getElementById('bill-col-date-sub').innerText = dateStr;
             
-            // Get raw list for this salesman/date
-            currentViewedColList = ALL_COLLECTIONS.filter(c => {
-                const d = new Date(c.created_at);
+            // Re-filter collections that belong to this exact subgroup
+            currentViewedColList = (ALL_COLLECTIONS || []).filter(col => {
+                const d = new Date(col.created_at);
                 const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                return localDate === dateStr && (c.salesman_id === smId);
+                if (localDate !== dateStr) return false;
+
+                let colSg = 'COUNTER';
+                const sName = (col.customer_code || '').trim().toUpperCase();
+                const cust = CUSTOMERS.find(c => {
+                    const cName = (c.name || '').trim().toUpperCase();
+                    const cCode = (c.code || '').trim().toUpperCase();
+                    return cName === sName || cCode === sName;
+                });
+                
+                if (cust && cust.subgroup) {
+                    const up = cust.subgroup.trim().toUpperCase();
+                    if (up.includes('SUNNY')) colSg = 'SUNNY';
+                    else if (up.includes('RIYAS')) colSg = 'RIYAS';
+                    else if (up.includes('METRO')) colSg = 'METRO';
+                    else colSg = up;
+                }
+                return colSg === sg;
             });
 
             document.getElementById('bill-col-sort').value = 'time'; // Reset sort
@@ -5235,7 +5356,6 @@
                     return nA.localeCompare(nB);
                 });
             } else if (sortVal === 'type') {
-                // Sort Cash heavy first, then Gpay heavy
                 sorted.sort((a,b) => b.amount_cash - a.amount_cash);
             }
 
@@ -5246,6 +5366,15 @@
                 const timeStr = new Date(item.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
                 grandTotal += item.total_amount;
 
+                // Resolve the actual user who collected it
+                let collectedBy = "Unknown";
+                if (item.salesman_id === 'local_dev') collectedBy = "Dev User";
+                else {
+                    const p = PROFILES.find(p => p.id === item.salesman_id);
+                    if (p && p.full_name) collectedBy = p.full_name.split(' ')[0].toUpperCase();
+                    else collectedBy = (item.salesman_id || "UKN").substring(0,4).toUpperCase();
+                }
+
                 let badge = '';
                 if(item.amount_cash > 0 && item.amount_gpay > 0) badge = `<span style="background:#FEF08A; color:#854D0E; font-size:0.6rem; padding:2px 4px; border-radius:4px;">MIXED</span>`;
                 else if(item.amount_cash > 0) badge = `<span style="background:#BBF7D0; color:#166534; font-size:0.6rem; padding:2px 4px; border-radius:4px;">CASH</span>`;
@@ -5254,12 +5383,15 @@
                 return `
                 <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                     <div style="flex:1; min-width:0; padding-right: 10px;">
-                        <b style="color:var(--text); font-size: 0.9rem;">${custName}</b><br>
-                        <span style="font-size: 0.75rem; color:var(--text-mut);">${timeStr} | ${item.id}</span>
+                        <b style="color:var(--text); font-size: 0.9rem; line-height: 1.2;">${custName}</b><br>
+                        <div style="font-size: 0.75rem; color:var(--text-mut); margin-top: 4px;">${timeStr} | ${item.id}</div>
+                        <div style="font-size: 0.7rem; color: var(--brand); font-weight: 700; margin-top: 4px;">
+                            <i class="fas fa-user-check"></i> By: ${collectedBy}
+                        </div>
                     </div>
                     <div style="text-align: right; flex-shrink:0;">
                         ${badge}<br>
-                        <b style="color:var(--success); font-size: 1rem;">₹${fmt(item.total_amount)}</b>
+                        <b style="color:var(--success); font-size: 1rem; margin-top: 4px; display: block;">₹${fmt(item.total_amount)}</b>
                     </div>
                 </div>`;
             }).join('');
