@@ -6209,22 +6209,36 @@
                     else if (status === 'Loaded') { statColor = '#5B21B6'; statBg = '#E0E7FF'; statIcon = 'fa-truck'; uiStatus = 'Pending Deliv'; }
                     else if (status === 'Delivered') { statColor = '#065F46'; statBg = '#A7F3D0'; statIcon = 'fa-check-circle'; uiStatus = 'Delivered'; }
 
-                    // Calculate individual order margin
-                    let indCost = 0;
+                    // Calculate individual order margin accurately (Ignoring removed items)
+                    let indProfit = 0;
+                    let indRevenue = 0;
+                    
                     if (order.items) {
-                        for (const code in order.items) {
-                            const qty = order.items[code];
-                            const item = INVENTORY.find(i => i.code === code);
-                            if (item) {
-                                const cQty = parseInt(item.caseQty) || 0;
-                                const totalPcs = (qty.c * cQty) + qty.p;
-                                indCost += (totalPcs * item.cost);
+                        for (const key in order.items) {
+                            const data = order.items[key];
+                            
+                            // Only calculate profit for items that were actually packed (or are still pending)
+                            const isRemoved = (status !== 'Pending') && data.packed === false;
+                            
+                            if (!isRemoved) {
+                                const realCode = key.split('__')[0];
+                                const item = INVENTORY.find(i => i.code === realCode);
+                                if (item) {
+                                    const cQty = parseInt(item.caseQty) || 0;
+                                    const totalQty = (data.c * cQty) + data.p;
+                                    
+                                    const rate = getApplicableRate(item, totalQty, data.r || 'price2', data.cr || 0);
+                                    const totalItemRevenue = totalQty * rate;
+                                    const totalItemCost = totalQty * item.cost;
+                                    
+                                    indRevenue += totalItemRevenue;
+                                    indProfit += (totalItemRevenue - totalItemCost);
+                                }
                             }
                         }
                     }
                     
-                    const indProfit = order.total_amount - indCost;
-                    const indMargin = order.total_amount > 0 ? ((indProfit / order.total_amount) * 100) : 0;
+                    const indMargin = indRevenue > 0 ? ((indProfit / indRevenue) * 100) : 0;
 
                     return `
                     <div onclick="openAdminLiveDetail('${order.id}')" style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; cursor: pointer;">
