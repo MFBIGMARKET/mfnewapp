@@ -323,6 +323,27 @@
             <div class="modal-body" id="modal-cust-list"></div>
         </div>
     </div>
+    <!-- NEW CUSTOMER MODAL -->
+    <div id="new-cust-modal" class="modal-overlay hidden" style="z-index: 4000;">
+        <div class="modal-content" style="max-width: 320px;">
+            <div class="modal-header">
+                <span>Add New Customer</span>
+                <i class="fas fa-times" onclick="closeModal('new-cust-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
+            </div>
+            <div class="modal-body">
+                <span class="step-lbl" style="display:block;">Shop Name *</span>
+                <input type="text" id="new-cust-name" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:10px; outline:none;" placeholder="E.g. Royal Mart">
+                
+                <span class="step-lbl" style="display:block;">Area / Location *</span>
+                <input type="text" id="new-cust-area" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:10px; outline:none;" placeholder="E.g. Kannur">
+
+                <span class="step-lbl" style="display:block;">Phone Number</span>
+                <input type="number" id="new-cust-phone" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:15px; outline:none;" placeholder="Optional">
+                
+                <button onclick="saveNewCustomer()" id="btn-save-new-cust" style="width: 100%; background: var(--brand); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 4px rgba(10, 74, 156, 0.2);">Save Customer</button>
+            </div>
+        </div>
+    </div>
 
     <!-- PACK EDIT MODAL (Packing) -->
     <div id="pack-edit-modal" class="modal-overlay hidden">
@@ -496,9 +517,10 @@
         <!-- ========================================== -->
         
         <div id="view-customers" class="tab-content salesman-view hidden">
-            <div class="search-bar" style="border-bottom: none;">
+            <div class="search-bar" style="border-bottom: 1px solid var(--border); display: flex; gap: 8px;">
                 <i class="fas fa-search" style="color:var(--text-mut);"></i>
-                <input type="text" placeholder="Search customer name or code..." id="cust-search-input" oninput="handleCustSearch(this.value)">
+                <input type="text" placeholder="Search customer..." id="cust-search-input" oninput="handleCustSearch(this.value)" style="flex:1; width: 100%;">
+                <button onclick="document.getElementById('new-cust-modal').classList.remove('hidden')" style="background: var(--brand); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: 700; font-size: 0.75rem; cursor: pointer; flex-shrink: 0;"><i class="fas fa-plus"></i> New</button>
             </div>
             <div class="scroll-area">
                 <div class="cust-list" id="full-cust-list"></div>
@@ -7814,6 +7836,59 @@
             }, () => {
                 showWarning("Error", "Could not get location. Ensure GPS is on.");
             }, { enableHighAccuracy: true });
+        }
+        async function saveNewCustomer() {
+            const name = document.getElementById('new-cust-name').value.trim();
+            const area = document.getElementById('new-cust-area').value.trim();
+            const phone = document.getElementById('new-cust-phone').value.trim();
+
+            if (!name || !area) {
+                showWarning("Missing Info", "Please enter the Shop Name and Area.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-new-cust');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            // Generate a unique code that sync.js will ignore
+            const code = 'NEW_' + Date.now();
+            
+            let fullName = `${name} - ${area}`;
+            if (phone) fullName += ` (${phone})`;
+
+            // Automatically assign it to this salesman's group
+            const mySubgroup = currentUserFullName.split(' ')[0].toUpperCase();
+
+            const payload = {
+                code: code,
+                name: fullName,
+                bal: 0,
+                subgroup: mySubgroup
+            };
+
+            try {
+                const { error } = await sbClient.from('customers').insert([payload]);
+                if (error) throw error;
+
+                // Insert directly into local memory and re-render
+                CUSTOMERS.unshift(payload);
+                renderCustomersView();
+                
+                closeModal('new-cust-modal');
+                showSuccess(`${name} added successfully! You can now take their order.`);
+                
+                // Clear inputs for next time
+                document.getElementById('new-cust-name').value = '';
+                document.getElementById('new-cust-area').value = '';
+                document.getElementById('new-cust-phone').value = '';
+                
+            } catch (e) {
+                showWarning("Network Error", "Could not save customer. Please check your internet connection.");
+            } finally {
+                btn.innerHTML = 'Save Customer';
+                btn.disabled = false;
+            }
         }
 
     </script>
