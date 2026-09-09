@@ -500,6 +500,57 @@
         </div>
     </div>
 
+    <!-- ADMIN OFFER EDITOR MODAL -->
+    <div id="offer-edit-modal" class="modal-overlay hidden" style="z-index: 4000;">
+        <div class="modal-content" style="max-width: 340px;">
+            <div class="modal-header">
+                <span>Configure Special Offer</span>
+                <i class="fas fa-times" onclick="closeModal('offer-edit-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
+            </div>
+            <div class="modal-body">
+                <p id="offer-item-name" style="font-weight:800; font-size:0.9rem; color:var(--brand); margin-bottom:4px;">Item Name</p>
+                <div style="font-size:0.75rem; color:var(--text-mut); margin-bottom:15px;" id="offer-item-meta">Cost: ₹0 | MRP: ₹0</div>
+
+                <label style="display:flex; justify-content:space-between; align-items:center; background:#FFFBEB; padding:12px; border-radius:6px; border:1px solid #FDE68A; margin-bottom:10px; cursor:pointer;">
+                    <span style="font-weight:800; color:#B45309;"><i class="fas fa-bolt" style="margin-right:6px;"></i>Enable Scheme</span>
+                    <label class="switch"><input type="checkbox" id="offer-toggle-active" onchange="document.getElementById('offer-dates-wrap').style.display = this.checked ? 'block' : 'none'"><span class="slider"></span></label>
+                </label>
+
+                <div id="offer-dates-wrap" style="display:none; margin-bottom:15px; background: #F9FAFB; padding: 10px; border-radius: 6px; border: 1px solid var(--border);">
+                    <div style="display:flex; gap:10px;">
+                        <div style="flex:1;">
+                            <span class="step-lbl" style="display:block; margin-bottom:4px;">From Date</span>
+                            <input type="date" id="off-start" style="width:100%; border:1px solid var(--border); padding:8px; border-radius:4px; outline:none; font-weight:700;">
+                        </div>
+                        <div style="flex:1;">
+                            <span class="step-lbl" style="display:block; margin-bottom:4px;">To Date</span>
+                            <input type="date" id="off-end" style="width:100%; border:1px solid var(--border); padding:8px; border-radius:4px; outline:none; font-weight:700;">
+                        </div>
+                    </div>
+                </div>
+
+                <div style="font-size:0.75rem; font-weight:700; color:var(--text); margin-bottom:8px;">Scheme Quantities & Rates</div>
+                
+                <!-- Tiers -->
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <div style="flex:1;"><div style="font-size:0.65rem; color:var(--text-mut); margin-bottom:2px;">Min Qty (NOS)</div><input type="number" id="off-q1" style="width:100%; border:1px solid var(--border); padding:8px; border-radius:4px; outline:none; font-weight:700;"></div>
+                    <div style="flex:1;"><div style="font-size:0.65rem; color:var(--text-mut); margin-bottom:2px;">Special Rate (₹)</div><input type="number" id="off-r1" style="width:100%; border:1px solid var(--border); padding:8px; border-radius:4px; outline:none; font-weight:700;"></div>
+                </div>
+                <div style="display:flex; gap:10px; margin-bottom:10px;">
+                    <div style="flex:1;"><input type="number" id="off-q2" style="width:100%; border:1px solid var(--border); padding:8px; border-radius:4px; outline:none; font-weight:700;"></div>
+                    <div style="flex:1;"><input type="number" id="off-r2" style="width:100%; border:1px solid var(--border); padding:8px; border-radius:4px; outline:none; font-weight:700;"></div>
+                </div>
+                <div style="display:flex; gap:10px; margin-bottom:20px;">
+                    <div style="flex:1;"><input type="number" id="off-q3" style="width:100%; border:1px solid var(--border); padding:8px; border-radius:4px; outline:none; font-weight:700;"></div>
+                    <div style="flex:1;"><input type="number" id="off-r3" style="width:100%; border:1px solid var(--border); padding:8px; border-radius:4px; outline:none; font-weight:700;"></div>
+                </div>
+
+                <input type="hidden" id="offer-item-code">
+                <button onclick="saveSpecialOffer()" id="btn-save-offer" style="width: 100%; background: #F59E0B; color: white; border: none; padding: 12px; border-radius: 4px; font-weight: 800; cursor: pointer; box-shadow: 0 2px 4px rgba(245,158,11,0.2);">Save Special Offer</button>
+            </div>
+        </div>
+    </div>
+
 
     <!-- MAIN APP STRUCTURE -->
     <div id="main-app" class="app-view hidden">
@@ -653,7 +704,7 @@
 
         <!-- ADMIN: MAIN DASHBOARD -->
         <div id="view-dashboard" class="tab-content hidden admin-view">
-            <div style="padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+            <div class="scroll-area" style="padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                 <div onclick="openAdminDashboardApp('live')" style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;">
                     <div style="font-size: 2.5rem; color: #F59E0B; margin-bottom: 10px;"><i class="fas fa-bolt"></i></div>
                     <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Live Order</div>
@@ -674,10 +725,71 @@
                     <div style="font-size: 2.5rem; color: #8B5CF6; margin-bottom: 10px;"><i class="fas fa-user-clock"></i></div>
                     <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">HR & Att.</div>
                 </div>
-                <div style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer; opacity: 0.5; pointer-events: none;">
+                <div onclick="openAdminDashboardApp('reorder')" style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;">
+                    <div style="font-size: 2.5rem; color: #DC2626; margin-bottom: 10px;"><i class="fas fa-shopping-cart"></i></div>
+                    <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Reorder</div>
+                </div>
+                <div onclick="openAdminDashboardApp('offers')" style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;">
+                    <div style="font-size: 2.5rem; color: #F59E0B; margin-bottom: 10px;"><i class="fas fa-percent"></i></div>
+                    <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Special Offers</div>
+                </div>
+                <div style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); opacity: 0.5; pointer-events: none;">
                     <div style="font-size: 2.5rem; color: #6366F1; margin-bottom: 10px;"><i class="fas fa-shopping-bag"></i></div>
                     <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Purchase</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ADMIN: SPECIAL OFFERS OVERLAY -->
+        <div id="admin-offers-app" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="closeAdminDashboardApp('offers')" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center"><div class="ov-title">Manage Special Offers</div></div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            <div style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+                <div class="search-bar" style="border-bottom: 1px solid var(--border); flex-shrink: 0; padding: 12px 16px;">
+                    <i class="fas fa-search" style="color:var(--text-mut);"></i>
+                    <input type="text" placeholder="Search item to add/edit offer..." id="admin-offers-search" oninput="renderAdminOffersList()">
+                </div>
+                <div style="padding: 8px 16px; background: #FFFBEB; border-bottom: 1px solid #FDE68A; font-size: 0.75rem; font-weight: 700; color: #B45309;">
+                    <i class="fas fa-info-circle"></i> Active schemes are displayed below. Search to add new ones.
+                </div>
+                <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="admin-offers-feed"></div>
+            </div>
+        </div>
+
+        <!-- ADMIN: REORDER ENGINE OVERLAY -->
+        <div id="admin-reorder-app" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="closeAdminDashboardApp('reorder')" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center"><div class="ov-title">Intelligent Reorder</div></div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            <div style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+                <div style="background: #F9FAFB; padding: 10px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; display:flex; flex-direction:column; gap:10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-mut);">Target Stock:</div>
+                        <select id="reorder-target-days" onchange="renderReorderDash()" style="padding: 4px 6px; border: 1px solid var(--brand); border-radius: 4px; outline: none; font-size: 0.8rem; font-weight: 800; color: var(--brand); background: var(--brand-light);">
+                            <option value="15">15 Days</option>
+                            <option value="30" selected>30 Days</option>
+                            <option value="45">45 Days</option>
+                            <option value="60">60 Days</option>
+                        </select>
+                    </div>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <select id="reorder-sort" onchange="renderReorderDash()" style="padding: 4px 6px; border: 1px solid var(--border-dark); border-radius: 4px; outline: none; font-size: 0.8rem; font-weight: 700; color: var(--text); background: white;">
+                            <option value="critical">Sort: Critical First</option>
+                            <option value="fast">Sort: Fast Moving</option>
+                        </select>
+                        <button onclick="downloadReorderPDF()" style="background: #DC2626; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: 700; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.1);"><i class="fas fa-file-pdf"></i> Download PDF</button>
+                    </div>
+                </div>
+                <div class="search-bar" style="border-bottom: 1px solid var(--border); flex-shrink: 0;">
+                    <i class="fas fa-search" style="color:var(--text-mut);"></i>
+                    <input type="text" placeholder="Search items..." id="reorder-search" oninput="renderReorderDash()">
+                </div>
+                <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="reorder-feed"></div>
             </div>
         </div>
 
@@ -1675,9 +1787,26 @@
                             }
                             const realSlabs = item.slabs.filter(s => s.markup > 0 || (s.max > 0 && s.max < 99999));
                             if (realSlabs.length <= 1) item.has_slabs = false;
+                            
+                            // Parse Scheme Data & Dates
+                            item.is_scheme = !!item.is_scheme;
+                            item.scheme_start = item.scheme_start || null;
+                            item.scheme_end = item.scheme_end || null;
+                            item.scheme_slabs = Array.isArray(item.scheme_slabs) ? item.scheme_slabs : [];
+                            if (item.scheme_slabs.length > 0) item.scheme_slabs.sort((a,b) => b.min - a.min); // Descending for pricing engine
+                            
+                            // Dynamically determine if scheme is currently valid based on today's date
+                            const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                            item.is_scheme_active = item.is_scheme && item.scheme_slabs.length > 0;
+                            if (item.is_scheme_active && item.scheme_start && item.scheme_end) {
+                                if (todayStr < item.scheme_start || todayStr > item.scheme_end) {
+                                    item.is_scheme_active = false; // Auto-disable expired schemes
+                                }
+                            }
+                            
                             return item;
                         });
-                        CATEGORIES = ["All", ...new Set(INVENTORY.map(i => i.category).filter(Boolean))];
+                        CATEGORIES = ["All", "🔥 Offers", ...new Set(INVENTORY.map(i => i.category).filter(Boolean))];
                     }
                 })());
 
@@ -1798,9 +1927,10 @@
             
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             
+            // Build the Packing History Strip for Salesman and Delivery users
             const smPackStrip = document.getElementById('salesman-pack-hist-strip');
             if (smPackStrip) {
-                if (currentUserRole === 'Salesman') {
+                if (currentUserRole === 'Salesman' || currentUserRole === 'Delivery') {
                     smPackStrip.innerHTML = `
                         <div style="background: var(--brand-light); border-bottom: 1px solid var(--border); padding: 8px 14px; height: 42px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="switchTab('pack-hist')">
                             <span style="font-weight: 700; font-size: 0.9rem; color: var(--brand);"><i class="fas fa-history" style="margin-right: 8px;"></i>Show Packing History</span>
@@ -1878,7 +2008,7 @@
             if (tabId === 'collection' && currentUserRole === 'Salesman') renderCollectionCustomers();
             if (tabId === 'credit' && currentUserRole === 'Salesman') renderCreditView();
             if (tabId === 'packing' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman')) renderPackingOrders();
-            if (tabId === 'pack-hist' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman')) renderPackerHistory();
+            if (tabId === 'pack-hist' && (currentUserRole === 'Packing' || currentUserRole === 'Salesman' || currentUserRole === 'Delivery')) renderPackerHistory();
             if (tabId === 'billing' && currentUserRole === 'Billing') renderBillingOrders();
             if (tabId === 'batching' && currentUserRole === 'Billing') fetchBatchingData();
             if (tabId === 'bill-hist' && currentUserRole === 'Billing') renderBillingHistory();
@@ -1902,38 +2032,34 @@
             } else if (app === 'credit') {
                 renderAdminCreditDash(true);
                 document.getElementById('admin-credit-app').classList.remove('hidden');
-            }
-             else if (app === 'hr') {
+            } else if (app === 'reorder') {
+                openAdminReorderApp();
+                } else if (app === 'offers') {
+                document.getElementById('admin-offers-search').value = '';
+                renderAdminOffersList();
+                document.getElementById('admin-offers-app').classList.remove('hidden');
+            } else if (app === 'hr') {
                 const now = new Date();
                 const localTodayStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                
                 document.getElementById('hr-today-date').value = localTodayStr;
-                
-                // Populate Employee Select Dropdown
                 const sel = document.getElementById('hr-emp-select');
                 sel.innerHTML = PROFILES.map(p => `<option value="${p.id}">${p.full_name}</option>`).join('');
-                document.getElementById('hr-month-select').value = localTodayStr.substring(0,7); // YYYY-MM
-                
+                document.getElementById('hr-month-select').value = localTodayStr.substring(0,7); 
                 document.getElementById('hr-shop-lat').value = window.SHOP_LOCATION.lat || '';
                 document.getElementById('hr-shop-lng').value = window.SHOP_LOCATION.lng || '';
-                
                 switchHRTab('today');
                 document.getElementById('admin-hr-app').classList.remove('hidden');
             }
         }
+
         function closeAdminDashboardApp(app) {
-            if (app === 'live') {
-                document.getElementById('admin-live-app').classList.add('hidden');
-            } else if (app === 'sales') {
-                document.getElementById('admin-sales-app').classList.add('hidden');
-            } else if (app === 'delivery') {
-                document.getElementById('admin-delivery-app').classList.add('hidden');
-            } else if (app === 'credit') {
-                document.getElementById('admin-credit-app').classList.add('hidden');
-            }
-             else if (app === 'hr') {
-                document.getElementById('admin-hr-app').classList.add('hidden');
-            }
+            if (app === 'live') document.getElementById('admin-live-app').classList.add('hidden');
+            else if (app === 'sales') document.getElementById('admin-sales-app').classList.add('hidden');
+            else if (app === 'delivery') document.getElementById('admin-delivery-app').classList.add('hidden');
+            else if (app === 'credit') document.getElementById('admin-credit-app').classList.add('hidden');
+            else if (app === 'reorder') document.getElementById('admin-reorder-app').classList.add('hidden');
+            else if (app === 'hr') document.getElementById('admin-hr-app').classList.add('hidden');
+            else if (app === 'offers') document.getElementById('admin-offers-app').classList.add('hidden');
         }
 
         /* --- ADMIN DELIVERY DASHBOARD --- */
@@ -2423,11 +2549,17 @@
         }
 
         function getApplicableRate(item, totalPcs, selectedRateKey = 'price2', customRate = 0) {
-            // Allow slabs to run even if caseQty is null/0
-            if (!item.has_slabs) {
-                if (selectedRateKey === 'custom') return parseFloat(customRate) || 0;
-                return item[selectedRateKey] || item.price2; 
+            if (selectedRateKey === 'custom') return parseFloat(customRate) || 0;
+            
+            // 1. Check Special Offers / Schemes first (Only if actively running today)
+            if (item.is_scheme_active) {
+                const match = item.scheme_slabs.find(s => totalPcs >= s.min); 
+                if (match) return match.rate;
             }
+
+            // 2. Check Standard Pricing
+            if (!item.has_slabs) return item[selectedRateKey] || item.price2;
+            
             if(totalPcs <= 0) return 0;
             const match = item.slabs.find(s => totalPcs >= s.min && totalPcs < s.max);
             const fallback = match || item.slabs[item.slabs.length - 1]; 
@@ -2608,7 +2740,8 @@
                 return;
             }
 
-            let items = orderCat === "All" ? INVENTORY : INVENTORY.filter(i => i.category === orderCat);
+            let items = orderCat === "All" ? INVENTORY : (orderCat === "🔥 Offers" ? INVENTORY.filter(i => i.is_scheme_active) : INVENTORY.filter(i => i.category === orderCat));
+            
             if (orderSearchQuery) {
                 if (orderSearchQuery.includes('.')) {
                     const parts = orderSearchQuery.split('.');
@@ -2626,18 +2759,40 @@
             if (items.length === 0) { feed.innerHTML = `<div style="text-align:center; padding: 20px;">No items found.</div>`; return; }
 
             feed.innerHTML = items.map(item => {
-                // Initialize draft with selected rate (r) and custom rate (cr)
                 if(!draft[item.code]) draft[item.code] = cart[item.code] ? {...cart[item.code]} : {c: 0, p: 0, r: 'price2', cr: 0};
                 const d = draft[item.code];
                 const inCart = !!cart[item.code];
                 const btnClass = inCart ? 'btn-edit' : '';
                 const btnText = inCart ? 'UPDATE' : 'ADD';
 
+                const isSchemeActive = item.is_scheme_active;
+                const cardStyle = isSchemeActive ? 'background: linear-gradient(145deg, #FFFBEB, #FEF3C7); border: 1px solid #F59E0B;' : 'background: var(--card); border: 1px solid var(--border);';
+
                 let pricingUI = '';
                 let dropdownUI = '';
                 let isCaseDisabled = false;
 
-                if (item.has_slabs) {
+                if (isSchemeActive) {
+                    isCaseDisabled = false; // Always allow free entry for schemes
+                    const slabHTML = item.scheme_slabs.map(s => `
+                        <div class="slab-row" style="background:white; border-color:#FDE68A;">
+                            <div class="sl-col-name" style="color:#B45309;">Buy ${s.min} Pcs</div>
+                            <div class="sl-col-rate" style="color:#92400E; font-size:0.85rem;">₹${fmt(s.rate)}</div>
+                            <div class="sl-col-act"><button class="btn-apply" style="background:#F59E0B; color:white; border:none;" onclick="applySlab('${item.code}', ${s.min})">Apply</button></div>
+                        </div>`).join('');
+                    
+                    pricingUI = `<div style="display:inline-flex; align-items:center; gap:4px; margin-top:4px; background:white; padding:3px 8px; border-radius:4px; border:1px solid #F59E0B;">
+                        <i class="fas fa-bolt" style="color:#D97706; font-size:0.75rem;"></i>
+                        <span style="font-size:0.75rem; font-weight:800; color:#B45309;">SPECIAL OFFER</span>
+                    </div>`;
+                    dropdownUI = `
+                        <div class="slab-toggle" style="color:#D97706;" onclick="toggleAccordion('slabs-${item.code}', 'slab-icon-${item.code}')">
+                            <span>View Offer Details</span>
+                            <i class="fas fa-chevron-down" id="slab-icon-${item.code}"></i>
+                        </div>
+                        <div class="slab-list hidden" id="slabs-${item.code}" style="gap:6px;">${slabHTML}</div>
+                    `;
+                } else if (item.has_slabs) {
                     const slabHTML = item.slabs.slice(1).map((s) => {
                         const rate = fmt(getRate(item.cost, s.markup));
                         const retailerMargin = rate > 0 ? (((item.mrp - rate) / rate) * 100) : 0;
@@ -2697,7 +2852,7 @@
                 const imgBox = item.photo ? `<img src="${item.photo}" style="width:100%; height:100%; object-fit:cover; border-radius:6px;">` : `<i class="fas fa-image"></i>`;
 
                 return `
-                <div class="card">
+                <div class="card" style="${cardStyle}">
                     <div class="c-body">
                         <div class="c-top">
                             <div class="c-img" style="cursor:pointer;" onclick="triggerItemPhotoUpload('${item.code}')" title="Tap to add/change photo">${imgBox}</div>
@@ -3178,11 +3333,16 @@
             // Set Status Badge
             const statusStr = order.status || 'Placed';
             const badgeEl = document.getElementById('sh-status-badge');
-            badgeEl.innerText = statusStr.toUpperCase();
             
-            if (statusStr === 'Packed') { badgeEl.style.background = 'var(--success-bg)'; badgeEl.style.color = 'var(--success)'; }
-            else if (statusStr === 'Billed') { badgeEl.style.background = '#DBEAFE'; badgeEl.style.color = '#1E3A8A'; }
-            else { badgeEl.style.background = '#FEF3C7'; badgeEl.style.color = '#B45309'; }
+            // Add Edit Button if order is still Pending
+            if (statusStr === 'Pending' || statusStr === 'Placed') {
+                badgeEl.innerHTML = `<button onclick="editSalesmanOrder('${order.id}')" style="background:var(--warning); color:white; border:none; padding:4px 12px; border-radius:12px; font-weight:800; font-size:0.75rem; cursor:pointer; box-shadow:0 1px 2px rgba(0,0,0,0.1);"><i class="fas fa-edit"></i> EDIT ORDER</button>`;
+            } else {
+                badgeEl.innerText = statusStr.toUpperCase();
+                if (statusStr === 'Packed') { badgeEl.style.background = 'var(--success-bg)'; badgeEl.style.color = 'var(--success)'; }
+                else if (statusStr === 'Billed') { badgeEl.style.background = '#DBEAFE'; badgeEl.style.color = '#1E3A8A'; }
+                else { badgeEl.style.background = '#FEF3C7'; badgeEl.style.color = '#B45309'; }
+            }
 
             // Render Items
             const list = document.getElementById('sh-item-list');
@@ -3251,6 +3411,51 @@
 
         function exitSalesmanHistoryDetail() {
             document.getElementById('salesman-history-detail-view').classList.add('hidden');
+        }
+
+        async function editSalesmanOrder(orderId) {
+            const order = MY_ORDERS.find(o => o.id === orderId);
+            if (!order) return;
+
+            // Strict safety check: Ensure the cloud hasn't changed it since we loaded the page
+            try {
+                const { data } = await sbClient.from('orders').select('status').eq('id', orderId).single();
+                if (data && data.status !== 'Pending') {
+                    showWarning("Too Late", "A packer has already started processing this order. It can no longer be edited.");
+                    renderSalesmanHistory(); // Refresh the list
+                    exitSalesmanHistoryDetail();
+                    return;
+                }
+            } catch(e) {}
+
+            // Load the order into the active Cart
+            activeCust = CUSTOMERS.find(c => c.code === order.customer_code) || { code: order.customer_code, name: order.customer_code, bal: 0 };
+            
+            // Overwrite memory
+            cart = JSON.parse(JSON.stringify(order.items));
+            draft = JSON.parse(JSON.stringify(cart));
+            allCarts[activeCust.code] = cart;
+            saveLocalState();
+
+            // Set UI
+            document.getElementById('ov-cust-name').innerText = activeCust.name;
+            document.getElementById('ov-cust-bal').innerText = `Editing: ${order.id}`;
+            updateBadge();
+            
+            // Close History, Open Order View
+            exitSalesmanHistoryDetail();
+            document.getElementById('order-view').classList.remove('hidden');
+            
+            // Delete the old order from the cloud so it doesn't duplicate
+            try {
+                await sbClient.from('orders').delete().eq('id', orderId);
+                const idx1 = MY_ORDERS.findIndex(o => o.id === orderId);
+                if (idx1 > -1) MY_ORDERS.splice(idx1, 1);
+                const idx2 = SUBMITTED_ORDERS.findIndex(o => o.id === orderId);
+                if (idx2 > -1) SUBMITTED_ORDERS.splice(idx2, 1);
+            } catch(e) {}
+
+            openCart(); // Jump straight to cart to let them edit it
         }
 
         /* --- SALESMAN COLLECTION LOGIC --- */
@@ -3544,6 +3749,199 @@
             }
         }
 
+        /* --- ADMIN REORDER ENGINE --- */
+        let reorderStatsCache = null;
+        let liveDemandCache = null;
+
+        async function openAdminReorderApp() {
+            document.getElementById('admin-reorder-app').classList.remove('hidden');
+            const feed = document.getElementById('reorder-feed');
+            
+            // Only pull this massive data once per session to save bandwidth
+            if (!reorderStatsCache || !liveDemandCache) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br><b>Analyzing Lifetime Data...</b></div>`;
+                
+                try {
+                    // 1. Let Supabase instantly send us the pre-calculated lifetime averages!
+                    const { data: statsData, error: statsErr } = await sbClient.from('item_sales_stats').select('*');
+                    if (statsErr) throw statsErr;
+                    reorderStatsCache = statsData || [];
+
+                    // 2. Fetch live pipeline demand (ONLY Pending and Packed to avoid double-counting Billed ERP stock)
+                    const { data: activeOrders } = await sbClient.from('orders').select('items').in('status', ['Pending', 'Packed']);
+                    let demandMap = {};
+                    if (activeOrders) {
+                        activeOrders.forEach(o => {
+                            for (let key in o.items) {
+                                // Skip removed items
+                                if (o.items[key].packed === false) continue;
+
+                                const baseCode = key.split('__')[0];
+                                const item = INVENTORY.find(i => i.code === baseCode);
+                                if (item) {
+                                    const cQty = parseInt(item.caseQty) || 0;
+                                    const tQty = (o.items[key].c * cQty) + o.items[key].p;
+                                    if (!demandMap[baseCode]) demandMap[baseCode] = 0;
+                                    demandMap[baseCode] += tQty;
+                                }
+                            }
+                        });
+                    }
+                    liveDemandCache = demandMap;
+                } catch(e) {
+                    feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--accent);">Failed to load stats.<br>Ensure you ran the SQL query.</div>`;
+                    return;
+                }
+            }
+            renderReorderDash();
+        }
+
+        function renderReorderDash() {
+            const feed = document.getElementById('reorder-feed');
+            const targetDays = parseInt(document.getElementById('reorder-target-days').value) || 30;
+            const sortMode = document.getElementById('reorder-sort').value;
+            const searchQ = (document.getElementById('reorder-search').value || "").toLowerCase();
+            const now = new Date();
+            
+            let reorderItems = [];
+            
+            INVENTORY.forEach(item => {
+                const stats = reorderStatsCache.find(s => s.item_name === item.name);
+                if (!stats) return; // No sales history
+                
+                const firstSale = new Date(stats.first_sale_date);
+                const lastSale = new Date(stats.last_sale_date);
+                const daysActive = Math.max(1, Math.floor((now - firstSale) / (1000 * 60 * 60 * 24)));
+                const daysSinceLastSale = Math.max(0, Math.floor((now - lastSale) / (1000 * 60 * 60 * 24)));
+                
+                const velocity = stats.total_sold / daysActive;
+                if (velocity <= 0.05) return; // Skip dead items (<1 sale per 20 days)
+                
+                const demand = liveDemandCache[item.code] || 0;
+                const effectiveStock = item.stock - demand;
+                
+                // Dormant Check: If out of stock AND no sales in 60 days, ignore it so it doesn't clutter
+                if (effectiveStock <= 0 && daysSinceLastSale > 60) return;
+                
+                const daysLeft = effectiveStock <= 0 ? 0 : (effectiveStock / velocity);
+                
+                let qtyToOrder = (velocity * targetDays) - effectiveStock;
+                if (qtyToOrder <= 0) return; // Skip if we have enough to hit target
+                
+                // Output Formatting
+                const cQty = parseInt(item.caseQty) || 0;
+                let orderCases = 0;
+                let orderPcs = Math.ceil(qtyToOrder);
+                if (cQty > 0) {
+                    orderCases = Math.floor(orderPcs / cQty);
+                    orderPcs = orderPcs % cQty;
+                }
+                
+                reorderItems.push({
+                    item, velocity, effectiveStock, demand, daysLeft, orderCases, orderPcs, totalOrderPcs: Math.ceil(qtyToOrder)
+                });
+            });
+            
+            // Search Filter
+            if (searchQ) {
+                reorderItems = reorderItems.filter(r => r.item.name.toLowerCase().includes(searchQ) || r.item.code.toLowerCase().includes(searchQ));
+            }
+
+            // Sort logic
+            reorderItems.sort((a,b) => {
+                if (sortMode === 'fast') return b.velocity - a.velocity;
+                return a.daysLeft - b.daysLeft; // Default: Critical first
+            });
+
+            // Make available globally for PDF download
+            window.currentReorderViewArray = reorderItems;
+
+            if (reorderItems.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--success); font-weight:800;"><i class="fas fa-check-circle fa-3x" style="margin-bottom:10px;"></i><br>Stock is healthy!</div>`;
+                return;
+            }
+
+            feed.innerHTML = reorderItems.map(r => {
+                let statusColor = '#166534'; let statusBg = '#DCFCE7'; // Green (8+ Days)
+                if (r.daysLeft < 4) { statusColor = '#991B1B'; statusBg = '#FEE2E2'; } // Red (0-3 Days)
+                else if (r.daysLeft < 8) { statusColor = '#9A3412'; statusBg = '#FFEDD5'; } // Orange (4-7 Days)
+                
+                const daysStr = r.daysLeft === 0 ? 'Out of Stock!' : `${r.daysLeft.toFixed(1)} Days Left`;
+                let orderStr = '';
+                if (r.orderCases > 0 && r.orderPcs > 0) orderStr = `${r.orderCases} Cs + ${r.orderPcs} Pcs`;
+                else if (r.orderCases > 0) orderStr = `${r.orderCases} Cases`;
+                else orderStr = `${r.orderPcs} Pieces`;
+
+                return `
+                <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
+                    <div style="padding: 14px; display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div style="flex:1; padding-right:15px; min-width:0;">
+                            <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 4px; line-height: 1.3;">${r.item.name}</div>
+                            <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; font-size:0.75rem;">
+                                <span style="color:var(--text-mut); font-weight:600;"><i class="fas fa-tachometer-alt"></i> ${r.velocity.toFixed(1)}/day</span>
+                                <span style="background:${statusBg}; color:${statusColor}; padding:2px 6px; border-radius:4px; font-weight:800;">${daysStr}</span>
+                            </div>
+                            <div style="font-size:0.7rem; color:var(--text-mut);">
+                                ERP Stock: <b style="color:var(--text);">${r.item.stock}</b> | Live Demand: <b style="color:var(--accent);">${r.demand}</b>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: var(--brand-light); border-top: 1px dashed #BFDBFE; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-size:0.75rem; color:var(--brand); font-weight:700;">Suggested Order:</div>
+                        <div style="font-size:0.95rem; color:var(--brand); font-weight:800;">${orderStr}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function downloadReorderPDF() {
+            if(!window.jspdf) { alert("PDF Engine Loading, please wait a second."); return; }
+            if(!window.currentReorderViewArray || window.currentReorderViewArray.length === 0) {
+                alert("No items to download!"); return;
+            }
+
+            const doc = new window.jspdf.jsPDF();
+            const targetDays = document.getElementById('reorder-target-days').value;
+            
+            doc.setFontSize(16);
+            doc.text(`Reorder Report (Target: ${targetDays} Days)`, 14, 20);
+            
+            const d = new Date();
+            const dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
+            doc.setFontSize(10);
+            doc.text(`Date Generated: ${dateStr}`, 14, 28);
+
+            const tableBody = window.currentReorderViewArray.map((r, i) => {
+                const daysLeft = r.daysLeft === 0 ? 'Out!' : r.daysLeft.toFixed(1);
+                let orderStr = '';
+                if (r.orderCases > 0 && r.orderPcs > 0) orderStr = `${r.orderCases} Cs + ${r.orderPcs} Pcs`;
+                else if (r.orderCases > 0) orderStr = `${r.orderCases} Cs`;
+                else orderStr = `${r.orderPcs} Pcs`;
+
+                return [
+                    i + 1,
+                    r.item.name,
+                    `${r.velocity.toFixed(1)}/day`,
+                    daysLeft,
+                    r.item.stock,
+                    r.demand,
+                    orderStr
+                ];
+            });
+
+            doc.autoTable({
+                startY: 35,
+                head: [['#', 'Item Name', 'Speed', 'Days Left', 'Stock', 'Demand', 'Order Qty']],
+                body: tableBody,
+                theme: 'striped',
+                headStyles: { fillColor: [220, 38, 38] }, // Red header to match the Reorder theme
+                styles: { fontSize: 8 },
+                columnStyles: { 0: { cellWidth: 10 } }
+            });
+
+            doc.save(`Reorder_Report_${dateStr.replace(/\//g,'-')}.pdf`);
+        }
+
         async function renderPackingOrders() {
             const feed = document.getElementById('packing-feed');
             if(!feed) return;
@@ -3677,6 +4075,18 @@
             document.getElementById('ph-cust-name').innerText = custName;
             document.getElementById('ph-order-id').innerText = order.id;
 
+            // Add Re-Open button if it hasn't been Billed yet
+            const headBar = document.querySelector('#pack-history-detail-view .pack-top-bar');
+            if (headBar) {
+                if (order.status === 'Packed') {
+                    headBar.innerHTML = `<span>Total Items: <span id="ph-total-count" style="color:var(--brand);">0</span></span>
+                    <button onclick="editPackedOrder('${order.id}')" style="background:var(--warning); color:white; border:none; padding:4px 12px; border-radius:4px; font-weight:800; font-size:0.75rem; cursor:pointer;"><i class="fas fa-undo"></i> RE-OPEN PACKING</button>`;
+                } else {
+                    headBar.innerHTML = `<span>Total Items: <span id="ph-total-count" style="color:var(--brand);">0</span></span>
+                    <span style="font-size:0.75rem; background:#DBEAFE; color:#1E3A8A; padding:4px 10px; border-radius:12px; font-weight:800;">BILLED</span>`;
+                }
+            }
+
             const list = document.getElementById('ph-item-list');
             const itemsArr = Object.keys(order.items).map(k => ({ key: k, ...order.items[k] }));
             
@@ -3734,6 +4144,42 @@
 
         function exitPackerHistoryDetail() {
             document.getElementById('pack-history-detail-view').classList.add('hidden');
+        }
+        async function editPackedOrder(orderId) {
+            const order = SUBMITTED_ORDERS.find(o => o.id === orderId);
+            if (!order) return;
+
+            // Strict safety check: Ensure it wasn't billed while they were looking at it
+            try {
+                const { data } = await sbClient.from('orders').select('status').eq('id', orderId).single();
+                if (data && data.status !== 'Packed') {
+                    showWarning("Too Late", "This order has already been Billed and can no longer be edited.");
+                    renderPackerHistory(); 
+                    exitPackerHistoryDetail();
+                    return;
+                }
+            } catch(e) {}
+
+            // Revert status in cloud and memory to Pending
+            order.status = 'Pending';
+            
+            try {
+                await sbClient.from('orders').update({ status: 'Pending' }).eq('id', orderId);
+            } catch(e) {
+                showWarning("Network Error", "Could not re-open the order. Try again.");
+                return;
+            }
+
+            // Close History view, force refresh lists, and jump straight into Packing View
+            exitPackerHistoryDetail();
+            switchTab('packing');
+            
+            // Auto-load it into their packing screen
+            currentPackOrder = JSON.parse(JSON.stringify(order));
+            allPacks[order.id] = currentPackOrder;
+            saveLocalState();
+            
+            openPackingDetail(order.id);
         }
 
         function exitPacking() {
@@ -4040,15 +4486,18 @@
 
             if (!isConfirmed) return;
 
-            // Notice we completely removed the broken "finalItems" line!
+            // Log exactly who packed it and when
+            const now = new Date().toISOString();
             currentPackOrder.status = 'Packed'; 
             currentPackOrder.packer_id = userSession ? userSession.user.id : "local_dev"; 
+            currentPackOrder.packed_at = now;
 
             try {
                 const { error } = await sbClient.from('orders').update({
                     items: currentPackOrder.items,
                     status: 'Packed',
-                    packer_id: currentPackOrder.packer_id
+                    packer_id: currentPackOrder.packer_id,
+                    packed_at: currentPackOrder.packed_at
                 }).eq('id', currentPackOrder.id);
                 if(error) throw error;
                 
@@ -5584,7 +6033,13 @@
             if(!feed) return;
             if (INVENTORY.length === 0) { feed.innerHTML = `<div style="text-align:center; padding: 30px; color: var(--text-mut);">No inventory data.</div>`; return; }
 
-            let items = catalogCat === "All" ? INVENTORY : INVENTORY.filter(i => i.category === catalogCat);
+            // Filter by selected category OR by Scheme Status if "🔥 Offers" is selected
+            let items = catalogCat === "All" 
+                ? INVENTORY 
+                : (catalogCat === "🔥 Offers" 
+                    ? INVENTORY.filter(i => i.is_scheme_active) 
+                    : INVENTORY.filter(i => i.category === catalogCat));
+
             if (catalogSearchQuery) {
                 if (catalogSearchQuery.includes('.')) {
                     const parts = catalogSearchQuery.split('.');
@@ -6203,11 +6658,22 @@
                     
                     let statColor, statIcon, statBg, uiStatus;
                     const status = order.status || 'Pending';
+                    
                     if (status === 'Pending') { statColor = '#B45309'; statBg = '#FEF3C7'; statIcon = 'fa-box-open'; uiStatus = 'Pending Pack'; }
-                    else if (status === 'Packed') { statColor = '#166534'; statBg = '#DCFCE7'; statIcon = 'fa-file-invoice-dollar'; uiStatus = 'Pending Bill'; }
                     else if (status === 'Billed') { statColor = '#1E3A8A'; statBg = '#DBEAFE'; statIcon = 'fa-layer-group'; uiStatus = 'Pending Load'; }
                     else if (status === 'Loaded') { statColor = '#5B21B6'; statBg = '#E0E7FF'; statIcon = 'fa-truck'; uiStatus = 'Pending Deliv'; }
                     else if (status === 'Delivered') { statColor = '#065F46'; statBg = '#A7F3D0'; statIcon = 'fa-check-circle'; uiStatus = 'Delivered'; }
+                    else if (status === 'Packed') { 
+                        statColor = '#166534'; statBg = '#DCFCE7'; statIcon = 'fa-file-invoice-dollar'; 
+                        
+                        // Extract exact packing time from our new database column
+                        let packedTimeStr = 'Ready to Bill';
+                        if (order.packed_at) {
+                            const pTime = new Date(order.packed_at);
+                            packedTimeStr = `Packed ${pTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                        }
+                        uiStatus = packedTimeStr;
+                    }
 
                     // Calculate individual order margin accurately (Ignoring removed items)
                     let indProfit = 0;
@@ -7244,6 +7710,160 @@
                 renderPricingTable(); 
                 document.getElementById('csv-upload-margins').value = ""; 
             }; reader.readAsText(file);
+        }
+
+        /* --- ADMIN SPECIAL OFFERS LOGIC --- */
+        function renderAdminOffersList() {
+            const feed = document.getElementById('admin-offers-feed');
+            const searchQ = document.getElementById('admin-offers-search').value.trim().toLowerCase();
+            
+            let items = [];
+            if (searchQ) {
+                // If searching, show all matching items so they can be turned into offers
+                items = INVENTORY.filter(i => i.name.toLowerCase().includes(searchQ) || i.code.toLowerCase().includes(searchQ));
+            } else {
+                // If not searching, only show items with scheme data (Active OR Expired)
+                items = INVENTORY.filter(i => i.is_scheme);
+            }
+
+            if (items.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No items found.</div>`;
+                return;
+            }
+
+            feed.innerHTML = items.map(i => {
+                const isCurrentlyActive = i.is_scheme_active;
+                const isExpired = i.is_scheme && !i.is_scheme_active;
+                
+                let statusBadge = '';
+                if (isCurrentlyActive) statusBadge = `<span style="background:#FEF3C7; color:#B45309; padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:800;"><i class="fas fa-bolt"></i> ACTIVE</span>`;
+                else if (isExpired) statusBadge = `<span style="background:#FEE2E2; color:#991B1B; padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:800;"><i class="fas fa-clock"></i> EXPIRED</span>`;
+                else statusBadge = `<span style="background:#F3F4F6; color:var(--text-mut); padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:800;">STANDARD</span>`;
+
+                let dateStr = '';
+                if (i.is_scheme && i.scheme_start && i.scheme_end) {
+                    const sStr = new Date(i.scheme_start).toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'2-digit'});
+                    const eStr = new Date(i.scheme_end).toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'2-digit'});
+                    dateStr = `<div style="font-size:0.7rem; color:var(--text-mut); margin-top:4px; font-weight:600;"><i class="fas fa-calendar-alt"></i> ${sStr} to ${eStr}</div>`;
+                }
+
+                return `
+                <div style="background: ${isCurrentlyActive ? '#FFFBEB' : 'white'}; border-radius: 8px; border: 1px solid ${isCurrentlyActive ? '#FDE68A' : 'var(--border)'}; margin-bottom: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onclick="openOfferEditor('${i.code}')">
+                    <div style="flex:1; padding-right:10px;">
+                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3;">${i.name}</div>
+                        <div style="font-size: 0.75rem; color:var(--text-mut); font-weight: 600;">Cost: ₹${fmt(i.cost)} | MRP: ₹${fmt(i.mrp)}</div>
+                        ${dateStr}
+                    </div>
+                    <div style="text-align: right;">
+                        ${statusBadge}
+                        <div style="margin-top:6px; font-size:0.75rem; font-weight:700; color:var(--brand);">Edit <i class="fas fa-chevron-right"></i></div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function openOfferEditor(code) {
+            const item = INVENTORY.find(i => i.code === code);
+            if (!item) return;
+
+            document.getElementById('offer-item-code').value = code;
+            document.getElementById('offer-item-name').innerText = item.name;
+            document.getElementById('offer-item-meta').innerText = `Cost: ₹${fmt(item.cost)} | MRP: ₹${fmt(item.mrp)} | Std Rate: ₹${fmt(item.price2)}`;
+            
+            document.getElementById('offer-toggle-active').checked = item.is_scheme;
+            document.getElementById('offer-dates-wrap').style.display = item.is_scheme ? 'block' : 'none';
+            
+            document.getElementById('off-start').value = item.scheme_start || '';
+            document.getElementById('off-end').value = item.scheme_end || '';
+
+            const slabs = item.scheme_slabs || [];
+            document.getElementById('off-q1').value = slabs[0] ? slabs[0].min : '';
+            document.getElementById('off-r1').value = slabs[0] ? slabs[0].rate : '';
+            document.getElementById('off-q2').value = slabs[1] ? slabs[1].min : '';
+            document.getElementById('off-r2').value = slabs[1] ? slabs[1].rate : '';
+            document.getElementById('off-q3').value = slabs[2] ? slabs[2].min : '';
+            document.getElementById('off-r3').value = slabs[2] ? slabs[2].rate : '';
+
+            document.getElementById('offer-edit-modal').classList.remove('hidden');
+        }
+
+        async function saveSpecialOffer() {
+            const code = document.getElementById('offer-item-code').value;
+            const item = INVENTORY.find(i => i.code === code);
+            if (!item) return;
+
+            const btn = document.getElementById('btn-save-offer');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            const isActive = document.getElementById('offer-toggle-active').checked;
+            const startDate = document.getElementById('off-start').value;
+            const endDate = document.getElementById('off-end').value;
+            let newSlabs = [];
+
+            if (isActive) {
+                if (!startDate || !endDate) {
+                    showWarning("Dates Required", "Please select a From and To date for the scheme.");
+                    btn.innerHTML = 'Save Special Offer'; btn.disabled = false;
+                    return;
+                }
+                
+                if (startDate > endDate) {
+                    showWarning("Invalid Dates", "The Start date cannot be after the End date.");
+                    btn.innerHTML = 'Save Special Offer'; btn.disabled = false;
+                    return;
+                }
+
+                // Read inputs
+                for (let i = 1; i <= 3; i++) {
+                    const q = parseInt(document.getElementById(`off-q${i}`).value);
+                    const r = parseFloat(document.getElementById(`off-r${i}`).value);
+                    if (!isNaN(q) && q > 0 && !isNaN(r) && r > 0) {
+                        newSlabs.push({ min: q, rate: r });
+                    }
+                }
+                
+                if (newSlabs.length === 0) {
+                    showWarning("Invalid Data", "Please enter at least one valid Quantity and Rate to enable the scheme.");
+                    btn.innerHTML = 'Save Special Offer'; btn.disabled = false;
+                    return;
+                }
+                
+                newSlabs.sort((a,b) => b.min - a.min); // Ensure descending for engine
+            }
+
+            try {
+                const payload = { 
+                    is_scheme: isActive, 
+                    scheme_slabs: newSlabs,
+                    scheme_start: isActive ? startDate : null,
+                    scheme_end: isActive ? endDate : null
+                };
+
+                const { error } = await sbClient.from('items').update(payload).eq('code', code);
+                if (error) throw error;
+
+                // Update Local Memory Instantly
+                item.is_scheme = isActive;
+                item.scheme_slabs = newSlabs;
+                item.scheme_start = payload.scheme_start;
+                item.scheme_end = payload.scheme_end;
+                
+                // Re-evaluate dynamic active status
+                const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                item.is_scheme_active = item.is_scheme && item.scheme_slabs.length > 0;
+                if (item.is_scheme_active && item.scheme_start && item.scheme_end) {
+                    if (todayStr < item.scheme_start || todayStr > item.scheme_end) item.is_scheme_active = false;
+                }
+
+                showSuccess("Special Offer updated successfully!");
+                closeModal('offer-edit-modal');
+                renderAdminOffersList();
+            } catch(e) {
+                showWarning("Network Error", "Could not save offer to cloud.");
+            } finally {
+                btn.innerHTML = 'Save Special Offer'; btn.disabled = false;
+            }
         }
 
         /* ========================================== */
