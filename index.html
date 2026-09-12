@@ -3193,31 +3193,11 @@
         async function confirmOrder() {
             if(Object.keys(cart).length === 0) return;
             
-            // Generate sequential ORD ID securely from the Cloud
-            let nextOrdNum = 1;
-            try {
-                // Fetch the last few orders to ensure we find the absolute highest number, avoiding offline sync overlaps
-                const { data: latestOrders } = await sbClient.from('orders').select('id').order('created_at', { ascending: false }).limit(10);
-                if (latestOrders && latestOrders.length > 0) {
-                    const maxId = Math.max(...latestOrders.map(o => parseInt(o.id.replace(/\D/g, '')) || 0));
-                    nextOrdNum = maxId + 1;
-                }
-            } catch (e) {
-                // Offline fallback
-                const allOrders = [...(SUBMITTED_ORDERS||[]), ...(MY_ORDERS||[])];
-                if (allOrders.length > 0) {
-                    const maxId = allOrders.reduce((max, obj) => {
-                        const num = parseInt(obj.id.replace(/\D/g, '')) || 0;
-                        return num > max ? num : max;
-                    }, 0);
-                    nextOrdNum = maxId + 1;
-                }
-            }
-            
-            // Add a random 2-digit suffix to absolutely prevent duplicate key crashes when multiple salesmen submit at the exact same time
-            const randomSuffix = Math.floor(Math.random() * 90) + 10;
-            const orderId = 'ORD' + String(nextOrdNum).padStart(4, '0') + '_' + randomSuffix;
-            
+            const btn = document.querySelector('.btn-checkout');
+            const origText = btn.innerText;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+            btn.disabled = true;
+
             let totalAmount = 0;
             for(const code in cart) {
                 const qty = cart[code];
@@ -3226,44 +3206,123 @@
                 totalAmount += totalPcs * getApplicableRate(item, totalPcs, qty.r, qty.cr);
             }
 
-            const newOrder = {
-                id: orderId,
-                customer_code: activeCust.code,
-                salesman_id: userSession ? userSession.user.id : "local_dev",
-                total_amount: totalAmount,
-                status: 'Pending',
-                items: cart,
-                created_at: new Date().toISOString()
+            // Find base maximum ID
+            let baseMaxId = 0;
+            
+            // Helper to safely extract a normal order number and ignore massive glitches
+            const extractSafeId = (idStr) => {
+                if (!idStr) return 0;
+                // Strict 4-digit limit. Completely ignores the 5-digit (57552) and 20-digit glitches.
+                const match = idStr.match(/^ORD(\d{1,4})(?:_|$)/);
+                if (match) {
+                    const num = parseInt(match[1], 10);
+                    return (num > 0 && num < 10000) ? num : 0;
+                }
+                return 0;
             };
+            
+            // 1. ALWAYS ask the cloud for the absolute highest recent ID (Takes milliseconds)
+            if (navigator.onLine) {
+                try {
+                    const { data } = await sbClient.from('orders').select('id').order('created_at', { ascending: false }).limit(50);
+                    if (data && data.length > 0) {
+                        data.forEach(o => {
+                            const num = extractSafeId(o.id);
+                            if (num > baseMaxId) baseMaxId = num;
+                        });
+                    }
+                } catch (e) { console.warn("Failed to fetch max ID from cloud", e); }
+            }
 
-            try {
-                const { error } = await sbClient.from('orders').insert({
-                    id: newOrder.id,
-                    customer_code: newOrder.customer_code,
-                    salesman_id: newOrder.salesman_id,
-                    total_amount: newOrder.total_amount,
-                    status: newOrder.status,
-                    items: newOrder.items
+            // 2. Fallback to local memory ONLY if offline or cloud fails
+            if (baseMaxId === 0) {
+                const allKnownOrders = [...(SUBMITTED_ORDERS||[]), ...(MY_ORDERS||[])];
+                allKnownOrders.forEach(o => {
+                    const num = extractSafeId(o.id);
+                    if (num > baseMaxId) baseMaxId = num;
                 });
                 
-                if (error) throw error;
-                
-                // Cloud Success!
-                if (!MY_ORDERS.find(o => o.id === newOrder.id)) MY_ORDERS.unshift(newOrder);
-                if (!SUBMITTED_ORDERS.find(o => o.id === newOrder.id)) SUBMITTED_ORDERS.unshift(newOrder); // Immediately share with Packing/Billing
-                
-                showSuccess(`Order ${newOrder.id} successfully synced to the Cloud!`);
-                
-                delete allCarts[activeCust.code];
-                cart = {}; draft = {}; activeCust = null;
-                saveLocalState();
-                closeCart();
-                exitOrder();
-                renderCustomersView(); // Refresh list to remove the yellow badge
-
-            } catch (e) {
-                alert(`❌ ORDER FAILED: Could not connect to the cloud. Please check your internet and try again.\n\nError: ${e.message}`);
+                // If completely offline, jump the number ahead randomly to prevent collisions
+                if (!navigator.onLine) {
+                    baseMaxId += Math.floor(Math.random() * 50) + 10; 
+                }
             }
+
+            // Absolute failsafe against corruption
+            if (baseMaxId > 999999 || baseMaxId < 0) baseMaxId = 0;
+
+            let success = false;
+            let attempts = 0;
+            let newOrder = null;
+
+            // SMART RETRY LOOP: Steps up the ID by 1 on every failure to guarantee it bypasses collisions
+            while (attempts < 10 && !success) {
+                attempts++;
+                
+                // On attempt 1, it tries max+1. On attempt 2, it tries max+2. Guarantees safety!
+                let nextOrdNum = baseMaxId + attempts;
+                const orderId = 'ORD' + String(nextOrdNum).padStart(4, '0');
+
+                newOrder = {
+                    id: orderId,
+                    customer_code: activeCust.code,
+                    salesman_id: userSession ? userSession.user.id : "local_dev",
+                    total_amount: totalAmount,
+                    status: 'Pending',
+                    items: cart,
+                    created_at: new Date().toISOString()
+                };
+
+                try {
+                    const { error } = await sbClient.from('orders').insert({
+                        id: newOrder.id,
+                        customer_code: newOrder.customer_code,
+                        salesman_id: newOrder.salesman_id,
+                        total_amount: newOrder.total_amount,
+                        status: newOrder.status,
+                        items: newOrder.items
+                    });
+                    
+                    if (error) {
+                        // 23505 is the Postgres database code for "Duplicate Key Violation"
+                        if (error.code === '23505' || error.message.includes('duplicate key')) {
+                            console.warn(`Collision on ${orderId}, stepping up...`);
+                            continue; // Loop back and immediately try the next number!
+                        } else {
+                            throw error; // Throw other standard network errors
+                        }
+                    }
+                    success = true; // The loop safely exits
+                } catch (e) {
+                    alert(`❌ ORDER FAILED: Could not connect to the cloud. Please check your internet and try again.\n\nError: ${e.message}`);
+                    btn.innerHTML = origText;
+                    btn.disabled = false;
+                    return;
+                }
+            }
+
+            if (!success) {
+                alert("❌ ORDER FAILED: Database ID collision couldn't be resolved. Please try again.");
+                btn.innerHTML = origText;
+                btn.disabled = false;
+                return;
+            }
+            
+            // Cloud Success!
+            if (!MY_ORDERS.find(o => o.id === newOrder.id)) MY_ORDERS.unshift(newOrder);
+            if (!SUBMITTED_ORDERS.find(o => o.id === newOrder.id)) SUBMITTED_ORDERS.unshift(newOrder);
+            
+            showSuccess(`Order ${newOrder.id} successfully synced to the Cloud!`);
+            
+            delete allCarts[activeCust.code];
+            cart = {}; draft = {}; activeCust = null;
+            saveLocalState();
+            closeCart();
+            exitOrder();
+            renderCustomersView(); 
+
+            btn.innerHTML = origText;
+            btn.disabled = false;
         }
 
         async function renderSalesmanHistory() {
