@@ -3196,9 +3196,10 @@
             // Generate sequential ORD ID securely from the Cloud
             let nextOrdNum = 1;
             try {
-                const { data: latestOrder } = await sbClient.from('orders').select('id').order('created_at', { ascending: false }).limit(1);
-                if (latestOrder && latestOrder.length > 0) {
-                    const maxId = parseInt(latestOrder[0].id.replace(/\D/g, '')) || 0;
+                // Fetch the last few orders to ensure we find the absolute highest number, avoiding offline sync overlaps
+                const { data: latestOrders } = await sbClient.from('orders').select('id').order('created_at', { ascending: false }).limit(10);
+                if (latestOrders && latestOrders.length > 0) {
+                    const maxId = Math.max(...latestOrders.map(o => parseInt(o.id.replace(/\D/g, '')) || 0));
                     nextOrdNum = maxId + 1;
                 }
             } catch (e) {
@@ -3212,7 +3213,10 @@
                     nextOrdNum = maxId + 1;
                 }
             }
-            const orderId = 'ORD' + String(nextOrdNum).padStart(4, '0');
+            
+            // Add a random 2-digit suffix to absolutely prevent duplicate key crashes when multiple salesmen submit at the exact same time
+            const randomSuffix = Math.floor(Math.random() * 90) + 10;
+            const orderId = 'ORD' + String(nextOrdNum).padStart(4, '0') + '_' + randomSuffix;
             
             let totalAmount = 0;
             for(const code in cart) {
