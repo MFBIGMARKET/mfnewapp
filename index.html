@@ -598,6 +598,7 @@
                 <select id="cr-sort-select" onchange="renderCreditView()" style="padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.75rem; font-weight: 700; color: var(--brand); background: white;">
                     <option value="high">Highest Bal</option>
                     <option value="low">Lowest Bal</option>
+                    <option value="bills">Most Pending Bills</option>
                     <option value="alpha">A-Z Name</option>
                 </select>
             </div>
@@ -779,6 +780,7 @@
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center;">
                         <select id="reorder-sort" onchange="renderReorderDash()" style="padding: 4px 6px; border: 1px solid var(--border-dark); border-radius: 4px; outline: none; font-size: 0.8rem; font-weight: 700; color: var(--text); background: white;">
+                            <option value="critical_fast">Critical + Fast</option>
                             <option value="critical">Sort: Critical First</option>
                             <option value="fast">Sort: Fast Moving</option>
                         </select>
@@ -866,6 +868,7 @@
                     <input type="date" id="live-to-date" onchange="renderLiveDashboard(true)" style="flex:1;">
                 </div>
                 <div id="live-sm-filter-bar" style="background:var(--bg); flex-shrink: 0;"></div>
+                <div id="live-route-filter-bar" style="background:var(--bg); flex-shrink: 0;"></div>
                 <div class="scroll-area" style="padding: 0 16px 16px 16px; background: var(--bg);">
                     <div id="live-top-dashboard"></div>
                     <div id="live-stat-filter-bar" style="background:var(--bg);"></div>
@@ -890,6 +893,7 @@
                     <input type="date" id="sales-to-date" onchange="fetchAndRenderSales()" style="flex:1;">
                 </div>
                 <div id="sales-subgroup-bar" style="background:var(--bg); flex-shrink: 0;"></div>
+                <div id="sales-route-bar" style="background:var(--bg); flex-shrink: 0;"></div>
                 <div class="scroll-area" style="padding: 0 16px 16px 16px; background: var(--bg);">
                     <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom: 10px;" id="sales-kpi-board"></div>
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
@@ -934,11 +938,13 @@
             </div>
             <div style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
                 <div id="admin-credit-subgroup-bar" style="background:var(--bg); flex-shrink: 0;"></div>
+                <div id="admin-credit-route-bar" style="background:var(--bg); flex-shrink: 0;"></div>
                 <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB; padding: 8px 16px; border-bottom: 1px solid var(--border);">
                     <span style="font-size: 0.85rem; font-weight: 600;">Total: <span id="admin-credit-total" style="color:var(--accent);">₹0</span></span>
                     <select id="admin-credit-sort" onchange="updateAdminCreditSort(this.value)" style="padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.75rem; font-weight: 700; color: var(--brand); background: white;">
                         <option value="high">Highest Bal</option>
                         <option value="low">Lowest Bal</option>
+                        <option value="bills">Most Pending Bills</option>
                         <option value="alpha">A-Z Name</option>
                     </select>
                 </div>
@@ -971,9 +977,13 @@
         <!-- PACKING VIEW                               -->
         <!-- ========================================== -->
         
-        <div id="view-packing" class="tab-content hidden packing-view salesman-view">
+        <div id="view-packing" class="tab-content hidden packing-view salesman-view" style="background: var(--bg);">
             <!-- This strip will be injected dynamically by JS only for the Salesman -->
-            <div id="salesman-pack-hist-strip"></div>
+            <div id="salesman-pack-hist-strip" style="flex-shrink:0;"></div>
+            
+            <div id="packing-sm-filter-bar" style="background: white; border-bottom: 1px solid var(--border); flex-shrink: 0;"></div>
+            <div id="packing-route-filter-bar" style="background: #F9FAFB; border-bottom: 1px solid var(--border); flex-shrink: 0;"></div>
+            
             <div class="scroll-area" style="padding: 16px;" id="packing-feed"></div>
         </div>
 
@@ -2312,10 +2322,16 @@
         /* --- ADMIN CREDIT DASHBOARD --- */
         let adminCreditSubFilter = "All";
         let adminCreditSortMode = "high";
+        let adminCreditRouteFilter = "All";
 
-        function updateAdminCreditSubFilter(val) {
-            adminCreditSubFilter = val;
-            renderAdminCreditDash(false);
+        function updateAdminCreditSubFilter(val) { 
+            adminCreditSubFilter = val; 
+            adminCreditRouteFilter = 'All'; 
+            renderAdminCreditDash(true); 
+        }
+        function updateAdminCreditRouteFilter(val) { 
+            adminCreditRouteFilter = val; 
+            renderAdminCreditDash(true); 
         }
 
         function updateAdminCreditSort(val) {
@@ -2323,9 +2339,14 @@
             renderAdminCreditDash(false);
         }
 
-        function renderAdminCreditDash(rebuildFilter = false) {
+        async function renderAdminCreditDash(rebuildFilter = false) {
             const feed = document.getElementById('admin-credit-feed');
             if(!feed) return;
+
+            if (!CREDIT_CACHE_LOADED) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br><b>Analyzing Invoices...</b></div>`;
+                await loadCreditCache();
+            }
 
             // Build Subgroup Filter Bar dynamically based on all subgroups available
             const filterBar = document.getElementById('admin-credit-subgroup-bar');
@@ -2334,7 +2355,6 @@
                 CUSTOMERS.forEach(c => {
                     if (c.subgroup) {
                         let sg = c.subgroup.trim().toUpperCase();
-                        // Normalize the name so RIYAS NEW goes into RIYAS
                         if (sg.includes('SUNNY')) sg = 'SUNNY';
                         else if (sg.includes('RIYAS')) sg = 'RIYAS';
                         else if (sg.includes('METRO')) sg = 'METRO';
@@ -2360,12 +2380,13 @@
                 if (aEl) aEl.classList.add('active');
             }
 
+            // Build Route Filter Bar
             const searchQ = (document.getElementById('admin-credit-search').value || "").toLowerCase();
 
-            // Filter Customers (Only showing balance > 0 to keep the page clean)
+            // Filter Customers
             let filtered = CUSTOMERS.filter(c => (c.bal || 0) > 0); 
 
-            // Apply Subgroup Filter
+            // Apply Subgroup Filter First
             if (adminCreditSubFilter !== 'All') {
                 filtered = filtered.filter(c => {
                     const rawSg = (c.subgroup || '').trim().toUpperCase();
@@ -2374,10 +2395,36 @@
                         if (rawSg.includes('SUNNY')) sg = 'SUNNY';
                         else if (rawSg.includes('RIYAS')) sg = 'RIYAS';
                         else if (rawSg.includes('METRO')) sg = 'METRO';
-                        else sg = rawSg; // keep original if it's something else
+                        else sg = rawSg; 
                     }
-                    return sg === adminCreditSubFilter; // Strict match fixes overlap bug
+                    return sg === adminCreditSubFilter; 
                 });
+            }
+
+            // Build Cascading Route Filter Bar
+            const routeBar = document.getElementById('admin-credit-route-bar');
+            if (routeBar) {
+                const routeSet = new Set();
+                filtered.forEach(c => {
+                    if (c.route && c.route !== 'UNASSIGNED') routeSet.add(c.route);
+                });
+                const routes = Array.from(routeSet).sort();
+                
+                if (adminCreditRouteFilter !== 'All' && !routeSet.has(adminCreditRouteFilter)) adminCreditRouteFilter = 'All';
+
+                let rFilterHTML = `<div class="cat-scroll" style="padding: 0 16px 12px 16px; border-bottom: 1px solid var(--border);">`;
+                rFilterHTML += `<div class="cat-pill ${adminCreditRouteFilter === 'All' ? 'active' : ''}" onclick="updateAdminCreditRouteFilter('All')">All Routes</div>`;
+                routes.forEach(r => {
+                    const safeR = r.replace(/'/g, "\\'");
+                    rFilterHTML += `<div class="cat-pill ${adminCreditRouteFilter === r ? 'active' : ''}" onclick="updateAdminCreditRouteFilter('${safeR}')">${r}</div>`;
+                });
+                rFilterHTML += `</div>`;
+                routeBar.innerHTML = rFilterHTML;
+            }
+
+            // Apply Route Filter
+            if (adminCreditRouteFilter !== 'All') {
+                filtered = filtered.filter(c => c.route === adminCreditRouteFilter);
             }
 
             // Apply Search
@@ -2394,6 +2441,11 @@
             filtered.sort((a,b) => {
                 if(adminCreditSortMode === 'high') return b.bal - a.bal;
                 if(adminCreditSortMode === 'low') return a.bal - b.bal;
+                if(adminCreditSortMode === 'bills') {
+                    const cA = CUSTOMER_CREDIT_MAP[(a.name || '').trim().toUpperCase()]?.pendingCount || 0;
+                    const cB = CUSTOMER_CREDIT_MAP[(b.name || '').trim().toUpperCase()]?.pendingCount || 0;
+                    return cB - cA;
+                }
                 return a.name.localeCompare(b.name);
             });
 
@@ -2404,99 +2456,38 @@
 
             feed.innerHTML = filtered.map(c => {
                 const safeId = c.code.replace(/[^a-zA-Z0-9]/g, '_');
-                const safeName = c.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const cNameClean = (c.name || '').trim().toUpperCase();
+                const cData = CUSTOMER_CREDIT_MAP[cNameClean];
+                
+                const billBadge = (cData && cData.pendingCount > 0) 
+                    ? `<span style="background:#FEF2F2; color:#991B1B; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:800;">${cData.pendingCount} Bills Pending</span>` 
+                    : '';
+
+                const detailsHTML = generateCreditDropdownHTML(cData);
 
                 return `
                 <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
-                    <div style="padding: 14px; display:flex; justify-content:space-between; align-items:center; cursor: pointer;" onclick="toggleCreditSales('${safeId}', '${safeName}')">
-                        
+                    <div style="padding: 14px; display:flex; justify-content:space-between; align-items:center; cursor: pointer;" onclick="toggleSyncCreditDropdown('${safeId}')">
                         <div style="flex: 0 0 70%; padding-right: 10px; min-width: 0;">
                             <div style="font-weight: 800; font-size: 0.85rem; color:var(--text); margin-bottom: 4px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;" title="${c.name}">
                                 ${c.name}
                             </div>
-                            <div style="font-size: 0.7rem; color:var(--text-mut); font-weight:700;">
+                            <div style="font-size: 0.7rem; color:var(--text-mut); font-weight:700; margin-bottom: 4px;">
                                 <i class="fas fa-users" style="margin-right:4px;"></i>${c.subgroup || 'No Subgroup'}
                             </div>
+                            ${billBadge}
                         </div>
-                        
                         <div style="flex: 0 0 30%; text-align: right; min-width: 0;">
                             <span style="font-size: 0.6rem; color:var(--text-mut); text-transform:uppercase; font-weight:700;">Balance</span><br>
                             <b style="color:var(--accent); font-size: 1.1rem; word-break: break-word;">₹${fmt(c.bal)}</b>
                         </div>
-
                     </div>
-                    <div id="cr-sales-${safeId}" class="hidden" style="padding: 0 14px 14px 14px; background: #F9FAFB; border-top: 1px dashed var(--border);" data-loaded="false"></div>
+                    <div id="cr-sales-${safeId}" class="hidden" style="padding: 0 14px 14px 14px; background: #F9FAFB; border-top: 1px dashed var(--border);">
+                        ${detailsHTML}
+                    </div>
                 </div>
                 `;
             }).join('');
-        }
-
-        async function toggleCreditSales(safeId, custName) {
-            const listDiv = document.getElementById(`cr-sales-${safeId}`);
-            
-            // Toggle close if already open
-            if (!listDiv.classList.contains('hidden')) {
-                listDiv.classList.add('hidden');
-                return;
-            }
-
-            // Open accordion
-            listDiv.classList.remove('hidden');
-            
-            // Check the exact state flag so we don't accidentally abort on empty HTML
-            if (listDiv.getAttribute('data-loaded') === 'true') return;
-
-            listDiv.innerHTML = '<div style="text-align:center; font-size:0.75rem; color:var(--brand); padding:10px;"><i class="fas fa-spinner fa-spin"></i> Fetching recent sales...</div>';
-
-            try {
-                const { data, error } = await sbClient.from('erp_sales')
-                    .select('doc_date, document_number, sales_amt')
-                    .eq('customer_name', custName)
-                    .order('doc_date', { ascending: false })
-                    .limit(100); 
-
-                if (error || !data || data.length === 0) {
-                    listDiv.innerHTML = '<div style="font-size:0.75rem; color:var(--text-mut); padding: 8px 0; text-align: center;">No recent sales found in ERP.</div>';
-                    listDiv.setAttribute('data-loaded', 'true');
-                    return;
-                }
-
-                // Group by document_number to get full invoice totals
-                const docs = {};
-                data.forEach(r => {
-                    if (!docs[r.document_number]) {
-                        docs[r.document_number] = { date: r.doc_date, amt: 0 };
-                    }
-                    docs[r.document_number].amt += r.sales_amt;
-                });
-
-                // Sort invoices by date and grab the top 3
-                const sortedDocs = Object.entries(docs)
-                    .map(([doc, val]) => ({ doc, ...val }))
-                    .sort((a,b) => new Date(b.date) - new Date(a.date))
-                    .slice(0, 3);
-
-                if (sortedDocs.length === 0) {
-                    listDiv.innerHTML = '<div style="font-size:0.75rem; color:var(--text-mut); padding: 8px 0; text-align: center;">No recent sales found.</div>';
-                } else {
-                    listDiv.innerHTML = `<div style="font-size: 0.65rem; font-weight: 700; color: var(--text-mut); text-transform: uppercase; margin-bottom: 6px; margin-top: 10px;">Last ${sortedDocs.length} Sales</div>` + 
-                        sortedDocs.map(d => {
-                            const dObj = new Date(d.date);
-                            const dateStr = `${String(dObj.getDate()).padStart(2, '0')}/${String(dObj.getMonth()+1).padStart(2, '0')}/${dObj.getFullYear()}`;
-                            return `
-                            <div style="display:flex; justify-content:space-between; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 0.85rem;">
-                                <span style="color:var(--text-mut); font-weight: 600;">${dateStr}</span>
-                                <span style="font-weight:800; color:var(--text);">₹${fmt(d.amt)}</span>
-                            </div>`;
-                        }).join('');
-                }
-                
-                // Set the flag to true so we never fetch again for this customer session
-                listDiv.setAttribute('data-loaded', 'true');
-
-            } catch (err) {
-                listDiv.innerHTML = '<div style="font-size:0.75rem; color:var(--accent); padding: 8px 0; text-align: center;">Failed to load sales.</div>';
-            }
         }
 
         /* --- HELPERS --- */
@@ -2590,6 +2581,123 @@
         let BANKS = [];
         let VENDORS = [];
         let offlineDeliveries = []; // Offline sync queue
+        let CREDIT_CACHE_LOADED = false;
+        let CUSTOMER_CREDIT_MAP = {}; 
+
+        async function loadCreditCache() {
+            if (CREDIT_CACHE_LOADED) return;
+            
+            // Parallel Fetch: Grab 5000 recent sales instantly instead of looping sequentially
+            const fetchPromises = [];
+            for (let i = 0; i < 5; i++) {
+                fetchPromises.push(sbClient.from('erp_sales')
+                    .select('customer_name, document_number, sales_amt, doc_date')
+                    .order('doc_date', { ascending: false })
+                    .range(i * 1000, (i + 1) * 1000 - 1)
+                );
+            }
+            
+            const results = await Promise.all(fetchPromises);
+            let allSales = [];
+            results.forEach(r => { if (r.data) allSales.push(...r.data); });
+
+            const custSales = {};
+            allSales.forEach(s => {
+                const cName = (s.customer_name || '').trim().toUpperCase();
+                if (!custSales[cName]) custSales[cName] = {};
+                if (!custSales[cName][s.document_number]) {
+                    custSales[cName][s.document_number] = { doc: s.document_number, date: s.doc_date, amt: 0 };
+                }
+                custSales[cName][s.document_number].amt += s.sales_amt;
+            });
+
+            CUSTOMERS.forEach(cust => {
+                const cName = (cust.name || '').trim().toUpperCase();
+                const salesObj = custSales[cName] || {};
+                let bills = Object.values(salesObj).map(b => ({...b, amt: fmt(b.amt)}));
+
+                let posBills = [];
+                let negBills = [];
+                bills.forEach(b => {
+                    if (b.amt > 0) posBills.push(b);
+                    else if (b.amt < 0) negBills.push(b);
+                });
+
+                // Safely cancel out Returns
+                negBills.forEach(neg => {
+                    const targetAmt = Math.abs(neg.amt);
+                    const matchIdx = posBills.findIndex(p => !p.cancelled && Math.abs(p.amt - targetAmt) < 0.1);
+                    if (matchIdx > -1) {
+                        posBills[matchIdx].cancelled = true;
+                    } else {
+                        // Fallback: If return has no exact match, cancel the oldest bill to keep counts accurate
+                        const validPos = posBills.filter(p => !p.cancelled);
+                        if (validPos.length > 0) validPos[validPos.length - 1].cancelled = true;
+                    }
+                });
+
+                let finalBills = posBills.filter(p => !p.cancelled).sort((a,b) => new Date(b.date) - new Date(a.date));
+
+                let remBal = cust.bal || 0;
+                let pendingCount = 0;
+
+                // Calculate payment status backward from the newest bills
+                finalBills.forEach(b => {
+                    if (remBal <= 0) {
+                        b.status = 'PAID';
+                    } else if (remBal >= b.amt - 0.1) {
+                        b.status = 'UNPAID';
+                        remBal -= b.amt;
+                        pendingCount++;
+                    } else {
+                        b.status = 'PARTIAL';
+                        b.due = remBal;
+                        remBal = 0;
+                        pendingCount++;
+                    }
+                });
+
+                CUSTOMER_CREDIT_MAP[cName] = { pendingCount, top5: finalBills.slice(0, 5) };
+            });
+
+            CREDIT_CACHE_LOADED = true;
+        }
+
+        function generateCreditDropdownHTML(cData) {
+            if (!cData || !cData.top5 || cData.top5.length === 0) {
+                return `<div style="font-size:0.75rem; color:var(--text-mut); text-align:center;">No recent sales found.</div>`;
+            }
+
+            let html = `<div style="font-size: 0.65rem; font-weight: 700; color: var(--text-mut); text-transform: uppercase; margin-bottom: 6px; margin-top: 6px;">Last 5 Sales</div>`;
+            
+            cData.top5.forEach(b => {
+                const dateStr = b.date === '---' ? '' : new Date(b.date).toLocaleDateString('en-GB');
+                let statBadge = '';
+                
+                if (b.status === 'UNPAID') {
+                    statBadge = `<span style="background:#FEE2E2; color:#991B1B; padding:2px 4px; border-radius:3px; font-size:0.6rem; font-weight:800;">UNPAID</span>`;
+                } else if (b.status === 'PARTIAL') {
+                    statBadge = `<span style="background:#FEF08A; color:#854D0E; padding:2px 4px; border-radius:3px; font-size:0.6rem; font-weight:800;">PARTIAL (₹${fmt(b.due)} Due)</span>`;
+                } else {
+                    statBadge = `<span style="background:#DCFCE7; color:#166534; padding:2px 4px; border-radius:3px; font-size:0.6rem; font-weight:800;">PAID</span>`;
+                }
+
+                html += `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 0.85rem;">
+                    <div style="color:var(--text-mut); font-weight: 600;">${b.doc} <br><span style="font-size:0.7rem; color:var(--text);">${dateStr}</span></div>
+                    <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end;">
+                        <span style="font-weight:800; color:var(--text);">₹${fmt(b.amt)}</span>
+                        ${statBadge}
+                    </div>
+                </div>`;
+            });
+            return html;
+        }
+
+        function toggleSyncCreditDropdown(safeId) {
+            const listDiv = document.getElementById(`cr-sales-${safeId}`);
+            if (listDiv) listDiv.classList.toggle('hidden');
+        }
 
         function loadState() {
             if (localStorage.getItem('b2b_carts')) allCarts = JSON.parse(localStorage.getItem('b2b_carts'));
@@ -3697,10 +3805,15 @@
         }
 
         /* --- SALESMAN CREDIT LOGIC --- */
-        function renderCreditView() {
+        async function renderCreditView() {
             const feed = document.getElementById('credit-feed');
             if(!feed) return;
             
+            if (!CREDIT_CACHE_LOADED) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br><b>Analyzing Invoices...</b></div>`;
+                await loadCreditCache();
+            }
+
             const searchQ = (document.getElementById('cr-search-input').value || "").toLowerCase();
             const sortMode = document.getElementById('cr-sort-select').value;
             
@@ -3715,6 +3828,11 @@
             sorted.sort((a,b) => {
                 if(sortMode === 'high') return b.bal - a.bal;
                 if(sortMode === 'low') return a.bal - b.bal;
+                if(sortMode === 'bills') {
+                    const cA = CUSTOMER_CREDIT_MAP[(a.name || '').trim().toUpperCase()]?.pendingCount || 0;
+                    const cB = CUSTOMER_CREDIT_MAP[(b.name || '').trim().toUpperCase()]?.pendingCount || 0;
+                    return cB - cA; // Highest bills first
+                }
                 return a.name.localeCompare(b.name);
             });
 
@@ -3725,91 +3843,38 @@
 
             feed.innerHTML = sorted.map(c => {
                 const safeId = c.code.replace(/[^a-zA-Z0-9]/g, '_');
-                const safeName = c.name.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+                const cNameClean = (c.name || '').trim().toUpperCase();
+                const cData = CUSTOMER_CREDIT_MAP[cNameClean];
+                
+                const billBadge = (cData && cData.pendingCount > 0) 
+                    ? `<span style="background:#FEF2F2; color:#991B1B; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:800;">${cData.pendingCount} Bills Pending</span>` 
+                    : '';
+
+                const detailsHTML = generateCreditDropdownHTML(cData);
 
                 return `
                 <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
-                    <div style="padding: 14px; display:flex; justify-content:space-between; align-items:center; cursor: pointer;" onclick="toggleSalesmanCreditSales('${safeId}', '${safeName}')">
-                        
+                    <div style="padding: 14px; display:flex; justify-content:space-between; align-items:center; cursor: pointer;" onclick="toggleSyncCreditDropdown('${safeId}')">
                         <div style="flex: 0 0 70%; padding-right: 10px; min-width: 0;">
                             <div style="font-weight: 800; font-size: 0.85rem; color:var(--text); margin-bottom: 4px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;" title="${c.name}">
                                 ${c.name}
                             </div>
-                            <div style="font-size: 0.7rem; color:var(--text-mut); font-weight:700;">
+                            <div style="font-size: 0.7rem; color:var(--text-mut); font-weight:700; margin-bottom: 4px;">
                                 <i class="fas fa-users" style="margin-right:4px;"></i>${c.subgroup || 'No Subgroup'}
                             </div>
+                            ${billBadge}
                         </div>
-                        
                         <div style="flex: 0 0 30%; text-align: right; min-width: 0;">
                             <span style="font-size: 0.6rem; color:var(--text-mut); text-transform:uppercase; font-weight:700;">Balance</span><br>
                             <b style="color:var(--accent); font-size: 1.1rem; word-break: break-word;">₹${fmt(c.bal)}</b>
                         </div>
-
                     </div>
-                    <div id="sm-cr-sales-${safeId}" class="hidden" style="padding: 0 14px 14px 14px; background: #F9FAFB; border-top: 1px dashed var(--border);" data-loaded="false"></div>
+                    <div id="cr-sales-${safeId}" class="hidden" style="padding: 0 14px 14px 14px; background: #F9FAFB; border-top: 1px dashed var(--border);">
+                        ${detailsHTML}
+                    </div>
                 </div>
                 `;
             }).join('');
-        }
-
-        async function toggleSalesmanCreditSales(safeId, custName) {
-            const listDiv = document.getElementById(`sm-cr-sales-${safeId}`);
-            
-            if (!listDiv.classList.contains('hidden')) {
-                listDiv.classList.add('hidden');
-                return;
-            }
-
-            listDiv.classList.remove('hidden');
-            if (listDiv.getAttribute('data-loaded') === 'true') return;
-
-            listDiv.innerHTML = '<div style="text-align:center; font-size:0.75rem; color:var(--brand); padding:10px;"><i class="fas fa-spinner fa-spin"></i> Fetching recent sales...</div>';
-
-            try {
-                const { data, error } = await sbClient.from('erp_sales')
-                    .select('doc_date, document_number, sales_amt')
-                    .eq('customer_name', custName)
-                    .order('doc_date', { ascending: false })
-                    .limit(100); 
-
-                if (error || !data || data.length === 0) {
-                    listDiv.innerHTML = '<div style="font-size:0.75rem; color:var(--text-mut); padding: 8px 0; text-align: center;">No recent sales found in ERP.</div>';
-                    listDiv.setAttribute('data-loaded', 'true');
-                    return;
-                }
-
-                const docs = {};
-                data.forEach(r => {
-                    if (!docs[r.document_number]) {
-                        docs[r.document_number] = { date: r.doc_date, amt: 0 };
-                    }
-                    docs[r.document_number].amt += r.sales_amt;
-                });
-
-                const sortedDocs = Object.entries(docs)
-                    .map(([doc, val]) => ({ doc, ...val }))
-                    .sort((a,b) => new Date(b.date) - new Date(a.date))
-                    .slice(0, 3);
-
-                if (sortedDocs.length === 0) {
-                    listDiv.innerHTML = '<div style="font-size:0.75rem; color:var(--text-mut); padding: 8px 0; text-align: center;">No recent sales found.</div>';
-                } else {
-                    listDiv.innerHTML = `<div style="font-size: 0.65rem; font-weight: 700; color: var(--text-mut); text-transform: uppercase; margin-bottom: 6px; margin-top: 10px;">Last ${sortedDocs.length} Sales</div>` + 
-                        sortedDocs.map(d => {
-                            const dObj = new Date(d.date);
-                            const dateStr = `${String(dObj.getDate()).padStart(2, '0')}/${String(dObj.getMonth()+1).padStart(2, '0')}/${dObj.getFullYear()}`;
-                            return `
-                            <div style="display:flex; justify-content:space-between; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 0.85rem;">
-                                <span style="color:var(--text-mut); font-weight: 600;">${dateStr}</span>
-                                <span style="font-weight:800; color:var(--text);">₹${fmt(d.amt)}</span>
-                            </div>`;
-                        }).join('');
-                }
-                
-                listDiv.setAttribute('data-loaded', 'true');
-            } catch (err) {
-                listDiv.innerHTML = '<div style="font-size:0.75rem; color:var(--accent); padding: 8px 0; text-align: center;">Failed to load sales.</div>';
-            }
         }
 
         /* --- ADMIN REORDER ENGINE --- */
@@ -3913,7 +3978,16 @@
             // Sort logic
             reorderItems.sort((a,b) => {
                 if (sortMode === 'fast') return b.velocity - a.velocity;
-                return a.daysLeft - b.daysLeft; // Default: Critical first
+                if (sortMode === 'critical_fast') {
+                    // Are they both in the critical zone (0-3 days)?
+                    const aCrit = a.daysLeft <= 3.0;
+                    const bCrit = b.daysLeft <= 3.0;
+                    
+                    if (aCrit !== bCrit) return aCrit ? -1 : 1; // Put critical items on top
+                    if (aCrit) return b.velocity - a.velocity;  // If both critical, highest velocity wins
+                    return a.daysLeft - b.daysLeft;             // If neither critical, fallback to days left
+                }
+                return a.daysLeft - b.daysLeft; // Default: Critical first (strict days left)
             });
 
             // Make available globally for PDF download
@@ -4005,40 +4079,107 @@
             doc.save(`Reorder_Report_${dateStr.replace(/\//g,'-')}.pdf`);
         }
 
-        async function renderPackingOrders() {
+        let packingSmFilter = "All";
+        let packingRouteFilter = "All";
+
+        function updatePackingFilters(type, val) {
+            if (type === 'sm') { packingSmFilter = val; packingRouteFilter = 'All'; } // Reset route when SM changes
+            if (type === 'route') packingRouteFilter = val;
+            renderPackingOrders(false); 
+        }
+
+        async function renderPackingOrders(fetchDb = true) {
             const feed = document.getElementById('packing-feed');
+            const smBar = document.getElementById('packing-sm-filter-bar');
             if(!feed) return;
             
-            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
-            const { data } = await sbClient.from('orders').select('*').in('status', ['Pending', 'Packed', 'Billed']).order('created_at', { ascending: false });
-            if (data) SUBMITTED_ORDERS = data;
+            if (fetchDb) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+                const { data } = await sbClient.from('orders').select('*').in('status', ['Pending', 'Packed', 'Billed']).order('created_at', { ascending: false });
+                if (data) SUBMITTED_ORDERS = data;
+            }
 
-            let filtered = (SUBMITTED_ORDERS || []).filter(o => o.status === 'Pending' || !o.status);
+            let pendingOrders = (SUBMITTED_ORDERS || []).filter(o => o.status === 'Pending' || !o.status);
+
+            // 1. Build Salesman Filter Bar
+            if (smBar) {
+                const smListMap = new Map();
+                PROFILES.filter(p => p.role === 'Salesman').forEach(p => {
+                    smListMap.set(p.id, p.full_name.split(' ')[0].toUpperCase());
+                });
+                
+                const activeSmSet = new Set(pendingOrders.map(o => o.salesman_id));
+                const smList = Array.from(smListMap, ([id, name]) => ({ id, name })).filter(sm => activeSmSet.has(sm.id) || sm.id === 'local_dev');
+                smList.sort((a, b) => a.name.localeCompare(b.name));
+                
+                let smFilterHTML = `<div class="cat-scroll" style="padding: 10px 16px; border: none; background: transparent;">`;
+                smFilterHTML += `<div class="cat-pill ${packingSmFilter === 'All' ? 'active' : ''}" onclick="updatePackingFilters('sm', 'All')">All Salesmen</div>`;
+                smList.forEach(sm => {
+                    smFilterHTML += `<div class="cat-pill ${packingSmFilter === sm.id ? 'active' : ''}" onclick="updatePackingFilters('sm', '${sm.id}')">${sm.name}</div>`;
+                });
+                smFilterHTML += `<div style="margin-right:10px;"></div></div>`;
+                smBar.innerHTML = smFilterHTML;
+            }
+
+            // 2. Apply Salesman Filter
+            let filteredBySm = pendingOrders;
+            if (packingSmFilter !== 'All') {
+                filteredBySm = filteredBySm.filter(o => o.salesman_id === packingSmFilter);
+            }
+
+            // 3. Build Cascading Route Filter Bar
+            const routeBar = document.getElementById('packing-route-filter-bar');
+            if (routeBar) {
+                const routeSet = new Set();
+                filteredBySm.forEach(o => {
+                    const cust = CUSTOMERS.find(c => c.code === o.customer_code || c.name === o.customer_code);
+                    if (cust && cust.route && cust.route !== 'UNASSIGNED') routeSet.add(cust.route);
+                });
+                const routes = Array.from(routeSet).sort();
+                
+                if (packingRouteFilter !== 'All' && !routeSet.has(packingRouteFilter)) packingRouteFilter = 'All';
+
+                let rFilterHTML = `<div class="cat-scroll" style="padding: 10px 16px; border: none; background: transparent;">`;
+                rFilterHTML += `<div class="cat-pill ${packingRouteFilter === 'All' ? 'active' : ''}" onclick="updatePackingFilters('route', 'All')">All Routes</div>`;
+                routes.forEach(r => {
+                    const safeR = r.replace(/'/g, "\\'");
+                    rFilterHTML += `<div class="cat-pill ${packingRouteFilter === r ? 'active' : ''}" onclick="updatePackingFilters('route', '${safeR}')">${r}</div>`;
+                });
+                rFilterHTML += `<div style="margin-right:10px;"></div></div>`;
+                routeBar.innerHTML = rFilterHTML;
+            }
+
+            // 4. Apply Route Filter
+            let filtered = filteredBySm;
+            if (packingRouteFilter !== 'All') {
+                filtered = filtered.filter(o => {
+                    const cust = CUSTOMERS.find(c => c.code === o.customer_code || c.name === o.customer_code);
+                    return cust && cust.route === packingRouteFilter;
+                });
+            }
             
             if (filtered.length === 0) {
-                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No pending orders to pack.</div>`;
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No pending orders for this selection.</div>`;
                 return;
             }
 
             feed.innerHTML = filtered.map(order => {
                 const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
                 
-                // Check if this order exists in our local allPacks memory
                 const isStarted = !!allPacks[order.id];
                 const activeBadge = isStarted ? `<i class="fas fa-box-open" style="color:var(--warning); font-size:0.9rem;" title="Active"></i>` : '';
                 const btnText = isStarted ? "Resume" : "Start Packing";
                 
-                // Resolve Salesman Name from Profiles DB
                 let smName = "Unknown";
                 if (order.salesman_id === "local_dev") smName = "Dev Salesman";
                 else {
                     const prof = PROFILES.find(p => p.id === order.salesman_id);
-                    if (prof && prof.full_name) smName = prof.full_name.split(' ')[0]; // Use first name for space
+                    if (prof && prof.full_name) smName = prof.full_name.split(' ')[0]; 
                     else smName = "ID: " + (order.salesman_id || "").substring(0, 4).toUpperCase();
                 }
 
                 return `
-                <div class="order-card" style="align-items: center;">
+                <div class="order-card" style="align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.05); margin-bottom: 10px;">
                     <div style="flex:1; min-width:0; padding-right: 10px;">
                         <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
                         <div style="font-size: 0.75rem; color:var(--text-mut); display: flex; align-items: center; flex-wrap: wrap; gap: 6px;">
@@ -4049,8 +4190,7 @@
                         </div>
                     </div>
                     <button class="btn-take-order" style="flex-shrink:0; font-size:0.75rem; padding: 6px 10px;" onclick="openPackingDetail('${order.id}')">${btnText}</button>
-                </div>
-            `;
+                </div>`;
             }).join(''); 
         }
 
@@ -6225,7 +6365,19 @@
 
         let adminSalesData = [];
         let salesSubgroupFilter = "All";
-        let salesViewMode = "cust"; // 'cust' or 'item'
+        let salesRouteFilter = "All";
+        let salesViewMode = "cust"; 
+
+        function updateSalesSubFilter(val) {
+            salesSubgroupFilter = val;
+            salesRouteFilter = 'All'; // Reset route when subgroup changes
+            renderSalesFeed(true);
+        }
+
+        function updateSalesRouteFilter(val) {
+            salesRouteFilter = val;
+            renderSalesFeed(true);
+        }
 
         async function fetchAndRenderSales() {
             const fromD = document.getElementById('sales-from-date').value;
@@ -6292,6 +6444,7 @@
                         else sg = up;
                     }
                     sale.assigned_subgroup = sg;
+                    sale.assigned_route = (cust && cust.route) ? cust.route : 'UNASSIGNED';
                 });
                 
                 renderSalesFeed(true); // true = rebuild filter bar
@@ -6337,10 +6490,37 @@
                 if (aEl) aEl.classList.add('active');
             }
 
-            // 2. Filter Data
+            // Build Route Filter Bar
+            // 2. Filter Data by Subgroup FIRST
             let filtered = adminSalesData;
             if (salesSubgroupFilter !== 'All') {
                 filtered = filtered.filter(s => s.assigned_subgroup === salesSubgroupFilter);
+            }
+
+            // Build Cascading Route Filter Bar
+            const routeBar = document.getElementById('sales-route-bar');
+            if (routeBar) { // Always redraw to keep sync
+                const routeSet = new Set();
+                filtered.forEach(s => {
+                    if (s.assigned_route && s.assigned_route !== 'UNASSIGNED') routeSet.add(s.assigned_route);
+                });
+                const routes = Array.from(routeSet).sort();
+                
+                if (salesRouteFilter !== 'All' && !routeSet.has(salesRouteFilter)) salesRouteFilter = 'All';
+
+                let rFilterHTML = `<div class="cat-scroll" style="padding: 0 16px 16px 16px; border-bottom: 1px solid var(--border);">`;
+                rFilterHTML += `<div class="cat-pill ${salesRouteFilter === 'All' ? 'active' : ''}" onclick="updateSalesRouteFilter('All')">All Routes</div>`;
+                routes.forEach(r => {
+                    const safeR = r.replace(/'/g, "\\'");
+                    rFilterHTML += `<div class="cat-pill ${salesRouteFilter === r ? 'active' : ''}" onclick="updateSalesRouteFilter('${safeR}')">${r}</div>`;
+                });
+                rFilterHTML += `</div>`;
+                routeBar.innerHTML = rFilterHTML;
+            }
+
+            // Apply Route filter
+            if (salesRouteFilter !== 'All') {
+                filtered = filtered.filter(s => s.assigned_route === salesRouteFilter);
             }
 
             // 3. Calculate KPIs
@@ -6480,12 +6660,14 @@
         let adminLiveSmFilter = "All";
         let adminLiveStatusFilter = "All";
         let adminLiveSort = "time";
+        let adminLiveRouteFilter = "All";
 
         function updateLiveFilters(type, val) {
-            if (type === 'sm') adminLiveSmFilter = val;
+            if (type === 'sm') { adminLiveSmFilter = val; adminLiveRouteFilter = 'All'; }
             if (type === 'status') adminLiveStatusFilter = val;
             if (type === 'sort') adminLiveSort = val;
-            renderLiveDashboard(false); // False prevents the scrollbars from rebuilding
+            if (type === 'route') adminLiveRouteFilter = val;
+            renderLiveDashboard(true); // Force redraw to cascade route
         }
 
         async function renderLiveDashboard(rebuildFilters = true) {
@@ -6496,8 +6678,7 @@
             const fromDate = document.getElementById('live-from-date').value;
             const toDate = document.getElementById('live-to-date').value;
 
-            // Fetch from Cloud if dates changed or app just opened
-            if (rebuildFilters && fromDate && toDate) {
+            if (rebuildFilters && fromDate && toDate && !document.getElementById('live-top-dashboard').innerHTML) {
                 document.getElementById('live-top-dashboard').innerHTML = '';
                 feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br><b>Loading Live Data...</b></div>`;
                 
@@ -6513,7 +6694,6 @@
             let filteredOrders = SUBMITTED_ORDERS || [];
             let filteredCols = ALL_COLLECTIONS || [];
             
-            // 1. Filter by Date Range
             if (fromDate && toDate) {
                 filteredOrders = filteredOrders.filter(o => {
                     const localDate = new Date(new Date(o.created_at).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
@@ -6525,7 +6705,6 @@
                 });
             }
 
-            // 2. Build SM Filter HTML (Only if dates change to preserve scroll)
             if (rebuildFilters) {
                 const smListMap = new Map();
                 PROFILES.filter(p => p.role === 'Salesman').forEach(p => {
@@ -6548,17 +6727,42 @@
                 });
                 smFilterHTML += `<div style="margin-right:10px;"></div></div>`;
                 smBar.innerHTML = smFilterHTML;
-            } else {
-                // Just update active classes without redrawing
-                Array.from(smBar.querySelectorAll('.cat-pill')).forEach(el => el.classList.remove('active'));
-                const activeEl = document.getElementById(`ls-${adminLiveSmFilter}`);
-                if (activeEl) activeEl.classList.add('active');
             }
 
-            // 3. Apply Salesman Filter
+            // Apply Salesman Filter
             if (adminLiveSmFilter !== "All") {
                 filteredOrders = filteredOrders.filter(o => o.salesman_id === adminLiveSmFilter);
                 filteredCols = filteredCols.filter(c => c.salesman_id === adminLiveSmFilter);
+            }
+
+            // Build Route Filter Bar FROM Salesman Filtered Orders
+            const routeBar = document.getElementById('live-route-filter-bar');
+            if (routeBar) {
+                const routeSet = new Set();
+                filteredOrders.forEach(o => {
+                    const cust = CUSTOMERS.find(c => c.code === o.customer_code || c.name === o.customer_code);
+                    if (cust && cust.route && cust.route !== 'UNASSIGNED') routeSet.add(cust.route);
+                });
+                const routes = Array.from(routeSet).sort();
+                
+                if (adminLiveRouteFilter !== 'All' && !routeSet.has(adminLiveRouteFilter)) adminLiveRouteFilter = 'All';
+
+                let rFilterHTML = `<div class="cat-scroll" style="padding: 12px 16px 6px 16px; border: none; background: transparent;">`;
+                rFilterHTML += `<div class="cat-pill ${adminLiveRouteFilter === 'All' ? 'active' : ''}" onclick="updateLiveFilters('route', 'All')">All Routes</div>`;
+                routes.forEach(r => {
+                    const safeR = r.replace(/'/g, "\\'");
+                    rFilterHTML += `<div class="cat-pill ${adminLiveRouteFilter === r ? 'active' : ''}" onclick="updateLiveFilters('route', '${safeR}')">${r}</div>`;
+                });
+                rFilterHTML += `<div style="margin-right:10px;"></div></div>`;
+                routeBar.innerHTML = rFilterHTML;
+            }
+
+            // Apply Route Filter
+            if (adminLiveRouteFilter !== "All") {
+                filteredOrders = filteredOrders.filter(o => {
+                    const cust = CUSTOMERS.find(c => c.code === o.customer_code || c.name === o.customer_code);
+                    return cust && cust.route === adminLiveRouteFilter;
+                });
             }
 
             // 4. Calculate KPIs, Pipeline & Margin
@@ -6730,10 +6934,16 @@
                         statColor = '#166534'; statBg = '#DCFCE7'; statIcon = 'fa-file-invoice-dollar'; 
                         
                         // Extract exact packing time from our new database column
-                        let packedTimeStr = 'Ready to Bill';
+                        let packedTimeStr = 'READY TO BILL';
                         if (order.packed_at) {
-                            const pTime = new Date(order.packed_at);
-                            packedTimeStr = `Packed ${pTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
+                            // Failsafe: Force the browser to recognize the time as UTC so it correctly converts it to your local timezone
+                            let safeTimeStr = order.packed_at;
+                            if (!safeTimeStr.endsWith('Z') && !safeTimeStr.includes('+')) {
+                                safeTimeStr += 'Z';
+                            }
+                            
+                            const pTime = new Date(safeTimeStr);
+                            packedTimeStr = `PACKED ${pTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}`;
                         }
                         uiStatus = packedTimeStr;
                     }
