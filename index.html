@@ -205,6 +205,15 @@
         .bill-row.highlight-new { background: #F0FDF4; border-left: 4px solid var(--success); }
         .bill-row.highlight-mrp { background: #FFFBEB; border-left: 4px solid var(--warning); }
 
+        /* --- CUSTOM SELECT (MODERN DROPDOWN) --- */
+        .custom-select-wrapper { position: relative; flex: 1; min-width: 0; user-select: none; }
+        .custom-select-trigger { padding: 6px 10px; border: 1px solid var(--border-dark); border-radius: 4px; font-size: 0.8rem; font-weight: 700; color: var(--text); background: white; cursor: pointer; display: flex; justify-content: space-between; align-items: center; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .custom-select-trigger:after { content: '\f0d7'; font-family: 'Font Awesome 5 Free'; font-weight: 900; color: var(--text-mut); margin-left: 8px; }
+        .custom-select-menu { position: absolute; top: calc(100% + 4px); left: 0; width: 100%; min-width: 240px; background: white; border: 1px solid var(--border-dark); border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 2500; display: flex; flex-direction: column; }
+        .custom-option { padding: 10px 12px; font-size: 0.8rem; font-weight: 600; color: var(--text); cursor: pointer; border-bottom: 1px solid var(--border); transition: 0.1s; }
+        .custom-option:last-child { border-bottom: none; }
+        .custom-option:hover { background: var(--brand-light); color: var(--brand); }
+
         /* --- MODALS --- */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 3000; display: flex; justify-content: center; align-items: center; padding: 16px; }
         .modal-content { background: white; width: 100%; max-width: 400px; border-radius: 8px; display: flex; flex-direction: column; max-height: 80vh; }
@@ -734,7 +743,7 @@
                     <div style="font-size: 2.5rem; color: #F59E0B; margin-bottom: 10px;"><i class="fas fa-percent"></i></div>
                     <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Special Offers</div>
                 </div>
-                <div style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); opacity: 0.5; pointer-events: none;">
+                <div onclick="openAdminDashboardApp('purchase')" style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;">
                     <div style="font-size: 2.5rem; color: #6366F1; margin-bottom: 10px;"><i class="fas fa-shopping-bag"></i></div>
                     <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Purchase</div>
                 </div>
@@ -769,9 +778,21 @@
             </div>
             <div style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
                 <div style="background: #F9FAFB; padding: 10px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; display:flex; flex-direction:column; gap:10px;">
-                    <div style="display:flex; justify-content:space-between; align-items:center;">
-                        <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-mut);">Target Stock:</div>
-                        <select id="reorder-target-days" onchange="renderReorderDash()" style="padding: 4px 6px; border: 1px solid var(--brand); border-radius: 4px; outline: none; font-size: 0.8rem; font-weight: 800; color: var(--brand); background: var(--brand-light);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap: 10px;">
+                        <!-- Modern Searchable Dropdown -->
+                        <div class="custom-select-wrapper">
+                            <div id="reorder-vendor-selected" class="custom-select-trigger" onclick="toggleVendorDropdown(event)">All Vendors</div>
+                            <div id="reorder-vendor-menu" class="custom-select-menu hidden">
+                                <div style="padding: 8px; border-bottom: 1px solid var(--border); background: #F9FAFB; border-radius: 6px 6px 0 0;">
+                                    <input type="text" id="reorder-vendor-search" placeholder="Search vendor..." oninput="filterVendorDropdown()" onclick="event.stopPropagation()" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border-dark); border-radius: 4px; outline: none; font-size: 0.8rem; font-weight:600;">
+                                </div>
+                                <div id="reorder-vendor-options" style="max-height: 250px; overflow-y: auto;">
+                                    <!-- Injected via JS -->
+                                </div>
+                            </div>
+                        </div>
+
+                        <select id="reorder-target-days" onchange="renderReorderDash()" style="padding: 6px 8px; border: 1px solid var(--brand); border-radius: 4px; outline: none; font-size: 0.8rem; font-weight: 800; color: var(--brand); background: var(--brand-light);">
                             <option value="15">15 Days</option>
                             <option value="30" selected>30 Days</option>
                             <option value="45">45 Days</option>
@@ -792,6 +813,68 @@
                     <input type="text" placeholder="Search items..." id="reorder-search" oninput="renderReorderDash()">
                 </div>
                 <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="reorder-feed"></div>
+            </div>
+        </div>
+
+        <!-- ADMIN: PURCHASE ORDERS OVERLAY -->
+        <div id="admin-po-app" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="closeAdminDashboardApp('purchase')" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center"><div class="ov-title">Purchase Orders</div></div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+
+            <!-- Tab Buttons -->
+            <div style="display: flex; background: white; border-bottom: 1px solid var(--border); padding: 8px 16px; justify-content: center; flex-shrink: 0;">
+                <div style="display: flex; background: var(--bg); border-radius: 6px; padding: 2px; width: 100%; max-width: 300px; border: 1px solid var(--border);">
+                    <button id="po-btn-new" onclick="togglePOView('new')" style="flex:1; padding: 6px; border-radius: 4px; border:none; background: var(--brand); color: white; font-weight: 700; font-size: 0.8rem; cursor:pointer;">Create PO</button>
+                    <button id="po-btn-hist" onclick="togglePOView('hist')" style="flex:1; padding: 6px; border-radius: 4px; border:none; background: transparent; color: var(--text-mut); font-weight: 700; font-size: 0.8rem; cursor:pointer;">History</button>
+                </div>
+            </div>
+
+            <!-- Create PO View -->
+            <div id="po-new-view" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+                <div style="padding: 12px 16px; background: white; border-bottom: 1px solid var(--border); flex-shrink: 0;">
+                    
+                    <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 10px;">
+                        <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-mut); flex-shrink:0;">Vendor:</div>
+                        
+                        <!-- Modern Searchable Dropdown for PO -->
+                        <div class="custom-select-wrapper">
+                            <div id="po-vendor-selected" class="custom-select-trigger" onclick="togglePOVendorDropdown(event)">-- Choose Vendor --</div>
+                            <div id="po-vendor-menu" class="custom-select-menu hidden">
+                                <div style="padding: 8px; border-bottom: 1px solid var(--border); background: #F9FAFB; border-radius: 6px 6px 0 0;">
+                                    <input type="text" id="po-vendor-search" placeholder="Search vendor..." oninput="filterPOVendorDropdown()" onclick="event.stopPropagation()" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border-dark); border-radius: 4px; outline: none; font-size: 0.8rem; font-weight:600;">
+                                </div>
+                                <div id="po-vendor-options" style="max-height: 250px; overflow-y: auto;">
+                                    <!-- Injected via JS -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="search-bar" style="padding:0; border:none; background: #F3F4F6; border-radius: 4px;">
+                        <i class="fas fa-search" style="color:var(--text-mut); margin-left: 10px;"></i>
+                        <input type="text" placeholder="Search catalog to add items..." id="po-item-search" oninput="renderPOCart()" style="background: transparent; padding: 10px;">
+                    </div>
+                </div>
+                
+                <div class="scroll-area" style="padding: 16px;" id="po-feed">
+                    <div style="text-align:center; padding: 40px; color: var(--text-mut);">Select a vendor to start creating a PO.</div>
+                </div>
+                
+                <div style="padding: 14px; background: white; border-top: 1px solid var(--border); box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05); flex-shrink: 0;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;">
+                        <span style="font-weight:700; color:var(--text-mut);">Total PO Value:</span>
+                        <span style="font-weight:800; font-size:1.1rem; color:var(--brand);" id="po-total-val">₹0</span>
+                    </div>
+                    <button onclick="submitPurchaseOrder()" id="btn-submit-po" style="width: 100%; background: #6366F1; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 800; font-size: 1rem; cursor: pointer;"><i class="fas fa-file-pdf"></i> Generate PO & PDF</button>
+                </div>
+            </div>
+
+            <!-- History View -->
+            <div id="po-hist-view" class="hidden" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+                <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="po-hist-feed"></div>
             </div>
         </div>
 
@@ -860,7 +943,7 @@
             <div class="ov-head">
                 <i class="fas fa-arrow-left" onclick="closeAdminDashboardApp('live')" style="cursor:pointer; padding:4px;"></i>
                 <div class="ov-center"><div class="ov-title">Live Orders</div></div>
-                <i class="fas fa-check" style="color: transparent;"></i>
+                <i class="fas fa-sync-alt" onclick="lastLiveFetchStr=''; renderLiveDashboard(true);" style="cursor: pointer; padding: 4px;" title="Refresh Data"></i>
             </div>
             <div style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
                 <div class="hist-top" style="gap: 10px; flex-shrink: 0;">
@@ -1790,6 +1873,7 @@
                             item.code = item.code || "UNKNOWN"; item.name = item.name || "Unnamed Item"; item.category = item.category || "All";
                             item.cost = parseFloat(item.cost) || 0; item.mrp = parseFloat(item.mrp) || 0; item.price2 = parseFloat(item.price2) || 0;
                             item.stock = parseInt(item.stock) || 0; item.caseQty = parseInt(item.caseQty) || null;
+                            item.vendor = item.vendor || 'UNASSIGNED';
                             if (!item.slabs || !Array.isArray(item.slabs) || item.slabs.length === 0) item.slabs = [{min: 0, max: 99999, markup: 0}];
                             else {
                                 item.slabs = item.slabs.map(s => ({ min: parseInt(s?.min) || 0, max: parseInt(s?.max) || 0, markup: parseFloat(s?.markup) || 0 }));
@@ -1865,6 +1949,7 @@
         window.SHOP_LOCATION = { lat: 0, lng: 0 };
         window.MY_ATTENDANCE = [];
         window.ALL_ATTENDANCE = [];
+        window.PURCHASE_ORDERS = window.PURCHASE_ORDERS || [];
 
         function switchRole(role) {
             currentUserRole = role;
@@ -1967,6 +2052,15 @@
                 if(typeof renderCatalogView === 'function') renderCatalogView();
                 if(typeof renderPricingTable === 'function') renderPricingTable();
                 switchTab('dashboard');
+                if (currentUserRole === 'Admin') {
+                    fetchTasks.push(sbClient.from('attendance').select('*').then(({data}) => {
+                        if (data) window.ALL_ATTENDANCE = data;
+                    }));
+                    // ADD THIS:
+                    fetchTasks.push(sbClient.from('purchase_orders').select('*').order('created_at', { ascending: false }).limit(200).then(({data}) => {
+                        if (data) window.PURCHASE_ORDERS = data;
+                    }));
+                }
             } else if (currentUserRole === 'Packing') {
                 if(pNav) pNav.classList.remove('hidden');
                 if(typeof renderPackingOrders === 'function') renderPackingOrders();
@@ -2048,6 +2142,9 @@
                 document.getElementById('admin-offers-search').value = '';
                 renderAdminOffersList();
                 document.getElementById('admin-offers-app').classList.remove('hidden');
+                } else if (app === 'purchase') {
+                togglePOView('new');
+                document.getElementById('admin-po-app').classList.remove('hidden');
             } else if (app === 'hr') {
                 const now = new Date();
                 const localTodayStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
@@ -2070,6 +2167,7 @@
             else if (app === 'reorder') document.getElementById('admin-reorder-app').classList.add('hidden');
             else if (app === 'hr') document.getElementById('admin-hr-app').classList.add('hidden');
             else if (app === 'offers') document.getElementById('admin-offers-app').classList.add('hidden');
+            else if (app === 'purchase') document.getElementById('admin-po-app').classList.add('hidden');
         }
 
         /* --- ADMIN DELIVERY DASHBOARD --- */
@@ -3374,6 +3472,7 @@
                 newOrder = {
                     id: orderId,
                     customer_code: activeCust.code,
+                    customer_name: activeCust.name,
                     salesman_id: userSession ? userSession.user.id : "local_dev",
                     total_amount: totalAmount,
                     status: 'Pending',
@@ -3385,6 +3484,7 @@
                     const { error } = await sbClient.from('orders').insert({
                         id: newOrder.id,
                         customer_code: newOrder.customer_code,
+                        customer_name: newOrder.customer_name,
                         salesman_id: newOrder.salesman_id,
                         total_amount: newOrder.total_amount,
                         status: newOrder.status,
@@ -3780,6 +3880,7 @@
             const payload = {
                 id: colId,
                 customer_code: currentColCust.code,
+                customer_name: currentColCust.name,
                 salesman_id: userSession ? userSession.user.id : "local_dev",
                 amount_cash: cash,
                 amount_gpay: gpay,
@@ -5462,6 +5563,7 @@
                 const colPayload = {
                     id: colId,
                     customer_code: custCode,
+                    customer_name: custName,
                     salesman_id: userSession ? userSession.user.id : "local_dev",
                     amount_cash: cashAmt,
                     amount_gpay: gpayAmt,
@@ -6661,13 +6763,14 @@
         let adminLiveStatusFilter = "All";
         let adminLiveSort = "time";
         let adminLiveRouteFilter = "All";
+        let lastLiveFetchStr = "";
 
         function updateLiveFilters(type, val) {
             if (type === 'sm') { adminLiveSmFilter = val; adminLiveRouteFilter = 'All'; }
             if (type === 'status') adminLiveStatusFilter = val;
             if (type === 'sort') adminLiveSort = val;
             if (type === 'route') adminLiveRouteFilter = val;
-            renderLiveDashboard(true); // Force redraw to cascade route
+            renderLiveDashboard(true); 
         }
 
         async function renderLiveDashboard(rebuildFilters = true) {
@@ -6677,8 +6780,10 @@
             
             const fromDate = document.getElementById('live-from-date').value;
             const toDate = document.getElementById('live-to-date').value;
+            const dateKey = fromDate + "_" + toDate;
+            const needsFetch = rebuildFilters && (dateKey !== lastLiveFetchStr);
 
-            if (rebuildFilters && fromDate && toDate && !document.getElementById('live-top-dashboard').innerHTML) {
+            if (needsFetch && fromDate && toDate) {
                 document.getElementById('live-top-dashboard').innerHTML = '';
                 feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br><b>Loading Live Data...</b></div>`;
                 
@@ -6689,6 +6794,7 @@
                 
                 if (ordRes.data) SUBMITTED_ORDERS = ordRes.data;
                 if (colRes.data) ALL_COLLECTIONS = colRes.data;
+                lastLiveFetchStr = dateKey; // Lock cache
             }
             
             let filteredOrders = SUBMITTED_ORDERS || [];
@@ -7983,6 +8089,437 @@
                 renderPricingTable(); 
                 document.getElementById('csv-upload-margins').value = ""; 
             }; reader.readAsText(file);
+        }
+
+        /* --- ADMIN REORDER & PURCHASE ORDER LOGIC --- */
+        let poDraft = {}; // Stores { itemCode: { c: cases, p: pieces } }
+        let reorderSelectedVendor = 'All';
+
+        function toggleVendorDropdown(e) {
+            if(e) e.stopPropagation();
+            const menu = document.getElementById('reorder-vendor-menu');
+            if(menu) {
+                menu.classList.toggle('hidden');
+                if(!menu.classList.contains('hidden')) {
+                    document.getElementById('reorder-vendor-search').focus();
+                }
+            }
+        }
+
+        function filterVendorDropdown() {
+            const query = document.getElementById('reorder-vendor-search').value.toLowerCase();
+            const opts = document.querySelectorAll('#reorder-vendor-options .custom-option');
+            opts.forEach(opt => {
+                opt.style.display = opt.innerText.toLowerCase().includes(query) ? 'block' : 'none';
+            });
+        }
+
+        function selectReorderVendor(vendorName) {
+            reorderSelectedVendor = vendorName;
+            document.getElementById('reorder-vendor-selected').innerText = vendorName === 'All' ? 'All Vendors' : vendorName;
+            document.getElementById('reorder-vendor-menu').classList.add('hidden');
+            
+            // Reset search input
+            document.getElementById('reorder-vendor-search').value = '';
+            filterVendorDropdown(); 
+            
+            renderReorderDash();
+        }
+
+        // Close dropdown when clicking anywhere else on the screen
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('reorder-vendor-menu');
+            const wrapper = document.querySelector('#admin-reorder-app .custom-select-wrapper');
+            if (menu && !menu.classList.contains('hidden') && wrapper && !wrapper.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        function renderReorderDash() {
+            const feed = document.getElementById('reorder-feed');
+            const targetDays = parseInt(document.getElementById('reorder-target-days').value) || 30;
+            const sortMode = document.getElementById('reorder-sort').value;
+            const searchQ = (document.getElementById('reorder-search').value || "").toLowerCase();
+            const vendorFilter = reorderSelectedVendor;
+            const now = new Date();
+            
+            // Populate Custom Vendor Dropdown (Only once)
+            const vOptions = document.getElementById('reorder-vendor-options');
+            if (vOptions && vOptions.children.length === 0) {
+                const vendors = Array.from(new Set(INVENTORY.map(i => i.vendor))).filter(v => v && v !== 'UNASSIGNED').sort();
+                let html = `<div class="custom-option" onclick="selectReorderVendor('All')">All Vendors</div>`;
+                vendors.forEach(v => {
+                    const safeV = v.replace(/'/g, "\\'");
+                    html += `<div class="custom-option" onclick="selectReorderVendor('${safeV}')">${v}</div>`;
+                });
+                vOptions.innerHTML = html;
+            }
+            
+            let reorderItems = [];
+            
+            INVENTORY.forEach(item => {
+                const stats = reorderStatsCache.find(s => s.item_name === item.name);
+                if (!stats) return; 
+                
+                const firstSale = new Date(stats.first_sale_date);
+                const lastSale = new Date(stats.last_sale_date);
+                const daysActive = Math.max(1, Math.floor((now - firstSale) / (1000 * 60 * 60 * 24)));
+                const daysSinceLastSale = Math.max(0, Math.floor((now - lastSale) / (1000 * 60 * 60 * 24)));
+                
+                const velocity = stats.total_sold / daysActive;
+                if (velocity <= 0.05) return; 
+                
+                const demand = liveDemandCache[item.code] || 0;
+                const effectiveStock = item.stock - demand;
+                if (effectiveStock <= 0 && daysSinceLastSale > 60) return;
+                
+                const daysLeft = effectiveStock <= 0 ? 0 : (effectiveStock / velocity);
+                let qtyToOrder = (velocity * targetDays) - effectiveStock;
+                if (qtyToOrder <= 0) return; 
+                
+                const cQty = parseInt(item.caseQty) || 0;
+                let orderCases = 0; let orderPcs = Math.ceil(qtyToOrder);
+                if (cQty > 0) { orderCases = Math.floor(orderPcs / cQty); orderPcs = orderPcs % cQty; }
+                
+                reorderItems.push({ item, velocity, effectiveStock, demand, daysLeft, orderCases, orderPcs, totalOrderPcs: Math.ceil(qtyToOrder) });
+            });
+            
+            if (searchQ) reorderItems = reorderItems.filter(r => r.item.name.toLowerCase().includes(searchQ) || r.item.code.toLowerCase().includes(searchQ));
+            if (vendorFilter !== 'All') reorderItems = reorderItems.filter(r => r.item.vendor === vendorFilter);
+
+            reorderItems.sort((a,b) => {
+                if (sortMode === 'fast') return b.velocity - a.velocity;
+                if (sortMode === 'critical_fast') {
+                    const aCrit = a.daysLeft <= 3.0; const bCrit = b.daysLeft <= 3.0;
+                    if (aCrit !== bCrit) return aCrit ? -1 : 1; 
+                    if (aCrit) return b.velocity - a.velocity;  
+                    return a.daysLeft - b.daysLeft;             
+                }
+                return a.daysLeft - b.daysLeft; 
+            });
+
+            window.currentReorderViewArray = reorderItems;
+
+            if (reorderItems.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--success); font-weight:800;"><i class="fas fa-check-circle fa-3x" style="margin-bottom:10px;"></i><br>Stock is healthy!</div>`; return;
+            }
+
+            feed.innerHTML = reorderItems.map(r => {
+                let statusColor = '#166534'; let statusBg = '#DCFCE7'; 
+                if (r.daysLeft < 4) { statusColor = '#991B1B'; statusBg = '#FEE2E2'; } 
+                else if (r.daysLeft < 8) { statusColor = '#9A3412'; statusBg = '#FFEDD5'; } 
+                
+                const daysStr = r.daysLeft === 0 ? 'Out of Stock!' : `${r.daysLeft.toFixed(1)} Days Left`;
+                let orderStr = '';
+                if (r.orderCases > 0 && r.orderPcs > 0) orderStr = `${r.orderCases} Cs + ${r.orderPcs} Pcs`;
+                else if (r.orderCases > 0) orderStr = `${r.orderCases} Cases`;
+                else orderStr = `${r.orderPcs} Pieces`;
+
+                return `
+                <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
+                    <div style="padding: 14px; display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div style="flex:1; padding-right:15px; min-width:0;">
+                            <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 4px; line-height: 1.3;">${r.item.name}</div>
+                            <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; font-size:0.75rem;">
+                                <span style="color:var(--text-mut); font-weight:600;"><i class="fas fa-tachometer-alt"></i> ${r.velocity.toFixed(1)}/day</span>
+                                <span style="background:${statusBg}; color:${statusColor}; padding:2px 6px; border-radius:4px; font-weight:800;">${daysStr}</span>
+                            </div>
+                            <div style="font-size:0.7rem; color:var(--text-mut);">
+                                Vendor: <b style="color:var(--brand);">${r.item.vendor}</b><br>
+                                ERP Stock: <b style="color:var(--text);">${r.item.stock}</b> | Live Demand: <b style="color:var(--accent);">${r.demand}</b>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="background: var(--brand-light); border-top: 1px dashed #BFDBFE; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-size:0.75rem; color:var(--brand); font-weight:700;">Suggested Order:</div>
+                        <div style="font-size:0.95rem; color:var(--brand); font-weight:800;">${orderStr}</div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        /* --- PO SYSTEM --- */
+        let poSelectedVendor = '';
+
+        function togglePOVendorDropdown(e) {
+            if(e) e.stopPropagation();
+            const menu = document.getElementById('po-vendor-menu');
+            if(menu) {
+                menu.classList.toggle('hidden');
+                if(!menu.classList.contains('hidden')) document.getElementById('po-vendor-search').focus();
+            }
+        }
+
+        function filterPOVendorDropdown() {
+            const query = document.getElementById('po-vendor-search').value.toLowerCase();
+            const opts = document.querySelectorAll('#po-vendor-options .custom-option');
+            opts.forEach(opt => {
+                opt.style.display = opt.innerText.toLowerCase().includes(query) ? 'block' : 'none';
+            });
+        }
+
+        function selectPOVendor(vendorName) {
+            poSelectedVendor = vendorName;
+            document.getElementById('po-vendor-selected').innerText = vendorName;
+            document.getElementById('po-vendor-menu').classList.add('hidden');
+            
+            // Clear current PO Draft when switching vendors to avoid accidentally mixing supplier orders
+            poDraft = {};
+            document.getElementById('po-item-search').value = '';
+            
+            renderPOCart();
+        }
+
+        // Close dropdown when clicking elsewhere
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('po-vendor-menu');
+            const wrapper = document.querySelector('#admin-po-app .custom-select-wrapper');
+            if (menu && !menu.classList.contains('hidden') && wrapper && !wrapper.contains(e.target)) {
+                menu.classList.add('hidden');
+            }
+        });
+
+        function togglePOView(mode) {
+            const btnNew = document.getElementById('po-btn-new'); const btnHist = document.getElementById('po-btn-hist');
+            if (mode === 'new') {
+                btnNew.style.background = 'var(--brand)'; btnNew.style.color = 'white';
+                btnHist.style.background = 'transparent'; btnHist.style.color = 'var(--text-mut)';
+                document.getElementById('po-new-view').classList.remove('hidden'); document.getElementById('po-hist-view').classList.add('hidden');
+                
+                // Populate Custom Dropdown
+                const vOptions = document.getElementById('po-vendor-options');
+                if (vOptions && vOptions.children.length === 0) {
+                    const vendors = Array.from(new Set(INVENTORY.map(i => i.vendor))).filter(v => v && v !== 'UNASSIGNED').sort();
+                    let html = '';
+                    vendors.forEach(v => {
+                        const safeV = v.replace(/'/g, "\\'");
+                        html += `<div class="custom-option" onclick="selectPOVendor('${safeV}')">${v}</div>`;
+                    });
+                    vOptions.innerHTML = html;
+                }
+                renderPOCart();
+            } else {
+                btnHist.style.background = 'var(--brand)'; btnHist.style.color = 'white';
+                btnNew.style.background = 'transparent'; btnNew.style.color = 'var(--text-mut)';
+                document.getElementById('po-hist-view').classList.remove('hidden'); document.getElementById('po-new-view').classList.add('hidden');
+                renderPOHistory();
+            }
+        }
+
+        function setPOManual(code, type, val) {
+            const item = INVENTORY.find(i => i.code === code);
+            if(!poDraft[code]) poDraft[code] = {c:0, p:0};
+            let d = poDraft[code];
+            let parsedVal = parseInt(val) || 0;
+            const hasCases = item.caseQty > 0;
+
+            if (type === 'p') {
+                if (parsedVal < 0) {
+                    if (hasCases && d.c > 0) { d.c -= 1; parsedVal = item.caseQty - 1; } else { parsedVal = 0; }
+                }
+                if (hasCases && parsedVal >= item.caseQty) {
+                    d.c += Math.floor(parsedVal / item.caseQty); parsedVal = parsedVal % item.caseQty;
+                }
+                d.p = parsedVal;
+            } else {
+                if (hasCases) d.c = parsedVal < 0 ? 0 : parsedVal;
+            }
+            if (d.c === 0 && d.p === 0) delete poDraft[code];
+            renderPOCart();
+        }
+
+        function renderPOCart() {
+            const vendor = poSelectedVendor;
+            const search = document.getElementById('po-item-search').value.toLowerCase();
+            const feed = document.getElementById('po-feed');
+            
+            if (!vendor) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">Select a vendor to start creating a PO.</div>`;
+                document.getElementById('po-total-val').innerText = '₹0';
+                return;
+            }
+
+            // Show items currently in draft, PLUS items matching the vendor, PLUS any manual search
+            let itemsToShow = new Set();
+            Object.keys(poDraft).forEach(k => itemsToShow.add(k));
+
+            INVENTORY.forEach(i => {
+                if (search && (i.name.toLowerCase().includes(search) || i.code.toLowerCase().includes(search))) itemsToShow.add(i.code);
+                else if (!search && i.vendor === vendor) itemsToShow.add(i.code);
+            });
+
+            let finalItems = Array.from(itemsToShow).map(c => INVENTORY.find(i => i.code === c)).filter(Boolean);
+            
+            // Sort: Selected items first, then alphabetical
+            finalItems.sort((a,b) => {
+                const aIn = !!poDraft[a.code]; const bIn = !!poDraft[b.code];
+                if (aIn !== bIn) return aIn ? -1 : 1;
+                return a.name.localeCompare(b.name);
+            });
+
+            let totalVal = 0;
+
+            feed.innerHTML = finalItems.map(item => {
+                const d = poDraft[item.code] || {c:0, p:0};
+                const inCart = !!poDraft[item.code];
+                const cQty = parseInt(item.caseQty) || 0;
+                const totalPcs = (d.c * cQty) + d.p;
+                
+                const itemTotalCost = totalPcs * item.cost;
+                totalVal += itemTotalCost;
+
+                const isCaseDisabled = (!item.caseQty || item.caseQty <= 0);
+                const bgClass = inCart ? 'background:#F0FDF4; border-color:#BBF7D0;' : 'background:white; border-color:var(--border);';
+                
+                // Add a small tag if the user manually searched for an item outside the vendor's normal catalog
+                const outsideTag = (item.vendor !== vendor) ? `<span style="font-size:0.6rem; background:#FEE2E2; color:#991B1B; padding:2px 4px; border-radius:3px; margin-left:6px; font-weight:800;">Outside Item</span>` : '';
+
+                return `
+                <div style="padding: 14px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; ${bgClass}">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
+                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); line-height: 1.3; flex:1; padding-right:10px;">${item.name} ${outsideTag}</div>
+                        <div style="text-align:right;">
+                            <div style="font-weight: 800; font-size: 1rem; color:var(--text);">₹${fmt(itemTotalCost)}</div>
+                            <div style="font-size: 0.7rem; color:var(--text-mut); font-weight:600;">Cost: ₹${fmt(item.cost)}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; gap:10px; align-items:flex-end;">
+                        <div class="step-grp" style="flex:1;">
+                            <span class="step-lbl">Cases ${cQty>0?`(${cQty})`:''}</span>
+                            <div class="stepper ${isCaseDisabled ? 'disabled' : ''}" style="height:32px; background:white;">
+                                <button onclick="setPOManual('${item.code}', 'c', ${(d.c||0)-1})">-</button>
+                                <input type="number" value="${d.c}" onchange="setPOManual('${item.code}', 'c', this.value)" onfocus="this.select()" ${isCaseDisabled ? 'disabled' : ''}>
+                                <button onclick="setPOManual('${item.code}', 'c', ${(d.c||0)+1})">+</button>
+                            </div>
+                        </div>
+                        <div class="step-grp" style="flex:1;">
+                            <span class="step-lbl">Pieces</span>
+                            <div class="stepper" style="height:32px; background:white;">
+                                <button onclick="setPOManual('${item.code}', 'p', ${(d.p||0)-1})">-</button>
+                                <input type="number" value="${d.p}" onchange="setPOManual('${item.code}', 'p', this.value)" onfocus="this.select()">
+                                <button onclick="setPOManual('${item.code}', 'p', ${(d.p||0)+1})">+</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            document.getElementById('po-total-val').innerText = `₹${fmt(totalVal)}`;
+        }
+
+        async function submitPurchaseOrder() {
+            const vendor = poSelectedVendor;
+            if (!vendor) { showWarning("No Vendor", "Please select a Primary Vendor at the top."); return; }
+            if (Object.keys(poDraft).length === 0) { showWarning("Empty PO", "Add items to generate a PO."); return; }
+
+            const btn = document.getElementById('btn-submit-po');
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Generating...';
+            btn.disabled = true;
+
+            let totalAmt = 0;
+            for(const code in poDraft) {
+                const item = INVENTORY.find(i => i.code === code);
+                const totalPcs = (poDraft[code].c * (item.caseQty||0)) + poDraft[code].p;
+                totalAmt += totalPcs * item.cost;
+            }
+
+            const poId = 'PO' + Date.now().toString().slice(-6);
+            const payload = {
+                id: poId, vendor_name: vendor, total_amount: totalAmt, status: 'Draft',
+                items: poDraft, created_at: new Date().toISOString(), created_by: currentUserFullName
+            };
+
+            try {
+                const { error } = await sbClient.from('purchase_orders').insert([payload]);
+                if (error) throw error;
+                
+                window.PURCHASE_ORDERS.unshift(payload);
+                downloadPOPDF(payload); // Auto download
+                
+                poDraft = {};
+                poSelectedVendor = '';
+                document.getElementById('po-vendor-selected').innerText = '-- Choose Vendor --';
+                document.getElementById('po-item-search').value = '';
+                
+                showSuccess("Purchase Order created and downloaded!");
+                togglePOView('hist'); // Switch to history tab
+            } catch(e) {
+                showWarning("Network Error", "Could not save PO to cloud.");
+            } finally {
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+            }
+        }
+
+        function renderPOHistory() {
+            const feed = document.getElementById('po-hist-feed');
+            if (!window.PURCHASE_ORDERS || window.PURCHASE_ORDERS.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No Purchase Orders created yet.</div>`; return;
+            }
+
+            feed.innerHTML = window.PURCHASE_ORDERS.map(po => {
+                const dStr = new Date(po.created_at).toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'});
+                const itemCount = Object.keys(po.items).length;
+                return `
+                <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; padding: 16px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                    <div style="flex:1; padding-right:15px;">
+                        <div style="font-weight: 800; font-size: 1rem; color:var(--text); margin-bottom: 4px;">${po.vendor_name}</div>
+                        <div style="font-size: 0.75rem; color:var(--text-mut); font-weight: 600;"><i class="fas fa-file-invoice" style="margin-right:4px;"></i>${po.id} | ${dStr}</div>
+                        <div style="font-size: 0.7rem; color:var(--brand); font-weight: 700; margin-top:4px;">${itemCount} Items Ordered</div>
+                    </div>
+                    <div style="text-align: right; display:flex; flex-direction:column; align-items:flex-end;">
+                        <b style="color:var(--text); font-size: 1.1rem; margin-bottom: 8px;">₹${fmt(po.total_amount)}</b>
+                        <button onclick='downloadPOPDF(${JSON.stringify(po)})' style="background:var(--brand-light); color:var(--brand); border:1px solid var(--brand); padding:4px 10px; border-radius:4px; font-weight:700; font-size:0.75rem; cursor:pointer;"><i class="fas fa-file-pdf"></i> Download</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function downloadPOPDF(po) {
+            if(!window.jspdf) { alert("PDF Engine Loading, please wait."); return; }
+            
+            const doc = new window.jspdf.jsPDF();
+            doc.setFontSize(18); doc.text(`PURCHASE ORDER`, 14, 20);
+            
+            doc.setFontSize(10);
+            doc.text(`PO Number: ${po.id}`, 14, 30);
+            doc.text(`Date: ${new Date(po.created_at).toLocaleDateString('en-GB')}`, 14, 36);
+            doc.text(`Vendor: ${po.vendor_name}`, 14, 42);
+            doc.text(`Generated By: ${po.created_by}`, 14, 48);
+
+            const tableBody = [];
+            let totalVal = 0;
+            
+            Object.keys(po.items).forEach((code, i) => {
+                const qty = po.items[code];
+                const item = INVENTORY.find(inv => inv.code === code) || {name: 'Unknown', cost: 0, caseQty: 0};
+                const cQty = parseInt(item.caseQty) || 0;
+                const totalPcs = (qty.c * cQty) + qty.p;
+                const cost = totalPcs * item.cost;
+                totalVal += cost;
+
+                let orderStr = '';
+                if (qty.c > 0 && qty.p > 0) orderStr = `${qty.c} Cs + ${qty.p} Pcs`;
+                else if (qty.c > 0) orderStr = `${qty.c} Cs`;
+                else orderStr = `${qty.p} Pcs`;
+
+                tableBody.push([ i+1, code, item.name, orderStr, totalPcs, `Rs ${fmt(item.cost)}`, `Rs ${fmt(cost)}` ]);
+            });
+
+            tableBody.push([{ content: 'TOTAL AMOUNT', colSpan: 6, styles: { halign: 'right', fontStyle: 'bold' } }, `Rs ${fmt(totalVal)}`]);
+
+            doc.autoTable({
+                startY: 55,
+                head: [['#', 'Item Code', 'Item Name', 'Pack Qty', 'Total Pcs', 'Unit Cost', 'Total Value']],
+                body: tableBody,
+                theme: 'striped',
+                headStyles: { fillColor: [99, 102, 241] }, // Indigo to match Purchase theme
+                styles: { fontSize: 8 },
+                columnStyles: { 0: { cellWidth: 10 } }
+            });
+
+            doc.save(`${po.vendor_name.replace(/\s+/g,'_')}_${po.id}.pdf`);
         }
 
         /* --- ADMIN SPECIAL OFFERS LOGIC --- */
