@@ -1703,7 +1703,14 @@
         const SUPABASE_URL = 'https://xokjdpkskjctteondwxf.supabase.co';
         const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhva2pkcGtza2pjdHRlb25kd3hmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTM5ODgsImV4cCI6MjEwMDk2OTk4OH0.4SR4nFJJCo0igMKj644pNrjNLB71ZtKVnjGT-rPsy2g';
         
-        const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // Explicitly force Supabase to persist the session in LocalStorage so it survives app closures
+        const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: {
+                persistSession: true,
+                autoRefreshToken: true,
+                storage: window.localStorage
+            }
+        });
 
         let userSession = null;
         let INVENTORY = [];
@@ -1712,7 +1719,7 @@
         let SUBMITTED_ORDERS = []; 
         let MY_ORDERS = []; 
         let MY_COLLECTIONS = []; 
-        let ERP_DELIVERIES = []; // Stores the lightweight ERP batches
+        let ERP_DELIVERIES = []; 
         let CATEGORIES = ["All"];
         let currentUserFullName = ""; 
 
@@ -1731,37 +1738,46 @@
         let cart = {};  
         let draft = {}; 
 
-        // Packing State
         let allPacks = {}; 
         let currentPackOrder = null;
         let packSearchQuery = "";
 
-        /* --- REAL DATABASE ARRAYS --- */
-        // Inventory and Customers will now only load from Supabase.
-
-        /* --- AUTH & INIT --- */
         window.onload = async () => {
             const today = new Date().toISOString().split('T')[0];
             
-            // Set default date for all single-date filters
             ['salesman-from-date', 'salesman-to-date', 'packing-date-filter', 'billing-date-filter', 'bill-hist-date-filter', 'bill-col-date-filter', 'pack-hist-date-filter', 'batch-from-date', 'batch-to-date', 'del-date-filter', 'del-hist-date-filter', 'live-from-date', 'live-to-date', 'rem-from-date', 'rem-to-date', 'sales-from-date', 'sales-to-date', 'batch-hist-date', 'admin-del-date'].forEach(id => {
                 const el = document.getElementById(id);
                 if(el) el.value = today;
             });
 
+            // 1. Explicitly check for an existing session FIRST
             try {
                 const { data: { session }, error } = await sbClient.auth.getSession();
-                if (session && !error) {
+                
+                if (error) throw error;
+
+                if (session) {
                     userSession = session;
                     await initializeApp();
                 } else {
+                    // Force show login if definitely no session
                     document.getElementById('login-screen').classList.remove('hidden');
                     document.getElementById('main-app').classList.add('hidden');
                 }
             } catch (err) {
+                console.warn("Auth check failed:", err);
                 document.getElementById('login-screen').classList.remove('hidden');
                 document.getElementById('main-app').classList.add('hidden');
             }
+
+            // 2. Listen silently in the background for active logouts
+            sbClient.auth.onAuthStateChange((event, session) => {
+                if (event === 'SIGNED_OUT') {
+                    userSession = null;
+                    document.getElementById('login-screen').classList.remove('hidden');
+                    document.getElementById('main-app').classList.add('hidden');
+                }
+            });
         };
 
         async function handleLogin() {
@@ -2022,7 +2038,6 @@
             
             document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
             
-            // Build the Packing History Strip for Salesman and Delivery users
             const smPackStrip = document.getElementById('salesman-pack-hist-strip');
             if (smPackStrip) {
                 if (currentUserRole === 'Salesman' || currentUserRole === 'Delivery') {
@@ -2032,7 +2047,9 @@
                             <i class="fas fa-chevron-right" style="color: var(--brand); font-size: 0.85rem;"></i>
                         </div>
                     `;
-                } else { smPackStrip.innerHTML = ''; }
+                } else { 
+                    smPackStrip.innerHTML = ''; 
+                }
             }
 
             if(currentUserRole === 'Salesman') {
@@ -2045,22 +2062,13 @@
                 if(typeof renderCatalogCats === 'function') renderCatalogCats();
                 if(typeof renderCatalogView === 'function') renderCatalogView();
                 switchTab('catalog');
-           } else if (currentUserRole === 'Admin') {
+            } else if (currentUserRole === 'Admin') {
                 if(aNav) aNav.classList.remove('hidden');
                 catalogCat = "All"; 
                 if(typeof renderCatalogCats === 'function') renderCatalogCats();
                 if(typeof renderCatalogView === 'function') renderCatalogView();
                 if(typeof renderPricingTable === 'function') renderPricingTable();
-                switchTab('dashboard');
-                if (currentUserRole === 'Admin') {
-                    fetchTasks.push(sbClient.from('attendance').select('*').then(({data}) => {
-                        if (data) window.ALL_ATTENDANCE = data;
-                    }));
-                    // ADD THIS:
-                    fetchTasks.push(sbClient.from('purchase_orders').select('*').order('created_at', { ascending: false }).limit(200).then(({data}) => {
-                        if (data) window.PURCHASE_ORDERS = data;
-                    }));
-                }
+                switchTab('dashboard'); 
             } else if (currentUserRole === 'Packing') {
                 if(pNav) pNav.classList.remove('hidden');
                 if(typeof renderPackingOrders === 'function') renderPackingOrders();
