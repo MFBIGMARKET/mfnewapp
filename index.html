@@ -243,6 +243,7 @@
         .hr-sub-nav-item { flex: 1; padding: 12px 0; text-align: center; font-size: 0.75rem; font-weight: 700; color: var(--text-mut); cursor: pointer; display: flex; flex-direction: column; gap: 4px; align-items: center; }
         .hr-sub-nav-item i { font-size: 1.1rem; }
         .hr-sub-nav-item.active { color: var(--brand); }
+        .btn-share { background: #10B981; color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: 700; font-size: 0.75rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
 
         /* --- MOBILE RESPONSIVE TWEAKS --- */
         @media (max-width: 768px) {
@@ -431,6 +432,32 @@
         </div>
     </div>
 
+    <!-- EDIT ATTENDANCE MODAL -->
+    <div id="att-edit-modal" class="modal-overlay hidden" style="z-index: 4500;">
+        <div class="modal-content" style="max-width: 320px;">
+            <div class="modal-header">
+                <span>Edit Attendance</span>
+                <i class="fas fa-times" onclick="closeModal('att-edit-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
+            </div>
+            <div class="modal-body">
+                <p id="att-edit-emp-name" style="font-weight: 800; font-size: 0.95rem; margin-bottom: 2px; color: var(--brand);"></p>
+                <p id="att-edit-date" style="font-size: 0.8rem; color: var(--text-mut); margin-bottom: 15px; font-weight: 700;"></p>
+                
+                <span class="step-lbl" style="display:block;">Check-In Time</span>
+                <input type="time" id="att-edit-in" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:10px; outline:none;">
+                
+                <span class="step-lbl" style="display:block;">Check-Out Time (Optional)</span>
+                <input type="time" id="att-edit-out" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:20px; outline:none;">
+                
+                <div style="display:flex; gap:10px;">
+                    <button onclick="markAttAbsent()" style="flex:1; background: #FEE2E2; color: #991B1B; border: 1px solid #FCA5A5; padding: 12px; border-radius: 6px; font-weight: 700; cursor: pointer;">Mark Absent</button>
+                    <button onclick="saveAttEdit()" id="btn-save-att" style="flex:1; background: var(--success); color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 700; cursor: pointer;">Save Data</button>
+                </div>
+                <input type="hidden" id="att-edit-emp-id">
+            </div>
+        </div>
+    </div>
+
     <!-- DELIVERY CONFIRM MODAL -->
     <div id="del-confirm-modal" class="modal-overlay hidden" style="z-index: 4000;">
         <div class="modal-content" style="max-width: 320px;">
@@ -455,6 +482,30 @@
                 </label>
                 
                 <button onclick="proceedToPhoto()" style="width: 100%; background: var(--brand); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: 700; cursor: pointer;"><i class="fas fa-camera"></i> Take Photo & Complete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT DELIVERY PAYMENT MODAL -->
+    <div id="del-edit-pay-modal" class="modal-overlay hidden" style="z-index: 4000;">
+        <div class="modal-content" style="max-width: 320px;">
+            <div class="modal-header">
+                <span>Update Payment</span>
+                <i class="fas fa-times" onclick="closeModal('del-edit-pay-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
+            </div>
+            <div class="modal-body">
+                <p id="del-edit-pay-cust" style="font-size: 0.95rem; font-weight: 800; margin-bottom: 2px;"></p>
+                <p id="del-edit-pay-amt" style="font-size: 0.8rem; color: var(--text-mut); font-weight: 700; margin-bottom: 15px;"></p>
+                
+                <span class="step-lbl" style="display:block;">Cash Amount (₹)</span>
+                <input type="number" id="del-edit-cash" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:10px; outline:none;" placeholder="0">
+                
+                <span class="step-lbl" style="display:block;">GPay / UPI (₹)</span>
+                <input type="number" id="del-edit-gpay" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:15px; outline:none;" placeholder="0">
+                
+                <input type="hidden" id="del-edit-order-id">
+                
+                <button onclick="saveDeliveryPaymentEdit()" id="btn-save-del-pay" style="width: 100%; background: var(--success); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 4px rgba(15,157,88,0.2);">Save Payment</button>
             </div>
         </div>
     </div>
@@ -737,15 +788,15 @@
                 </div>
                 <div onclick="openAdminDashboardApp('reorder')" style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;">
                     <div style="font-size: 2.5rem; color: #DC2626; margin-bottom: 10px;"><i class="fas fa-shopping-cart"></i></div>
-                    <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Reorder</div>
+                    <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Reorder & PO</div>
                 </div>
                 <div onclick="openAdminDashboardApp('offers')" style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;">
                     <div style="font-size: 2.5rem; color: #F59E0B; margin-bottom: 10px;"><i class="fas fa-percent"></i></div>
-                    <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Special Offers</div>
+                    <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Offers</div>
                 </div>
-                <div onclick="openAdminDashboardApp('purchase')" style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;">
-                    <div style="font-size: 2.5rem; color: #6366F1; margin-bottom: 10px;"><i class="fas fa-shopping-bag"></i></div>
-                    <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Purchase</div>
+                <div style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); opacity: 0.5; pointer-events: none;">
+                    <div style="font-size: 2.5rem; color: #6366F1; margin-bottom: 10px;"><i class="fas fa-calculator"></i></div>
+                    <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Accounts</div>
                 </div>
             </div>
         </div>
@@ -769,26 +820,32 @@
             </div>
         </div>
 
-        <!-- ADMIN: REORDER ENGINE OVERLAY -->
+        <!-- ADMIN: UNIFIED REORDER & PO ENGINE -->
         <div id="admin-reorder-app" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
             <div class="ov-head">
                 <i class="fas fa-arrow-left" onclick="closeAdminDashboardApp('reorder')" style="cursor:pointer; padding:4px;"></i>
-                <div class="ov-center"><div class="ov-title">Intelligent Reorder</div></div>
+                <div class="ov-center"><div class="ov-title">Reorder & Purchase</div></div>
                 <i class="fas fa-check" style="color: transparent;"></i>
             </div>
-            <div style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+            
+            <!-- Bottom Sub-Nav for Switching Modes -->
+            <div class="hr-sub-nav">
+                <div class="hr-sub-nav-item active" id="reo-nav-insights" onclick="switchReorderTab('insights')"><i class="fas fa-chart-line"></i>Insights</div>
+                <div class="hr-sub-nav-item" id="reo-nav-cart" onclick="switchReorderTab('cart')"><i class="fas fa-shopping-cart"></i>PO Cart</div>
+                <div class="hr-sub-nav-item" id="reo-nav-hist" onclick="switchReorderTab('hist')"><i class="fas fa-history"></i>History</div>
+            </div>
+
+            <!-- TAB 1: REORDER INSIGHTS -->
+            <div id="reo-tab-insights" style="display:flex; flex-direction:column; flex:1; overflow:hidden; padding-bottom:55px;">
                 <div style="background: #F9FAFB; padding: 10px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; display:flex; flex-direction:column; gap:10px;">
                     <div style="display:flex; justify-content:space-between; align-items:center; gap: 10px;">
-                        <!-- Modern Searchable Dropdown -->
                         <div class="custom-select-wrapper">
                             <div id="reorder-vendor-selected" class="custom-select-trigger" onclick="toggleVendorDropdown(event)">All Vendors</div>
                             <div id="reorder-vendor-menu" class="custom-select-menu hidden">
                                 <div style="padding: 8px; border-bottom: 1px solid var(--border); background: #F9FAFB; border-radius: 6px 6px 0 0;">
                                     <input type="text" id="reorder-vendor-search" placeholder="Search vendor..." oninput="filterVendorDropdown()" onclick="event.stopPropagation()" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border-dark); border-radius: 4px; outline: none; font-size: 0.8rem; font-weight:600;">
                                 </div>
-                                <div id="reorder-vendor-options" style="max-height: 250px; overflow-y: auto;">
-                                    <!-- Injected via JS -->
-                                </div>
+                                <div id="reorder-vendor-options" style="max-height: 250px; overflow-y: auto;"></div>
                             </div>
                         </div>
 
@@ -814,41 +871,19 @@
                 </div>
                 <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="reorder-feed"></div>
             </div>
-        </div>
 
-        <!-- ADMIN: PURCHASE ORDERS OVERLAY -->
-        <div id="admin-po-app" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
-            <div class="ov-head">
-                <i class="fas fa-arrow-left" onclick="closeAdminDashboardApp('purchase')" style="cursor:pointer; padding:4px;"></i>
-                <div class="ov-center"><div class="ov-title">Purchase Orders</div></div>
-                <i class="fas fa-check" style="color: transparent;"></i>
-            </div>
-
-            <!-- Tab Buttons -->
-            <div style="display: flex; background: white; border-bottom: 1px solid var(--border); padding: 8px 16px; justify-content: center; flex-shrink: 0;">
-                <div style="display: flex; background: var(--bg); border-radius: 6px; padding: 2px; width: 100%; max-width: 300px; border: 1px solid var(--border);">
-                    <button id="po-btn-new" onclick="togglePOView('new')" style="flex:1; padding: 6px; border-radius: 4px; border:none; background: var(--brand); color: white; font-weight: 700; font-size: 0.8rem; cursor:pointer;">Create PO</button>
-                    <button id="po-btn-hist" onclick="togglePOView('hist')" style="flex:1; padding: 6px; border-radius: 4px; border:none; background: transparent; color: var(--text-mut); font-weight: 700; font-size: 0.8rem; cursor:pointer;">History</button>
-                </div>
-            </div>
-
-            <!-- Create PO View -->
-            <div id="po-new-view" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+            <!-- TAB 2: PO CART -->
+            <div id="reo-tab-cart" class="hidden" style="display:flex; flex-direction:column; flex:1; overflow:hidden; padding-bottom:55px;">
                 <div style="padding: 12px 16px; background: white; border-bottom: 1px solid var(--border); flex-shrink: 0;">
-                    
                     <div style="display:flex; align-items:center; gap: 10px; margin-bottom: 10px;">
                         <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-mut); flex-shrink:0;">Vendor:</div>
-                        
-                        <!-- Modern Searchable Dropdown for PO -->
                         <div class="custom-select-wrapper">
                             <div id="po-vendor-selected" class="custom-select-trigger" onclick="togglePOVendorDropdown(event)">-- Choose Vendor --</div>
                             <div id="po-vendor-menu" class="custom-select-menu hidden">
                                 <div style="padding: 8px; border-bottom: 1px solid var(--border); background: #F9FAFB; border-radius: 6px 6px 0 0;">
                                     <input type="text" id="po-vendor-search" placeholder="Search vendor..." oninput="filterPOVendorDropdown()" onclick="event.stopPropagation()" style="width: 100%; padding: 8px 10px; border: 1px solid var(--border-dark); border-radius: 4px; outline: none; font-size: 0.8rem; font-weight:600;">
                                 </div>
-                                <div id="po-vendor-options" style="max-height: 250px; overflow-y: auto;">
-                                    <!-- Injected via JS -->
-                                </div>
+                                <div id="po-vendor-options" style="max-height: 250px; overflow-y: auto;"></div>
                             </div>
                         </div>
                     </div>
@@ -859,8 +894,8 @@
                     </div>
                 </div>
                 
-                <div class="scroll-area" style="padding: 16px;" id="po-feed">
-                    <div style="text-align:center; padding: 40px; color: var(--text-mut);">Select a vendor to start creating a PO.</div>
+                <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="po-feed">
+                    <div style="text-align:center; padding: 40px; color: var(--text-mut);">Select a vendor to view their cart.</div>
                 </div>
                 
                 <div style="padding: 14px; background: white; border-top: 1px solid var(--border); box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.05); flex-shrink: 0;">
@@ -868,12 +903,12 @@
                         <span style="font-weight:700; color:var(--text-mut);">Total PO Value:</span>
                         <span style="font-weight:800; font-size:1.1rem; color:var(--brand);" id="po-total-val">₹0</span>
                     </div>
-                    <button onclick="submitPurchaseOrder()" id="btn-submit-po" style="width: 100%; background: #6366F1; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 800; font-size: 1rem; cursor: pointer;"><i class="fas fa-file-pdf"></i> Generate PO & PDF</button>
+                    <button onclick="submitPurchaseOrder()" id="btn-submit-po" style="width: 100%; background: #6366F1; color: white; border: none; padding: 12px; border-radius: 6px; font-weight: 800; font-size: 1rem; cursor: pointer;"><i class="fas fa-check-circle"></i> Submit & Download PO</button>
                 </div>
             </div>
 
-            <!-- History View -->
-            <div id="po-hist-view" class="hidden" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+            <!-- TAB 3: PO HISTORY -->
+            <div id="reo-tab-hist" class="hidden" style="display:flex; flex-direction:column; flex:1; overflow:hidden; padding-bottom:55px;">
                 <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="po-hist-feed"></div>
             </div>
         </div>
@@ -1022,14 +1057,21 @@
             <div style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
                 <div id="admin-credit-subgroup-bar" style="background:var(--bg); flex-shrink: 0;"></div>
                 <div id="admin-credit-route-bar" style="background:var(--bg); flex-shrink: 0;"></div>
-                <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB; padding: 8px 16px; border-bottom: 1px solid var(--border);">
-                    <span style="font-size: 0.85rem; font-weight: 600;">Total: <span id="admin-credit-total" style="color:var(--accent);">₹0</span></span>
-                    <select id="admin-credit-sort" onchange="updateAdminCreditSort(this.value)" style="padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.75rem; font-weight: 700; color: var(--brand); background: white;">
-                        <option value="high">Highest Bal</option>
-                        <option value="low">Lowest Bal</option>
-                        <option value="bills">Most Pending Bills</option>
-                        <option value="alpha">A-Z Name</option>
-                    </select>
+                
+                <div style="background: white; padding: 10px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                    <div style="font-size: 0.85rem; font-weight: 600; color: var(--text-mut); flex-shrink: 0; display: flex; align-items: baseline; gap: 4px;">
+                        Total: <span id="admin-credit-total" style="color:var(--accent); font-weight: 800; font-size: 1.05rem;">₹0</span>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex: 1; justify-content: flex-end;">
+                        <select id="admin-credit-sort" onchange="updateAdminCreditSort(this.value)" style="max-width: 130px; padding: 4px 6px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.7rem; font-weight: 700; color: var(--brand); background: var(--brand-light);">
+                            <option value="high">Highest Bal</option>
+                            <option value="low">Lowest Bal</option>
+                            <option value="bills">Most Bills</option>
+                            <option value="days">Oldest Days</option>
+                            <option value="alpha">A-Z Name</option>
+                        </select>
+                        <button onclick="shareCreditReport()" class="btn-share" style="padding: 4px 10px; flex-shrink: 0;"><i class="fas fa-share-nodes"></i> Share</button>
+                    </div>
                 </div>
                 <div class="search-bar" style="border-bottom: 1px solid var(--border); flex-shrink: 0;">
                     <i class="fas fa-search" style="color:var(--text-mut);"></i>
@@ -1235,6 +1277,17 @@
                 <span style="font-size: 1.1rem; font-weight: 800; color: var(--accent);" id="acc-pending-total">₹0</span>
             </div>
             <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="acc-pending-feed">
+                <!-- Injected via JS -->
+            </div>
+        </div>
+
+        <!-- ACCOUNTANT HR TAB -->
+        <div id="view-acc-hr" class="tab-content hidden accountant-view">
+            <div class="pack-top-bar" style="justify-content: space-between; background: white; border-bottom: 1px solid var(--border); flex-shrink: 0; padding: 16px;">
+                <span style="font-size: 0.95rem; font-weight: 800; color: var(--text);">Staff Attendance</span>
+                <input type="date" id="acc-hr-date" onchange="renderAccHR()" style="border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-weight:700; outline:none; font-family: inherit; font-size: 0.8rem;">
+            </div>
+            <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="acc-hr-feed">
                 <!-- Injected via JS -->
             </div>
         </div>
@@ -1457,6 +1510,7 @@
             <div class="nav-item active" onclick="switchTab('acc-entry')" data-target="acc-entry"><i class="fas fa-money-check-alt"></i>Entry</div>
             <div class="nav-item" onclick="switchTab('acc-calendar')" data-target="acc-calendar"><i class="fas fa-calendar-alt"></i>Calendar</div>
             <div class="nav-item" onclick="switchTab('acc-pending')" data-target="acc-pending"><i class="fas fa-clock"></i>Pending</div>
+            <div class="nav-item" onclick="switchTab('acc-hr')" data-target="acc-hr"><i class="fas fa-user-clock"></i>HR</div>
             <div class="nav-item" onclick="switchTab('acc-manage')" data-target="acc-manage"><i class="fas fa-cog"></i>Manage</div>
             <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
         </div>
@@ -1953,6 +2007,9 @@
                     fetchTasks.push(sbClient.from('vendors').select('*').then(({data}) => {
                         if (data) window.VENDORS = data;
                     }));
+                    fetchTasks.push(sbClient.from('attendance').select('*').then(({data}) => {
+                        if (data) window.ALL_ATTENDANCE = data;
+                    }));
                 }
 
                 await Promise.all(fetchTasks); // Fetches everything above simultaneously
@@ -2150,9 +2207,7 @@
                 document.getElementById('admin-offers-search').value = '';
                 renderAdminOffersList();
                 document.getElementById('admin-offers-app').classList.remove('hidden');
-                } else if (app === 'purchase') {
-                togglePOView('new');
-                document.getElementById('admin-po-app').classList.remove('hidden');
+                
             } else if (app === 'hr') {
                 const now = new Date();
                 const localTodayStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
@@ -2175,7 +2230,7 @@
             else if (app === 'reorder') document.getElementById('admin-reorder-app').classList.add('hidden');
             else if (app === 'hr') document.getElementById('admin-hr-app').classList.add('hidden');
             else if (app === 'offers') document.getElementById('admin-offers-app').classList.add('hidden');
-            else if (app === 'purchase') document.getElementById('admin-po-app').classList.add('hidden');
+            
         }
 
         /* --- ADMIN DELIVERY DASHBOARD --- */
@@ -2547,11 +2602,13 @@
             filtered.sort((a,b) => {
                 if(adminCreditSortMode === 'high') return b.bal - a.bal;
                 if(adminCreditSortMode === 'low') return a.bal - b.bal;
-                if(adminCreditSortMode === 'bills') {
-                    const cA = CUSTOMER_CREDIT_MAP[(a.name || '').trim().toUpperCase()]?.pendingCount || 0;
-                    const cB = CUSTOMER_CREDIT_MAP[(b.name || '').trim().toUpperCase()]?.pendingCount || 0;
-                    return cB - cA;
-                }
+                
+                const cA = CUSTOMER_CREDIT_MAP[(a.name || '').trim().toUpperCase()] || { pendingCount: 0, creditDays: 0 };
+                const cB = CUSTOMER_CREDIT_MAP[(b.name || '').trim().toUpperCase()] || { pendingCount: 0, creditDays: 0 };
+                
+                if(adminCreditSortMode === 'bills') return cB.pendingCount - cA.pendingCount;
+                if(adminCreditSortMode === 'days') return cB.creditDays - cA.creditDays;
+                
                 return a.name.localeCompare(b.name);
             });
 
@@ -2560,14 +2617,23 @@
                 return;
             }
 
+            // Save globally for PDF
+            window.currentAdminCreditView = filtered;
+
             feed.innerHTML = filtered.map(c => {
                 const safeId = c.code.replace(/[^a-zA-Z0-9]/g, '_');
                 const cNameClean = (c.name || '').trim().toUpperCase();
                 const cData = CUSTOMER_CREDIT_MAP[cNameClean];
                 
-                const billBadge = (cData && cData.pendingCount > 0) 
-                    ? `<span style="background:#FEF2F2; color:#991B1B; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:800;">${cData.pendingCount} Bills Pending</span>` 
-                    : '';
+                let badges = '';
+                if (cData && cData.pendingCount > 0) {
+                    badges += `<span style="background:#FEF2F2; color:#991B1B; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:800; margin-right:4px;">${cData.pendingCount} Bills</span>`;
+                }
+                if (cData && cData.creditDays > 0) {
+                    let daysBg = cData.creditDays > 30 ? '#FEE2E2' : '#FFEDD5';
+                    let daysCol = cData.creditDays > 30 ? '#991B1B' : '#9A3412';
+                    badges += `<span style="background:${daysBg}; color:${daysCol}; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:800;">${cData.creditDays} Days</span>`;
+                }
 
                 const detailsHTML = generateCreditDropdownHTML(cData);
 
@@ -2578,10 +2644,10 @@
                             <div style="font-weight: 800; font-size: 0.85rem; color:var(--text); margin-bottom: 4px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;" title="${c.name}">
                                 ${c.name}
                             </div>
-                            <div style="font-size: 0.7rem; color:var(--text-mut); font-weight:700; margin-bottom: 4px;">
+                            <div style="font-size: 0.7rem; color:var(--text-mut); font-weight:700; margin-bottom: 6px;">
                                 <i class="fas fa-users" style="margin-right:4px;"></i>${c.subgroup || 'No Subgroup'}
                             </div>
-                            ${billBadge}
+                            <div>${badges}</div>
                         </div>
                         <div style="flex: 0 0 30%; text-align: right; min-width: 0;">
                             <span style="font-size: 0.6rem; color:var(--text-mut); text-transform:uppercase; font-weight:700;">Balance</span><br>
@@ -2746,6 +2812,8 @@
 
                 let remBal = cust.bal || 0;
                 let pendingCount = 0;
+                let oldestUnpaidDate = null;
+                const now = new Date();
 
                 // Calculate payment status backward from the newest bills
                 finalBills.forEach(b => {
@@ -2755,15 +2823,23 @@
                         b.status = 'UNPAID';
                         remBal -= b.amt;
                         pendingCount++;
+                        oldestUnpaidDate = b.date; // Continually overwrites with older dates as we go back in time
                     } else {
                         b.status = 'PARTIAL';
                         b.due = remBal;
                         remBal = 0;
                         pendingCount++;
+                        oldestUnpaidDate = b.date;
                     }
                 });
 
-                CUSTOMER_CREDIT_MAP[cName] = { pendingCount, top5: finalBills.slice(0, 5) };
+                let creditDays = 0;
+                if (oldestUnpaidDate && oldestUnpaidDate !== '---') {
+                    const diffTime = Math.abs(now - new Date(oldestUnpaidDate));
+                    creditDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+                }
+
+                CUSTOMER_CREDIT_MAP[cName] = { pendingCount, creditDays, top5: finalBills.slice(0, 5) };
             });
 
             CREDIT_CACHE_LOADED = true;
@@ -5525,7 +5601,7 @@
                 checkboxes.forEach(chk => verifiedItems.push(chk.getAttribute('data-item-id')));
             } catch(err) {}
 
-            // 1. ADD TO OFFLINE QUEUE
+            // 1. ADD TO OFFLINE QUEUE (Include pay_later)
             offlineDeliveries.push({
                 orderId, isErp, base64Photo, cashAmt, gpayAmt, verifiedItems, timestamp: now, pay_later: isPayLater
             });
@@ -5582,7 +5658,7 @@
                 ALL_COLLECTIONS.unshift(colPayload);
             }
 
-            // SAFE CACHE: If image is too big for local storage, drop the image so the critical text data still saves!
+            // SAFE CACHE
             try {
                 saveLocalState();
             } catch (e) {
@@ -5628,8 +5704,10 @@
                 const task = offlineDeliveries[i];
                 const tableName = task.isErp ? 'erp_deliveries' : 'orders';
                 
+                // INJECT PAY_LATER FLAG HERE
                 const payload = {
                     status: 'Delivered',
+                    pay_later: !!task.pay_later,
                     delivery_photo: task.base64Photo,
                     delivered_at: task.timestamp
                 };
@@ -5652,18 +5730,19 @@
                             );
                             if (appOrdersToClose.length > 0) {
                                 const idsToUpdate = appOrdersToClose.map(o => o.id);
-                                await sbClient.from('orders').update({ status: 'Delivered', delivery_photo: task.base64Photo, delivered_at: task.timestamp }).in('id', idsToUpdate);
+                                await sbClient.from('orders').update({ status: 'Delivered', pay_later: !!task.pay_later, delivery_photo: task.base64Photo, delivered_at: task.timestamp }).in('id', idsToUpdate);
                             }
                         }
                     }
 
-                    // Push Collection if exists
+                    // Push Collection if exists AND not marked as pay later
                     const totalCol = task.cashAmt + task.gpayAmt;
-                    if (totalCol > 0) {
+                    if (totalCol > 0 && !task.pay_later) {
                         const targetOrder = ERP_DELIVERIES.find(o => o.id === task.orderId) || SUBMITTED_ORDERS.find(o => o.id === task.orderId);
                         const custCode = targetOrder ? (targetOrder.customer_code || targetOrder.customer_name) : task.orderId;
+                        const custNameStr = targetOrder ? (targetOrder.customer_name || CUSTOMERS.find(c => c.code === custCode)?.name) : "Unknown";
                         
-                        // Re-calculate ID securely on cloud push to avoid duplicate key errors in loop
+                        // Re-calculate ID securely on cloud push
                         let nextRecNum = 1;
                         const { data: latestCol } = await sbClient.from('collections').select('id').order('created_at', { ascending: false }).limit(1);
                         if (latestCol && latestCol.length > 0) {
@@ -5674,6 +5753,7 @@
                         await sbClient.from('collections').insert({
                             id: colId,
                             customer_code: custCode,
+                            customer_name: custNameStr,
                             salesman_id: userSession ? userSession.user.id : "local_dev",
                             amount_cash: task.cashAmt,
                             amount_gpay: task.gpayAmt,
@@ -5685,19 +5765,17 @@
                     successfulIndexes.push(i);
                 } catch(e) {
                     console.warn("Sync failed for task", task.orderId, e);
-                    // Crucial Fix: DO NOT BREAK! Continue looping so one bad photo doesn't trap the entire queue!
-                    if (!navigator.onLine) break; // Only stop if totally disconnected
+                    if (!navigator.onLine) break; 
                     continue; 
                 }
             }
 
-            // Remove successful syncs from the queue (reverse order to avoid shifting issues)
             for (let i = successfulIndexes.length - 1; i >= 0; i--) {
                 offlineDeliveries.splice(successfulIndexes[i], 1);
             }
 
             saveLocalState();
-            renderDelivery(); // Updates sync bar UI
+            renderDelivery(); 
             
             if (syncBtn) syncBtn.innerHTML = 'Sync Now';
             isSyncingDels = false;
@@ -5784,24 +5862,38 @@
             if(!feed) return;
             const filterDate = document.getElementById('del-hist-date-filter').value;
             
-            // Lazy load the collections for this date from the cloud
+            if (filterDate) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+            }
+
+            // Lazy load BOTH collections and deliveries for this date from the cloud
             if (filterDate && navigator.onLine) {
                 try {
-                    const { data: cols } = await sbClient.from('collections')
-                        .select('*')
-                        .eq('salesman_id', userSession ? userSession.user.id : "local_dev")
-                        .gte('created_at', filterDate)
-                        .lte('created_at', filterDate + 'T23:59:59.999Z');
-                    if (cols) MY_COLLECTIONS = cols;
+                    const [colRes, delRes] = await Promise.all([
+                        sbClient.from('collections').select('*')
+                            .eq('salesman_id', userSession ? userSession.user.id : "local_dev")
+                            .gte('created_at', filterDate)
+                            .lte('created_at', filterDate + 'T23:59:59.999Z'),
+                        sbClient.from('erp_deliveries').select('*')
+                            .eq('status', 'Delivered')
+                            .gte('delivered_at', filterDate)
+                            .lte('delivered_at', filterDate + 'T23:59:59.999Z')
+                    ]);
+                    
+                    if (colRes.data) {
+                        const newColIds = new Set(colRes.data.map(d => d.id));
+                        MY_COLLECTIONS = [...(MY_COLLECTIONS || []).filter(o => !newColIds.has(o.id)), ...colRes.data];
+                    }
+                    if (delRes.data) {
+                        const newDelIds = new Set(delRes.data.map(d => d.id));
+                        ERP_DELIVERIES = [...(ERP_DELIVERIES || []).filter(o => !newDelIds.has(o.id)), ...delRes.data];
+                    }
                 } catch(e) {}
             }
 
             // Only show the actual physical ERP deliveries in history
-            let filtered = ERP_DELIVERIES.filter(o => o.status === 'Delivered');
+            let filtered = (ERP_DELIVERIES || []).filter(o => o.status === 'Delivered');
             
-            // Sort by delivery time, newest at the top
-            filtered.sort((a, b) => new Date(b.delivered_at || b.created_at) - new Date(a.delivered_at || a.created_at));
-
             if (filterDate) {
                 filtered = filtered.filter(o => {
                     const d = new Date(o.delivered_at || o.created_at);
@@ -5809,6 +5901,9 @@
                     return localDate === filterDate;
                 });
             }
+
+            // Sort by delivery time, newest at the top
+            filtered.sort((a, b) => new Date(b.delivered_at || b.created_at) - new Date(a.delivered_at || a.created_at));
 
             // Calculate Collections for the filtered date
             let tCash = 0, tUpi = 0, tTotal = 0;
@@ -5876,28 +5971,145 @@
                     : `<div style="text-align: right; flex-shrink: 0;">
                            <span style="font-size: 0.7rem; font-weight: 800; color: var(--accent); background: #FEF2F2; padding: 4px 8px; border-radius: 4px; border: 1px solid #FCA5A5;">UNPAID</span>
                        </div>`;
+                
+                // Ensure quotes are escaped for the onclick event
+                const safeName = custName.replace(/'/g, "\\'");
 
                 return `
-                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px;">
+                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                     
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
                         <div style="flex:1; min-width: 0;">
                             <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
+                            <div style="font-size:0.75rem; color:var(--text-mut); font-weight:700; margin-top:4px;">Total Bill: ₹${fmt(order.amount)}</div>
                             ${checklistHTML}
                         </div>
                         ${paymentBadge}
                     </div>
 
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top: 1px solid var(--border); padding-top: 10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top: 1px dashed var(--border); padding-top: 10px;">
                         <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
-                            <span style="font-size:0.75rem; font-weight:700; color:var(--brand);"><i class="fas fa-receipt" style="margin-right:2px;"></i>${order.id.replace(order.batch_id+'_C', 'STOP ')}</span>
-                            <span style="opacity:0.4; font-size:0.75rem;">•</span>
-                            <span style="font-size:0.75rem; font-weight:700; color:var(--text-mut);"><i class="fas fa-layer-group" style="margin-right:2px;"></i>${order.batch_id}</span>
+                            <span style="font-size:0.7rem; font-weight:700; color:var(--brand);"><i class="fas fa-receipt" style="margin-right:2px;"></i>${order.id.replace(order.batch_id+'_C', 'STOP ')}</span>
                         </div>
-                        <button onclick="showPhotoModal('${order.delivery_photo}')" style="background:var(--brand-light); color:var(--brand); border:1px solid var(--brand); padding:4px 8px; border-radius:4px; font-size:0.75rem; font-weight:700; cursor:pointer; flex-shrink:0;"><i class="fas fa-camera"></i> Proof</button>
+                        <div style="display:flex; gap: 6px;">
+                            <button onclick="openDeliveryPaymentEdit('${order.id}', '${safeName}', ${order.amount}, '${filterDate}')" style="background:var(--brand-light); color:var(--brand); border:1px solid var(--brand); padding:4px 10px; border-radius:4px; font-size:0.7rem; font-weight:800; cursor:pointer;"><i class="fas fa-edit"></i> Edit Pay</button>
+                            <button onclick="showPhotoModal('${order.delivery_photo}')" style="background:#F3F4F6; color:var(--text-mut); border:1px solid var(--border-dark); padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:800; cursor:pointer;"><i class="fas fa-camera"></i> Proof</button>
+                        </div>
                     </div>
                 </div>`;
             }).join('');
+        }
+
+        let currentEditDelDate = null;
+
+        function openDeliveryPaymentEdit(orderId, custName, totalAmt, filterDate) {
+            document.getElementById('del-edit-order-id').value = orderId;
+            document.getElementById('del-edit-pay-cust').innerText = custName;
+            document.getElementById('del-edit-pay-amt').innerText = `Total Bill Amount: ₹${fmt(totalAmt)}`;
+            currentEditDelDate = filterDate;
+
+            // Search for an existing collection on this date for this order to pre-fill the inputs
+            let existingCash = ''; let existingGpay = '';
+            const myCol = MY_COLLECTIONS.find(c => {
+                const d = new Date(c.created_at);
+                const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                const order = ERP_DELIVERIES.find(o => o.id === orderId) || SUBMITTED_ORDERS.find(o => o.id === orderId);
+                const custCode = order ? (order.customer_code || order.customer_name || order.id) : orderId;
+                return (c.customer_code === custCode || c.customer_name === custName) && localDate === filterDate;
+            });
+
+            if (myCol) {
+                existingCash = myCol.amount_cash > 0 ? myCol.amount_cash : '';
+                existingGpay = myCol.amount_gpay > 0 ? myCol.amount_gpay : '';
+            }
+
+            document.getElementById('del-edit-cash').value = existingCash;
+            document.getElementById('del-edit-gpay').value = existingGpay;
+            
+            document.getElementById('del-edit-pay-modal').classList.remove('hidden');
+        }
+
+        async function saveDeliveryPaymentEdit() {
+            const orderId = document.getElementById('del-edit-order-id').value;
+            const cash = parseFloat(document.getElementById('del-edit-cash').value) || 0;
+            const gpay = parseFloat(document.getElementById('del-edit-gpay').value) || 0;
+            const total = cash + gpay;
+
+            const btn = document.getElementById('btn-save-del-pay');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            const order = ERP_DELIVERIES.find(o => o.id === orderId) || SUBMITTED_ORDERS.find(o => o.id === orderId);
+            const custCode = order ? (order.customer_code || order.customer_name) : orderId;
+            const custName = document.getElementById('del-edit-pay-cust').innerText;
+
+            try {
+                if (!navigator.onLine) throw new Error("Offline");
+
+                // 1. Find and DELETE any old collection for this exact order on this exact date
+                const oldCol = MY_COLLECTIONS.find(c => {
+                    const d = new Date(c.created_at);
+                    const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    return (c.customer_code === custCode || c.customer_name === custName) && localDate === currentEditDelDate;
+                });
+
+                if (oldCol) {
+                    await sbClient.from('collections').delete().eq('id', oldCol.id);
+                    const idx1 = MY_COLLECTIONS.findIndex(c => c.id === oldCol.id);
+                    if (idx1 > -1) MY_COLLECTIONS.splice(idx1, 1);
+                    const idx2 = ALL_COLLECTIONS.findIndex(c => c.id === oldCol.id);
+                    if (idx2 > -1) ALL_COLLECTIONS.splice(idx2, 1);
+                }
+
+                // 2. INSERT the new collection (if amount > 0)
+                if (total > 0) {
+                    let nextRecNum = 1;
+                    const { data: latestCol } = await sbClient.from('collections').select('id').order('created_at', { ascending: false }).limit(1);
+                    if (latestCol && latestCol.length > 0) {
+                        nextRecNum = (parseInt(latestCol[0].id.replace(/\D/g, '')) || 0) + 1;
+                    }
+                    const colId = 'REC' + String(nextRecNum).padStart(4, '0') + '_' + Math.floor(Math.random() * 100);
+
+                    // We use the delivery date so it lines up perfectly in history
+                    let finalDate = new Date().toISOString();
+                    if (currentEditDelDate) {
+                        finalDate = new Date(currentEditDelDate + 'T12:00:00Z').toISOString(); 
+                    }
+
+                    const colPayload = {
+                        id: colId,
+                        customer_code: custCode,
+                        customer_name: custName,
+                        salesman_id: userSession ? userSession.user.id : "local_dev",
+                        amount_cash: cash,
+                        amount_gpay: gpay,
+                        total_amount: total,
+                        created_at: finalDate
+                    };
+
+                    await sbClient.from('collections').insert([colPayload]);
+                    MY_COLLECTIONS.unshift(colPayload);
+                    ALL_COLLECTIONS.unshift(colPayload);
+                }
+
+                // 3. Update the Pay Later flag on the actual order
+                const isPayLater = (total === 0);
+                if (order) {
+                    order.pay_later = isPayLater;
+                    const tableName = order.id.startsWith('ERP') || order.id.startsWith('BAT') ? 'erp_deliveries' : 'orders';
+                    await sbClient.from(tableName).update({ pay_later: isPayLater }).eq('id', order.id);
+                }
+
+                showSuccess("Payment updated successfully!");
+                closeModal('del-edit-pay-modal');
+                renderDelHistory(); // Instantly refresh the screen
+
+            } catch (e) {
+                showWarning("Network Error", "Could not update payment. Please ensure you have an active internet connection.");
+            } finally {
+                btn.innerHTML = 'Save Payment';
+                btn.disabled = false;
+            }
         }
 
         /* ========================================== */
@@ -8100,50 +8312,138 @@
         }
 
         /* --- ADMIN REORDER & PURCHASE ORDER LOGIC --- */
-        let poDraft = {}; // Stores { itemCode: { c: cases, p: pieces } }
+        let poDrafts = JSON.parse(localStorage.getItem('b2b_po_drafts')) || {}; // Format: { "VENDOR_NAME": { "ITM_CODE": {c: 1, p: 0} } }
         let reorderSelectedVendor = 'All';
+        let poSelectedVendor = '';
+        
+        async function openAdminReorderApp() {
+            document.getElementById('admin-reorder-app').classList.remove('hidden');
+            switchReorderTab('insights'); // Default tab
+            
+            const feed = document.getElementById('reorder-feed');
+            
+            if (!reorderStatsCache || !liveDemandCache) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br><b>Analyzing Lifetime Data...</b></div>`;
+                
+                try {
+                    const { data: statsData, error: statsErr } = await sbClient.from('item_sales_stats').select('*');
+                    if (statsErr) throw statsErr;
+                    reorderStatsCache = statsData || [];
 
+                    const { data: activeOrders } = await sbClient.from('orders').select('items').in('status', ['Pending', 'Packed']);
+                    let demandMap = {};
+                    if (activeOrders) {
+                        activeOrders.forEach(o => {
+                            for (let key in o.items) {
+                                if (o.items[key].packed === false) continue;
+                                const baseCode = key.split('__')[0];
+                                const item = INVENTORY.find(i => i.code === baseCode);
+                                if (item) {
+                                    const cQty = parseInt(item.caseQty) || 0;
+                                    const tQty = (o.items[key].c * cQty) + o.items[key].p;
+                                    if (!demandMap[baseCode]) demandMap[baseCode] = 0;
+                                    demandMap[baseCode] += tQty;
+                                }
+                            }
+                        });
+                    }
+                    liveDemandCache = demandMap;
+                } catch(e) {
+                    feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--accent);">Failed to load stats.<br>Ensure you ran the SQL query.</div>`;
+                    return;
+                }
+            }
+            renderReorderDash();
+        }
+
+        function switchReorderTab(tab) {
+            document.querySelectorAll('#admin-reorder-app .hr-sub-nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`reo-nav-${tab}`).classList.add('active');
+            
+            document.getElementById('reo-tab-insights').classList.add('hidden');
+            document.getElementById('reo-tab-cart').classList.add('hidden');
+            document.getElementById('reo-tab-hist').classList.add('hidden');
+            
+            document.getElementById(`reo-tab-${tab}`).classList.remove('hidden');
+
+            if (tab === 'insights') renderReorderDash();
+            if (tab === 'cart') { populatePOVendorDropdown(); renderPOCart(); }
+            if (tab === 'hist') renderPOHistory();
+        }
+
+        /* -- VENDOR DROPDOWN LOGIC (INSIGHTS) -- */
         function toggleVendorDropdown(e) {
             if(e) e.stopPropagation();
             const menu = document.getElementById('reorder-vendor-menu');
             if(menu) {
                 menu.classList.toggle('hidden');
-                if(!menu.classList.contains('hidden')) {
-                    document.getElementById('reorder-vendor-search').focus();
-                }
+                if(!menu.classList.contains('hidden')) document.getElementById('reorder-vendor-search').focus();
             }
         }
-
         function filterVendorDropdown() {
             const query = document.getElementById('reorder-vendor-search').value.toLowerCase();
             const opts = document.querySelectorAll('#reorder-vendor-options .custom-option');
-            opts.forEach(opt => {
-                opt.style.display = opt.innerText.toLowerCase().includes(query) ? 'block' : 'none';
-            });
+            opts.forEach(opt => { opt.style.display = opt.innerText.toLowerCase().includes(query) ? 'block' : 'none'; });
         }
-
         function selectReorderVendor(vendorName) {
             reorderSelectedVendor = vendorName;
             document.getElementById('reorder-vendor-selected').innerText = vendorName === 'All' ? 'All Vendors' : vendorName;
             document.getElementById('reorder-vendor-menu').classList.add('hidden');
-            
-            // Reset search input
             document.getElementById('reorder-vendor-search').value = '';
             filterVendorDropdown(); 
-            
             renderReorderDash();
         }
 
-        // Close dropdown when clicking anywhere else on the screen
-        document.addEventListener('click', (e) => {
-            const menu = document.getElementById('reorder-vendor-menu');
-            const wrapper = document.querySelector('#admin-reorder-app .custom-select-wrapper');
-            if (menu && !menu.classList.contains('hidden') && wrapper && !wrapper.contains(e.target)) {
-                menu.classList.add('hidden');
+        /* -- VENDOR DROPDOWN LOGIC (PO CART) -- */
+        function togglePOVendorDropdown(e) {
+            if(e) e.stopPropagation();
+            const menu = document.getElementById('po-vendor-menu');
+            if(menu) {
+                menu.classList.toggle('hidden');
+                if(!menu.classList.contains('hidden')) document.getElementById('po-vendor-search').focus();
             }
+        }
+        function filterPOVendorDropdown() {
+            const query = document.getElementById('po-vendor-search').value.toLowerCase();
+            const opts = document.querySelectorAll('#po-vendor-options .custom-option');
+            opts.forEach(opt => { opt.style.display = opt.innerText.toLowerCase().includes(query) ? 'block' : 'none'; });
+        }
+        function selectPOVendor(vendorName) {
+            poSelectedVendor = vendorName;
+            document.getElementById('po-vendor-selected').innerText = vendorName;
+            document.getElementById('po-vendor-menu').classList.add('hidden');
+            document.getElementById('po-item-search').value = '';
+            renderPOCart();
+        }
+
+        function populatePOVendorDropdown() {
+            const vOptions = document.getElementById('po-vendor-options');
+            if (vOptions && vOptions.children.length === 0) {
+                const vendors = Array.from(new Set(INVENTORY.map(i => i.vendor))).filter(v => v && v !== 'UNASSIGNED').sort();
+                let html = '';
+                vendors.forEach(v => {
+                    const safeV = v.replace(/'/g, "\\'");
+                    html += `<div class="custom-option" onclick="selectPOVendor('${safeV}')">${v}</div>`;
+                });
+                vOptions.innerHTML = html;
+            }
+        }
+
+        // Close dropdowns when clicking globally
+        document.addEventListener('click', (e) => {
+            const rMenu = document.getElementById('reorder-vendor-menu');
+            const rWrap = document.querySelector('#reo-tab-insights .custom-select-wrapper');
+            if (rMenu && !rMenu.classList.contains('hidden') && rWrap && !rWrap.contains(e.target)) rMenu.classList.add('hidden');
+
+            const pMenu = document.getElementById('po-vendor-menu');
+            const pWrap = document.querySelector('#reo-tab-cart .custom-select-wrapper');
+            if (pMenu && !pMenu.classList.contains('hidden') && pWrap && !pWrap.contains(e.target)) pMenu.classList.add('hidden');
         });
 
         function renderReorderDash() {
+            // SAFEGUARD: If data is still downloading from the cloud, wait!
+            if (!reorderStatsCache || !liveDemandCache) return; 
+
             const feed = document.getElementById('reorder-feed');
             const targetDays = parseInt(document.getElementById('reorder-target-days').value) || 30;
             const sortMode = document.getElementById('reorder-sort').value;
@@ -8189,7 +8489,7 @@
                 let orderCases = 0; let orderPcs = Math.ceil(qtyToOrder);
                 if (cQty > 0) { orderCases = Math.floor(orderPcs / cQty); orderPcs = orderPcs % cQty; }
                 
-                reorderItems.push({ item, velocity, effectiveStock, demand, daysLeft, orderCases, orderPcs, totalOrderPcs: Math.ceil(qtyToOrder) });
+                reorderItems.push({ item, velocity, effectiveStock, demand, daysLeft, orderCases, orderPcs });
             });
             
             if (searchQ) reorderItems = reorderItems.filter(r => r.item.name.toLowerCase().includes(searchQ) || r.item.code.toLowerCase().includes(searchQ));
@@ -8218,106 +8518,100 @@
                 else if (r.daysLeft < 8) { statusColor = '#9A3412'; statusBg = '#FFEDD5'; } 
                 
                 const daysStr = r.daysLeft === 0 ? 'Out of Stock!' : `${r.daysLeft.toFixed(1)} Days Left`;
-                let orderStr = '';
-                if (r.orderCases > 0 && r.orderPcs > 0) orderStr = `${r.orderCases} Cs + ${r.orderPcs} Pcs`;
-                else if (r.orderCases > 0) orderStr = `${r.orderCases} Cases`;
-                else orderStr = `${r.orderPcs} Pieces`;
+                const safeV = (r.item.vendor || 'UNASSIGNED').replace(/'/g, "\\'");
 
                 return `
                 <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); overflow: hidden;">
                     <div style="padding: 14px; display:flex; justify-content:space-between; align-items:flex-start;">
                         <div style="flex:1; padding-right:15px; min-width:0;">
                             <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 4px; line-height: 1.3;">${r.item.name}</div>
-                            <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px; font-size:0.75rem;">
+                            <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px; font-size:0.75rem;">
                                 <span style="color:var(--text-mut); font-weight:600;"><i class="fas fa-tachometer-alt"></i> ${r.velocity.toFixed(1)}/day</span>
                                 <span style="background:${statusBg}; color:${statusColor}; padding:2px 6px; border-radius:4px; font-weight:800;">${daysStr}</span>
                             </div>
                             <div style="font-size:0.7rem; color:var(--text-mut);">
                                 Vendor: <b style="color:var(--brand);">${r.item.vendor}</b><br>
-                                ERP Stock: <b style="color:var(--text);">${r.item.stock}</b> | Live Demand: <b style="color:var(--accent);">${r.demand}</b>
+                                Stock: <b style="color:var(--text);">${r.item.stock}</b> | Demand: <b style="color:var(--accent);">${r.demand}</b>
                             </div>
                         </div>
+                        <div style="text-align:right;">
+                            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-mut);">MRP</div>
+                            <div style="font-weight: 800; font-size: 1.1rem; color: var(--accent);">₹${fmt(r.item.mrp)}</div>
+                        </div>
                     </div>
-                    <div style="background: var(--brand-light); border-top: 1px dashed #BFDBFE; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center;">
-                        <div style="font-size:0.75rem; color:var(--brand); font-weight:700;">Suggested Order:</div>
-                        <div style="font-size:0.95rem; color:var(--brand); font-weight:800;">${orderStr}</div>
+                    
+                    <div style="background: var(--brand-light); border-top: 1px dashed #BFDBFE; padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; gap:10px;">
+                        <div style="display:flex; gap:8px; flex:1;">
+                            <div style="flex:1; display:flex; flex-direction:column;">
+                                <span style="font-size:0.65rem; color:var(--brand); font-weight:700;">Cases</span>
+                                <input type="number" id="reo-c-${r.item.code}" value="${r.orderCases}" style="width:100%; border:1px solid #93C5FD; border-radius:4px; padding:4px; font-size:0.8rem; font-weight:700; color:var(--text); outline:none;">
+                            </div>
+                            <div style="flex:1; display:flex; flex-direction:column;">
+                                <span style="font-size:0.65rem; color:var(--brand); font-weight:700;">Pieces</span>
+                                <input type="number" id="reo-p-${r.item.code}" value="${r.orderPcs}" style="width:100%; border:1px solid #93C5FD; border-radius:4px; padding:4px; font-size:0.8rem; font-weight:700; color:var(--text); outline:none;">
+                            </div>
+                        </div>
+                        <button onclick="addFromReorderToPO('${r.item.code}', '${safeV}')" style="background:var(--brand); color:white; border:none; padding:8px 12px; border-radius:6px; font-weight:800; font-size:0.75rem; cursor:pointer; align-self:flex-end; box-shadow:0 2px 4px rgba(10,74,156,0.2);"><i class="fas fa-cart-plus"></i></button>
                     </div>
                 </div>`;
             }).join('');
         }
 
-        /* --- PO SYSTEM --- */
-        let poSelectedVendor = '';
+        function addFromReorderToPO(code, vendorName) {
+            const v = vendorName || 'UNASSIGNED';
+            const cInput = parseInt(document.getElementById(`reo-c-${code}`).value) || 0;
+            const pInput = parseInt(document.getElementById(`reo-p-${code}`).value) || 0;
 
-        function togglePOVendorDropdown(e) {
-            if(e) e.stopPropagation();
-            const menu = document.getElementById('po-vendor-menu');
-            if(menu) {
-                menu.classList.toggle('hidden');
-                if(!menu.classList.contains('hidden')) document.getElementById('po-vendor-search').focus();
+            if (cInput === 0 && pInput === 0) {
+                showWarning("Invalid Quantity", "Please specify Cases or Pieces to add to the PO.");
+                return;
             }
+
+            if (!poDrafts[v]) poDrafts[v] = {};
+            poDrafts[v][code] = { c: cInput, p: pInput };
+            localStorage.setItem('b2b_po_drafts', JSON.stringify(poDrafts));
+            
+            showSuccess(`Added to ${v}'s PO Cart!`);
         }
 
-        function filterPOVendorDropdown() {
-            const query = document.getElementById('po-vendor-search').value.toLowerCase();
-            const opts = document.querySelectorAll('#po-vendor-options .custom-option');
-            opts.forEach(opt => {
-                opt.style.display = opt.innerText.toLowerCase().includes(query) ? 'block' : 'none';
+        function downloadReorderPDF() {
+            if(!window.jspdf) { alert("PDF Engine Loading, please wait."); return; }
+            if(!window.currentReorderViewArray || window.currentReorderViewArray.length === 0) { alert("No items to download!"); return; }
+
+            const doc = new window.jspdf.jsPDF();
+            const targetDays = document.getElementById('reorder-target-days').value;
+            doc.setFontSize(16); doc.text(`Reorder Report (Target: ${targetDays} Days)`, 14, 20);
+            
+            const d = new Date();
+            const dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
+            doc.setFontSize(10); doc.text(`Date Generated: ${dateStr}`, 14, 28);
+
+            const tableBody = window.currentReorderViewArray.map((r, i) => {
+                const daysLeft = r.daysLeft === 0 ? 'Out!' : r.daysLeft.toFixed(1);
+                let orderStr = '';
+                if (r.orderCases > 0 && r.orderPcs > 0) orderStr = `${r.orderCases} Cs + ${r.orderPcs} Pcs`;
+                else if (r.orderCases > 0) orderStr = `${r.orderCases} Cs`;
+                else orderStr = `${r.orderPcs} Pcs`;
+                return [ i + 1, r.item.name, `${r.velocity.toFixed(1)}/day`, daysLeft, r.item.stock, r.demand, orderStr ];
             });
+
+            doc.autoTable({
+                startY: 35, head: [['#', 'Item Name', 'Speed', 'Days Left', 'Stock', 'Demand', 'Order Qty']], body: tableBody,
+                theme: 'striped', headStyles: { fillColor: [220, 38, 38] }, styles: { fontSize: 8 }, columnStyles: { 0: { cellWidth: 10 } }
+            });
+            doc.save(`Reorder_Report_${dateStr.replace(/\//g,'-')}.pdf`);
         }
 
-        function selectPOVendor(vendorName) {
-            poSelectedVendor = vendorName;
-            document.getElementById('po-vendor-selected').innerText = vendorName;
-            document.getElementById('po-vendor-menu').classList.add('hidden');
-            
-            // Clear current PO Draft when switching vendors to avoid accidentally mixing supplier orders
-            poDraft = {};
-            document.getElementById('po-item-search').value = '';
-            
-            renderPOCart();
-        }
-
-        // Close dropdown when clicking elsewhere
-        document.addEventListener('click', (e) => {
-            const menu = document.getElementById('po-vendor-menu');
-            const wrapper = document.querySelector('#admin-po-app .custom-select-wrapper');
-            if (menu && !menu.classList.contains('hidden') && wrapper && !wrapper.contains(e.target)) {
-                menu.classList.add('hidden');
-            }
-        });
-
-        function togglePOView(mode) {
-            const btnNew = document.getElementById('po-btn-new'); const btnHist = document.getElementById('po-btn-hist');
-            if (mode === 'new') {
-                btnNew.style.background = 'var(--brand)'; btnNew.style.color = 'white';
-                btnHist.style.background = 'transparent'; btnHist.style.color = 'var(--text-mut)';
-                document.getElementById('po-new-view').classList.remove('hidden'); document.getElementById('po-hist-view').classList.add('hidden');
-                
-                // Populate Custom Dropdown
-                const vOptions = document.getElementById('po-vendor-options');
-                if (vOptions && vOptions.children.length === 0) {
-                    const vendors = Array.from(new Set(INVENTORY.map(i => i.vendor))).filter(v => v && v !== 'UNASSIGNED').sort();
-                    let html = '';
-                    vendors.forEach(v => {
-                        const safeV = v.replace(/'/g, "\\'");
-                        html += `<div class="custom-option" onclick="selectPOVendor('${safeV}')">${v}</div>`;
-                    });
-                    vOptions.innerHTML = html;
-                }
-                renderPOCart();
-            } else {
-                btnHist.style.background = 'var(--brand)'; btnHist.style.color = 'white';
-                btnNew.style.background = 'transparent'; btnNew.style.color = 'var(--text-mut)';
-                document.getElementById('po-hist-view').classList.remove('hidden'); document.getElementById('po-new-view').classList.add('hidden');
-                renderPOHistory();
-            }
-        }
-
+        /* -- PO CART RENDER & SUBMIT -- */
         function setPOManual(code, type, val) {
+            const vendor = poSelectedVendor;
+            if (!vendor) return;
+            if (!poDrafts[vendor]) poDrafts[vendor] = {};
+            
             const item = INVENTORY.find(i => i.code === code);
-            if(!poDraft[code]) poDraft[code] = {c:0, p:0};
-            let d = poDraft[code];
+            if(!poDrafts[vendor][code]) poDrafts[vendor][code] = {c:0, p:0};
+            
+            let d = poDrafts[vendor][code];
             let parsedVal = parseInt(val) || 0;
             const hasCases = item.caseQty > 0;
 
@@ -8332,7 +8626,9 @@
             } else {
                 if (hasCases) d.c = parsedVal < 0 ? 0 : parsedVal;
             }
-            if (d.c === 0 && d.p === 0) delete poDraft[code];
+            if (d.c === 0 && d.p === 0) delete poDrafts[vendor][code];
+            
+            localStorage.setItem('b2b_po_drafts', JSON.stringify(poDrafts));
             renderPOCart();
         }
 
@@ -8347,9 +8643,10 @@
                 return;
             }
 
-            // Show items currently in draft, PLUS items matching the vendor, PLUS any manual search
+            // Show items currently in this vendor's draft, PLUS items matching the vendor natively, PLUS any manual search
+            const vendorDraft = poDrafts[vendor] || {};
             let itemsToShow = new Set();
-            Object.keys(poDraft).forEach(k => itemsToShow.add(k));
+            Object.keys(vendorDraft).forEach(k => itemsToShow.add(k));
 
             INVENTORY.forEach(i => {
                 if (search && (i.name.toLowerCase().includes(search) || i.code.toLowerCase().includes(search))) itemsToShow.add(i.code);
@@ -8358,9 +8655,9 @@
 
             let finalItems = Array.from(itemsToShow).map(c => INVENTORY.find(i => i.code === c)).filter(Boolean);
             
-            // Sort: Selected items first, then alphabetical
+            // Sort: Items currently in the cart rise to top, then alphabetical
             finalItems.sort((a,b) => {
-                const aIn = !!poDraft[a.code]; const bIn = !!poDraft[b.code];
+                const aIn = !!vendorDraft[a.code]; const bIn = !!vendorDraft[b.code];
                 if (aIn !== bIn) return aIn ? -1 : 1;
                 return a.name.localeCompare(b.name);
             });
@@ -8368,8 +8665,8 @@
             let totalVal = 0;
 
             feed.innerHTML = finalItems.map(item => {
-                const d = poDraft[item.code] || {c:0, p:0};
-                const inCart = !!poDraft[item.code];
+                const d = vendorDraft[item.code] || {c:0, p:0};
+                const inCart = !!vendorDraft[item.code];
                 const cQty = parseInt(item.caseQty) || 0;
                 const totalPcs = (d.c * cQty) + d.p;
                 
@@ -8379,7 +8676,7 @@
                 const isCaseDisabled = (!item.caseQty || item.caseQty <= 0);
                 const bgClass = inCart ? 'background:#F0FDF4; border-color:#BBF7D0;' : 'background:white; border-color:var(--border);';
                 
-                // Add a small tag if the user manually searched for an item outside the vendor's normal catalog
+                // Badge for items injected that normally belong to someone else
                 const outsideTag = (item.vendor !== vendor) ? `<span style="font-size:0.6rem; background:#FEE2E2; color:#991B1B; padding:2px 4px; border-radius:3px; margin-left:6px; font-weight:800;">Outside Item</span>` : '';
 
                 return `
@@ -8418,7 +8715,9 @@
         async function submitPurchaseOrder() {
             const vendor = poSelectedVendor;
             if (!vendor) { showWarning("No Vendor", "Please select a Primary Vendor at the top."); return; }
-            if (Object.keys(poDraft).length === 0) { showWarning("Empty PO", "Add items to generate a PO."); return; }
+            
+            const vendorDraft = poDrafts[vendor] || {};
+            if (Object.keys(vendorDraft).length === 0) { showWarning("Empty PO", "Add items to generate a PO."); return; }
 
             const btn = document.getElementById('btn-submit-po');
             const origHtml = btn.innerHTML;
@@ -8426,16 +8725,16 @@
             btn.disabled = true;
 
             let totalAmt = 0;
-            for(const code in poDraft) {
+            for(const code in vendorDraft) {
                 const item = INVENTORY.find(i => i.code === code);
-                const totalPcs = (poDraft[code].c * (item.caseQty||0)) + poDraft[code].p;
+                const totalPcs = (vendorDraft[code].c * (item.caseQty||0)) + vendorDraft[code].p;
                 totalAmt += totalPcs * item.cost;
             }
 
             const poId = 'PO' + Date.now().toString().slice(-6);
             const payload = {
                 id: poId, vendor_name: vendor, total_amount: totalAmt, status: 'Draft',
-                items: poDraft, created_at: new Date().toISOString(), created_by: currentUserFullName
+                items: vendorDraft, created_at: new Date().toISOString(), created_by: currentUserFullName
             };
 
             try {
@@ -8445,13 +8744,15 @@
                 window.PURCHASE_ORDERS.unshift(payload);
                 downloadPOPDF(payload); // Auto download
                 
-                poDraft = {};
+                delete poDrafts[vendor];
+                localStorage.setItem('b2b_po_drafts', JSON.stringify(poDrafts));
+                
                 poSelectedVendor = '';
                 document.getElementById('po-vendor-selected').innerText = '-- Choose Vendor --';
                 document.getElementById('po-item-search').value = '';
                 
                 showSuccess("Purchase Order created and downloaded!");
-                togglePOView('hist'); // Switch to history tab
+                switchReorderTab('hist'); // Switch to history tab
             } catch(e) {
                 showWarning("Network Error", "Could not save PO to cloud.");
             } finally {
@@ -8983,6 +9284,141 @@
             } catch(e) { alert("Failed to clear."); }
         }
 
+        async function renderAccHR() {
+            const feed = document.getElementById('acc-hr-feed');
+            let targetDate = document.getElementById('acc-hr-date').value;
+            
+            // Set default date if opening tab for the first time
+            if (!targetDate) {
+                const now = new Date();
+                targetDate = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                document.getElementById('acc-hr-date').value = targetDate;
+            }
+
+            const employees = PROFILES.filter(p => p.role !== 'Admin'); 
+            
+            feed.innerHTML = employees.map(emp => {
+                const att = window.ALL_ATTENDANCE.find(a => a.user_id === emp.id && a.date === targetDate && a.status === 'Present');
+                
+                let statusUI = `<span style="background: #FEE2E2; color: #991B1B; padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 800;">ABSENT</span>`;
+                let subText = `Did not check in`;
+
+                if (att) {
+                    const tIn = new Date(att.check_in_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+                    const tOut = att.check_out_time ? new Date(att.check_out_time).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}) : '--';
+                    
+                    statusUI = `<span style="background: #DCFCE7; color: #166534; padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 800;">PRESENT</span>`;
+                    subText = `In: <b style="color:var(--text);">${tIn}</b> | Out: <b style="color:var(--text);">${tOut}</b>`;
+                }
+
+                const safeName = emp.full_name.replace(/'/g, "\\'");
+
+                return `
+                <div style="background: white; padding: 14px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                    <div style="display:flex; align-items:center; gap: 12px; min-width:0; flex:1;">
+                        <div style="width:40px; height:40px; background:var(--brand-light); color:var(--brand); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; flex-shrink:0;">
+                            ${emp.full_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div style="min-width:0; padding-right:10px;">
+                            <div style="font-weight: 800; font-size: 0.95rem; color: var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${emp.full_name}</div>
+                            <div style="font-size: 0.7rem; color: var(--text-mut); margin-top: 4px;">${subText}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; flex-direction:column; align-items:flex-end; gap:6px; flex-shrink:0;">
+                        ${statusUI}
+                        <button onclick="openAttEditModal('${emp.id}', '${safeName}', '${targetDate}')" style="background:var(--brand-light); color:var(--brand); border:1px solid var(--brand); border-radius:4px; padding:2px 10px; font-size:0.65rem; font-weight:800; cursor:pointer;"><i class="fas fa-edit"></i> Edit</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function openAttEditModal(empId, empName, dateStr) {
+            document.getElementById('att-edit-emp-name').innerText = empName;
+            
+            const dObj = new Date(dateStr);
+            document.getElementById('att-edit-date').innerText = dObj.toLocaleDateString('en-GB', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            document.getElementById('att-edit-emp-id').value = empId;
+            
+            const att = window.ALL_ATTENDANCE.find(a => a.user_id === empId && a.date === dateStr && a.status === 'Present');
+            
+            if (att) {
+                const dIn = new Date(att.check_in_time);
+                document.getElementById('att-edit-in').value = dIn.toTimeString().substring(0,5); // HH:MM
+                
+                if (att.check_out_time) {
+                    const dOut = new Date(att.check_out_time);
+                    document.getElementById('att-edit-out').value = dOut.toTimeString().substring(0,5);
+                } else {
+                    document.getElementById('att-edit-out').value = '';
+                }
+            } else {
+                document.getElementById('att-edit-in').value = '09:00';
+                document.getElementById('att-edit-out').value = '';
+            }
+            
+            document.getElementById('att-edit-modal').classList.remove('hidden');
+        }
+
+        async function saveAttEdit() {
+            const empId = document.getElementById('att-edit-emp-id').value;
+            const dateStr = document.getElementById('acc-hr-date').value;
+            const timeIn = document.getElementById('att-edit-in').value;
+            const timeOut = document.getElementById('att-edit-out').value;
+            
+            if (!timeIn) { showWarning("Invalid", "Check-in time is required to mark Present."); return; }
+
+            const btn = document.getElementById('btn-save-att');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            const checkInIso = new Date(`${dateStr}T${timeIn}:00`).toISOString();
+            const checkOutIso = timeOut ? new Date(`${dateStr}T${timeOut}:00`).toISOString() : null;
+
+            const payload = {
+                id: `ATT_${empId}_${dateStr}`,
+                user_id: empId,
+                date: dateStr,
+                status: 'Present',
+                check_in_time: checkInIso,
+                check_out_time: checkOutIso,
+                lat: window.SHOP_LOCATION?.lat || 0,
+                lng: window.SHOP_LOCATION?.lng || 0
+            };
+
+            try {
+                const { error } = await sbClient.from('attendance').upsert([payload]);
+                if (error) throw error;
+
+                const idx = window.ALL_ATTENDANCE.findIndex(a => a.id === payload.id);
+                if (idx > -1) window.ALL_ATTENDANCE[idx] = payload;
+                else window.ALL_ATTENDANCE.push(payload);
+
+                closeModal('att-edit-modal');
+                renderAccHR();
+                showSuccess("Attendance saved successfully.");
+            } catch(e) {
+                showWarning("Network Error", "Could not save attendance data.");
+            } finally {
+                btn.innerHTML = 'Save Data'; btn.disabled = false;
+            }
+        }
+
+        async function markAttAbsent() {
+            const empId = document.getElementById('att-edit-emp-id').value;
+            const dateStr = document.getElementById('acc-hr-date').value;
+            const id = `ATT_${empId}_${dateStr}`;
+            
+            try {
+                await sbClient.from('attendance').delete().eq('id', id);
+                window.ALL_ATTENDANCE = window.ALL_ATTENDANCE.filter(a => a.id !== id);
+                closeModal('att-edit-modal');
+                renderAccHR();
+                showSuccess("Employee marked as Absent.");
+            } catch(e) {
+                showWarning("Network Error", "Could not remove attendance record.");
+            }
+        }
+
         // --- HOOK TABS ---
         const originalSwitchTab = switchTab;
         switchTab = function(tabId) {
@@ -8990,6 +9426,7 @@
             if (tabId === 'acc-manage' && currentUserRole === 'Accountant') renderAccManage();
             if (tabId === 'acc-entry' && currentUserRole === 'Accountant') renderAccEntry();
             if (tabId === 'acc-pending' && currentUserRole === 'Accountant') renderAccPending();
+            if (tabId === 'acc-hr' && currentUserRole === 'Accountant') renderAccHR();
         };
         /* ========================================== */
         /* HR & ATTENDANCE LOGIC                      */
@@ -9340,6 +9777,78 @@
             } finally {
                 btn.innerHTML = 'Save Customer';
                 btn.disabled = false;
+            }
+        }
+
+        async function shareCreditReport() {
+            if(!window.jspdf) { alert("PDF Engine Loading, please wait."); return; }
+            if(!window.currentAdminCreditView || window.currentAdminCreditView.length === 0) {
+                alert("No data to share!"); return;
+            }
+
+            const doc = new window.jspdf.jsPDF();
+            
+            // Header
+            let sgFilter = adminCreditSubFilter === 'All' ? 'All Salesmen' : adminCreditSubFilter;
+            let rtFilter = adminCreditRouteFilter === 'All' ? 'All Routes' : adminCreditRouteFilter;
+            
+            doc.setFontSize(16);
+            doc.text(`Credit Pending Report`, 14, 20);
+            
+            doc.setFontSize(10);
+            const d = new Date();
+            const dateStr = `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth()+1).padStart(2, '0')}/${d.getFullYear()}`;
+            
+            doc.text(`Date: ${dateStr}`, 14, 28);
+            doc.text(`Group: ${sgFilter} | Route: ${rtFilter}`, 14, 34);
+
+            let grandTotal = 0;
+            const tableBody = window.currentAdminCreditView.map((c, i) => {
+                const cNameClean = (c.name || '').trim().toUpperCase();
+                const cData = CUSTOMER_CREDIT_MAP[cNameClean];
+                
+                const bills = cData ? cData.pendingCount : 0;
+                const days = cData ? cData.creditDays : 0;
+                grandTotal += (c.bal || 0);
+
+                return [
+                    i + 1,
+                    c.name.substring(0, 30), // Truncate so it fits on PDF
+                    c.route || '-',
+                    bills,
+                    days,
+                    `Rs ${fmt(c.bal)}`
+                ];
+            });
+
+            tableBody.push([{ content: 'GRAND TOTAL', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } }, `Rs ${fmt(grandTotal)}`]);
+
+            doc.autoTable({
+                startY: 42,
+                head: [['#', 'Customer', 'Route', 'Bills Pending', 'Days Old', 'Balance']],
+                body: tableBody,
+                theme: 'striped',
+                headStyles: { fillColor: [220, 38, 38] }, // Red header
+                styles: { fontSize: 8 }
+            });
+
+            // GENERATE BLOB FOR NATIVE SHARING
+            const pdfBlob = doc.output('blob');
+            const file = new File([pdfBlob], `Credit_Report_${dateStr.replace(/\//g,'-')}.pdf`, { type: 'application/pdf' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        title: 'Credit Report',
+                        text: `Here is the Credit Report for ${sgFilter}. Total Pending: Rs ${fmt(grandTotal)}`,
+                        files: [file]
+                    });
+                } catch (err) {
+                    console.log('Share canceled or failed', err);
+                }
+            } else {
+                // Fallback for desktop browsers: just download it normally
+                doc.save(`Credit_Report_${dateStr.replace(/\//g,'-')}.pdf`);
             }
         }
 
