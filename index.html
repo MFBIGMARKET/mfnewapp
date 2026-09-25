@@ -5450,7 +5450,7 @@
                     }
                     
                     return `
-                    <div style="background: white; border-radius: 6px; border: 1px solid ${order.is_next_stop ? '#FDE047' : 'var(--border)'}; margin-bottom: 10px; padding: 14px; cursor:${isDriver ? 'default' : 'pointer'}; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);" ${isDriver ? '' : `onclick="openDeliveryStop('${order.id}')"`}>
+                    <div style="background: white; border-radius: 6px; border: 1px solid ${order.is_next_stop ? '#FDE047' : 'var(--border)'}; margin-bottom: 10px; padding: 14px; cursor:${isDriver ? 'default' : 'pointer'}; display:flex; justify-content:space-between; align-items:center; box-shadow:0 1px 3px rgba(0,0,0,0.05);" ${isDriver ? '' : `onclick="handleDeliveryClick('${order.id}')"`}>
                         <div style="flex:1; padding-right: 10px;">
                             ${nextStopBadge}
                             <div style="font-weight: 800; font-size: 1rem; color:var(--text); margin-bottom: 4px;">${custName}</div>
@@ -5467,6 +5467,63 @@
                     </div>`;
                 }
             }).join('');
+        }
+
+        async function handleDeliveryClick(orderId) {
+            const order = ERP_DELIVERIES.find(o => o.id === orderId) || SUBMITTED_ORDERS.find(o => o.id === orderId);
+            if (!order) return;
+
+            const sName = (order.customer_name || '').trim().toUpperCase();
+            const sCode = (order.customer_code || '').trim().toUpperCase();
+            
+            const cust = CUSTOMERS.find(c => {
+                const cName = (c.name || '').trim().toUpperCase();
+                const cCode = (c.code || '').trim().toUpperCase();
+                return cName === sName || cCode === sName || (sCode && cCode === sCode);
+            });
+
+            // If location already exists, go straight to the checklist!
+            if (cust && cust.lat && cust.lng) {
+                openDeliveryStop(orderId);
+                return;
+            } 
+
+            // If missing, force GPS capture
+            const isConfirmed = await showConfirm("Capture Location", `Location for <b>${cust ? cust.name : sName}</b> is missing in the database.<br><br>Please stand at the shop and click <b>Capture GPS</b> to permanently save their coordinates.`, "Capture GPS");
+            if (!isConfirmed) return;
+
+            if (!navigator.geolocation) {
+                showWarning("Error", "Geolocation is not supported by your browser.");
+                return;
+            }
+
+            // Visual feedback that it's working
+            document.getElementById('main-app').style.opacity = '0.5';
+            
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const lat = pos.coords.latitude;
+                const lng = pos.coords.longitude;
+                
+                if (cust && cust.code) {
+                    try {
+                        // 1. Save to Cloud
+                        await sbClient.from('customers').update({ lat, lng }).eq('code', cust.code);
+                        // 2. Update local memory so we don't ask again
+                        cust.lat = lat;
+                        cust.lng = lng;
+                    } catch(e) {
+                        console.warn("Could not save location to cloud.");
+                    }
+                }
+                
+                // Restore UI and proceed to the checklist
+                document.getElementById('main-app').style.opacity = '1';
+                openDeliveryStop(orderId);
+
+            }, (error) => {
+                document.getElementById('main-app').style.opacity = '1';
+                showWarning("GPS Error", "Could not capture location. Please ensure location services are enabled on your device.");
+            }, { enableHighAccuracy: true });
         }
 
         let currentDeliveryStopId = null;
