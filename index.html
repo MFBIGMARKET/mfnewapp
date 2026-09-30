@@ -706,18 +706,15 @@
         <!-- MANAGER STOCK VIEW                         -->
         <!-- ========================================== -->
         <div id="view-manager-stock" class="tab-content hidden manager-view">
-            <div class="ov-head" style="background:var(--brand); color:white; padding:16px; font-weight:800; font-size:1.1rem; flex-shrink:0;">
-                Inventory Stock
-            </div>
-            <div style="background: #F9FAFB; padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; display: flex; flex-direction: column; gap: 10px;">
-                <div style="display:flex; justify-content:space-between; align-items:center; gap: 10px;">
-                    <select id="mgr-stock-vendor" onchange="renderManagerStock()" style="flex: 1; padding: 6px 8px; border: 1px solid var(--border-dark); border-radius: 4px; outline: none; font-size: 0.8rem; font-weight: 700; color: var(--text); background: white;">
+            <div style="background: white; padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; display: flex; flex-direction: column; gap: 10px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; gap: 8px;">
+                    <select id="mgr-stock-vendor" onchange="renderManagerStock()" style="flex: 1; min-width: 0; padding: 8px; border: 1px solid var(--border-dark); border-radius: 4px; outline: none; font-size: 0.85rem; font-weight: 700; color: var(--text); background: #F9FAFB;">
                         <option value="All">All Vendors</option>
                     </select>
-                    <select id="mgr-stock-sort" onchange="renderManagerStock()" style="width: 130px; padding: 6px 8px; border: 1px solid var(--brand); border-radius: 4px; outline: none; font-size: 0.8rem; font-weight: 700; color: var(--brand); background: var(--brand-light);">
-                        <option value="alpha">A-Z Name</option>
-                        <option value="low">Lowest Stock</option>
-                        <option value="high">Highest Stock</option>
+                    <select id="mgr-stock-sort" onchange="renderManagerStock()" style="flex: 0 0 110px; padding: 8px; border: 1px solid var(--brand); border-radius: 4px; outline: none; font-size: 0.8rem; font-weight: 700; color: var(--brand); background: var(--brand-light);">
+                        <option value="alpha">A-Z</option>
+                        <option value="low">Low Stock</option>
+                        <option value="high">High Stock</option>
                     </select>
                 </div>
             </div>
@@ -820,9 +817,39 @@
                     <div style="font-size: 2.5rem; color: #F59E0B; margin-bottom: 10px;"><i class="fas fa-percent"></i></div>
                     <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Offers</div>
                 </div>
-                <div style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); opacity: 0.5; pointer-events: none;">
+                <div onclick="openAdminDashboardApp('accounts')" style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;">
                     <div style="font-size: 2.5rem; color: #6366F1; margin-bottom: 10px;"><i class="fas fa-calculator"></i></div>
                     <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Accounts</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ADMIN: ACCOUNTS OVERLAY -->
+        <div id="admin-accounts-app" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="closeAdminDashboardApp('accounts')" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center"><div class="ov-title">Accounts Dashboard</div></div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            <div class="scroll-area" style="padding: 16px;">
+                <div style="display:flex; gap:10px; margin-bottom:16px;">
+                    <div style="flex:1; background:var(--brand); padding:16px; border-radius:8px; text-align:center; color:white; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                        <div style="font-size:0.75rem; font-weight:700; color:var(--brand-light); text-transform:uppercase; margin-bottom:4px;">Total Bank Balance</div>
+                        <div id="admin-acc-total-bal" style="font-size:1.4rem; font-weight:800;">₹0</div>
+                    </div>
+                    <div style="flex:1; background:#FEF2F2; border:1px solid #FCA5A5; padding:16px; border-radius:8px; text-align:center; color:#991B1B; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                        <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; margin-bottom:4px;">Pending to Clear (Up to Today)</div>
+                        <div id="admin-acc-pending-clear" style="font-size:1.4rem; font-weight:800;">₹0</div>
+                    </div>
+                </div>
+
+                <div style="font-size:0.85rem; font-weight:800; color:var(--text-mut); margin-bottom:10px; text-transform:uppercase;">Bank Accounts</div>
+                <div id="admin-acc-bank-list" style="margin-bottom: 24px;"></div>
+
+                <div style="font-size:0.85rem; font-weight:800; color:var(--text-mut); margin-bottom:10px; text-transform:uppercase;">Day Book Viewer</div>
+                <div style="background:white; padding:16px; border-radius:8px; border:1px solid var(--border); display:flex; gap:10px; align-items:center; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
+                    <input type="date" id="admin-daybook-date" style="flex:1; border:1px solid var(--border); border-radius:4px; padding:10px; outline:none; font-weight:700;">
+                    <button onclick="downloadAdminDaybook()" id="btn-admin-daybook" style="background:#10B981; color:white; border:none; padding:10px 16px; border-radius:4px; font-weight:800; cursor:pointer;"><i class="fas fa-file-pdf"></i> View</button>
                 </div>
             </div>
         </div>
@@ -1357,7 +1384,8 @@
             <div class="pack-top-bar" style="justify-content: space-between; background: white; border-bottom: 1px solid var(--border); flex-shrink: 0; padding: 16px;">
                 <span style="font-size: 0.95rem; font-weight: 800; color: var(--text);">Transaction Entry</span>
             </div>
-            <div class="scroll-area" style="padding: 16px;">
+            <div class="scroll-area" style="padding: 16px; display: flex; flex-direction: column; gap: 20px;">
+                
                 <div style="background:white; padding:16px; border-radius:8px; border:1px solid var(--border); box-shadow:0 2px 4px rgba(0,0,0,0.05);">
                     <span class="step-lbl" style="display:block; margin-bottom:6px;">Bank Account</span>
                     <select id="acc-txn-bank" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:700; margin-bottom:12px; outline:none; background:#F9FAFB;"></select>
@@ -1366,23 +1394,39 @@
                     <select id="acc-txn-type" onchange="toggleAccVendorDropdown()" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:700; margin-bottom:12px; outline:none; background:#F9FAFB;">
                         <option value="OUT">Cheque Issued (Pending Clearance)</option>
                         <option value="IN">Cash Injected (Instant Clear)</option>
+                        <option value="OTHER_IN">Other Income (Instant Clear)</option>
+                        <option value="OTHER_OUT">Other Expense (Instant Clear)</option>
                     </select>
 
                     <div id="acc-vendor-wrap">
-                        <span class="step-lbl" style="display:block; margin-bottom:6px;">Select Vendor</span>
+                        <span class="step-lbl" style="display:block; margin-bottom:6px;">Select Vendor / Payee</span>
                         <select id="acc-txn-vendor" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:700; margin-bottom:12px; outline:none; background:#F9FAFB;"></select>
                     </div>
 
-                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Issue Date</span>
+                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Date</span>
                     <input type="date" id="acc-txn-date" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:700; margin-bottom:12px; outline:none;">
 
                     <span class="step-lbl" style="display:block; margin-bottom:6px;">Amount (₹)</span>
                     <input type="number" id="acc-txn-amount" placeholder="0.00" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:12px; font-weight:800; margin-bottom:12px; outline:none; font-size:1.2rem; color:var(--brand);">
 
-                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Particulars / Cheque No.</span>
+                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Particulars / Note</span>
                     <input type="text" id="acc-txn-note" placeholder="Details" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:600; margin-bottom:16px; outline:none;">
 
                     <button onclick="saveAccountantTxn()" id="btn-acc-save" style="width:100%; background:var(--brand); color:white; border:none; padding:14px; border-radius:6px; font-weight:800; font-size:1.05rem; cursor:pointer;">Save Transaction</button>
+                </div>
+
+                <div style="background:white; padding:16px; border-radius:8px; border:1px solid var(--border); box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="font-weight:800; font-size:0.95rem; color:var(--text); margin-bottom:4px;">Upload Day Book (PDF)</div>
+                    <div style="font-size:0.75rem; color:var(--text-mut); margin-bottom:12px;">Select date and upload the daily statement.</div>
+                    
+                    <div style="display:flex; gap:10px; margin-bottom:12px;">
+                        <input type="date" id="acc-daybook-date" style="flex:1; border:1px solid var(--border); border-radius:4px; padding:10px; outline:none; font-weight:700;">
+                        <button onclick="document.getElementById('acc-daybook-file').click()" style="background:#F3F4F6; border:1px solid var(--border-dark); padding:10px; border-radius:4px; font-weight:700; color:var(--text); cursor:pointer;"><i class="fas fa-paperclip"></i> Select PDF</button>
+                        <input type="file" id="acc-daybook-file" accept="application/pdf" class="hidden" onchange="document.getElementById('acc-daybook-name').innerText = this.files[0] ? this.files[0].name : 'No file selected';">
+                    </div>
+                    <div id="acc-daybook-name" style="font-size:0.75rem; color:var(--brand); font-weight:700; margin-bottom:12px; text-align:center;">No file selected</div>
+                    
+                    <button onclick="uploadDaybook()" id="btn-acc-daybook" style="width:100%; background:#10B981; color:white; border:none; padding:12px; border-radius:6px; font-weight:800; cursor:pointer;"><i class="fas fa-upload"></i> Upload Day Book</button>
                 </div>
             </div>
         </div>
@@ -2234,6 +2278,9 @@
                 document.getElementById('admin-offers-search').value = '';
                 renderAdminOffersList();
                 document.getElementById('admin-offers-app').classList.remove('hidden');
+                } else if (app === 'accounts') {
+                renderAdminAccountsDash();
+                document.getElementById('admin-accounts-app').classList.remove('hidden');
                 
             } else if (app === 'hr') {
                 const now = new Date();
@@ -2257,7 +2304,7 @@
             else if (app === 'reorder') document.getElementById('admin-reorder-app').classList.add('hidden');
             else if (app === 'hr') document.getElementById('admin-hr-app').classList.add('hidden');
             else if (app === 'offers') document.getElementById('admin-offers-app').classList.add('hidden');
-            
+            else if (app === 'accounts') document.getElementById('admin-accounts-app').classList.add('hidden');
         }
 
         /* --- ADMIN DELIVERY DASHBOARD --- */
@@ -8619,8 +8666,8 @@
                             </div>
                         </div>
                         <div style="text-align:right;">
-                            <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-mut);">MRP</div>
-                            <div style="font-weight: 800; font-size: 1.1rem; color: var(--accent);">₹${fmt(r.item.mrp)}</div>
+                            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-mut);">MRP <b style="color:var(--accent); font-size: 0.9rem;">₹${fmt(r.item.mrp)}</b></div>
+                            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-mut); margin-top: 4px;">Cost <b style="color:var(--text); font-size: 0.9rem;">₹${fmt(r.item.cost)}</b></div>
                         </div>
                     </div>
                     
@@ -8811,14 +8858,32 @@
             let totalAmt = 0;
             for(const code in vendorDraft) {
                 const item = INVENTORY.find(i => i.code === code);
-                const totalPcs = (vendorDraft[code].c * (item.caseQty||0)) + vendorDraft[code].p;
-                totalAmt += totalPcs * item.cost;
+                if (item) {
+                    const totalPcs = (vendorDraft[code].c * (item.caseQty||0)) + vendorDraft[code].p;
+                    totalAmt += totalPcs * item.cost;
+                }
             }
 
-            const poId = 'PO' + Date.now().toString().slice(-6);
+            // Generate a guaranteed safe, clean ID
+            let nextPoNum = 1;
+            try {
+                const { data } = await sbClient.from('purchase_orders').select('id').order('created_at', { ascending: false }).limit(10);
+                if (data && data.length > 0) {
+                    const maxId = Math.max(...data.map(o => parseInt(o.id.replace(/\D/g, '')) || 0));
+                    nextPoNum = maxId + 1;
+                }
+            } catch(e) {}
+            
+            const poId = 'PO' + String(nextPoNum).padStart(4, '0') + '_' + Math.floor(Math.random() * 90 + 10);
+
             const payload = {
-                id: poId, vendor_name: vendor, total_amount: totalAmt, status: 'Draft',
-                items: vendorDraft, created_at: new Date().toISOString(), created_by: currentUserFullName
+                id: poId, 
+                vendor_name: vendor, 
+                total_amount: totalAmt, 
+                status: 'Draft',
+                items: vendorDraft, 
+                created_at: new Date().toISOString(), 
+                created_by: currentUserFullName || 'Admin'
             };
 
             try {
@@ -8835,10 +8900,11 @@
                 document.getElementById('po-vendor-selected').innerText = '-- Choose Vendor --';
                 document.getElementById('po-item-search').value = '';
                 
-                showSuccess("Purchase Order created and downloaded!");
+                showSuccess(`PO ${poId.split('_')[0]} created successfully!`);
                 switchReorderTab('hist'); // Switch to history tab
             } catch(e) {
-                showWarning("Network Error", "Could not save PO to cloud.");
+                // If it fails, alert the EXACT database error so we know why it's blocking us
+                alert(`❌ PO SAVE FAILED:\n\n${e.message}\n\nPlease check your Supabase RLS Policies for the purchase_orders table.`);
             } finally {
                 btn.innerHTML = origHtml;
                 btn.disabled = false;
@@ -9151,13 +9217,14 @@
 
         function toggleAccVendorDropdown() {
             const type = document.getElementById('acc-txn-type').value;
-            document.getElementById('acc-vendor-wrap').style.display = type === 'OUT' ? 'block' : 'none';
+            // Show vendor dropdown for OUT (Cheque) and OTHER_OUT (Expense)
+            document.getElementById('acc-vendor-wrap').style.display = (type === 'OUT' || type === 'OTHER_OUT') ? 'block' : 'none';
         }
 
         async function saveAccountantTxn() {
             const bankId = document.getElementById('acc-txn-bank').value;
             const type = document.getElementById('acc-txn-type').value;
-            const vendor = type === 'OUT' ? document.getElementById('acc-txn-vendor').value : null;
+            const vendor = (type === 'OUT' || type === 'OTHER_OUT') ? document.getElementById('acc-txn-vendor').value : null;
             const date = document.getElementById('acc-txn-date').value;
             const amt = parseFloat(document.getElementById('acc-txn-amount').value);
             const note = document.getElementById('acc-txn-note').value;
@@ -9167,7 +9234,7 @@
             const btn = document.getElementById('btn-acc-save');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
             
-            // Cheques are pending until cleared. Cash is instant.
+            // Cheques are pending. Everything else (Injections, Other Income, Other Expenses) are instant.
             const status = type === 'OUT' ? 'Pending' : 'Cleared';
 
             const payload = {
@@ -9182,6 +9249,122 @@
                 document.getElementById('acc-txn-amount').value = ''; document.getElementById('acc-txn-note').value = '';
             } catch(e) { showWarning("Failed", e.message); } 
             finally { btn.innerHTML = 'Save Transaction'; }
+        }
+
+        async function uploadDaybook() {
+            const dateStr = document.getElementById('acc-daybook-date').value;
+            const fileInput = document.getElementById('acc-daybook-file');
+            if (!dateStr || !fileInput.files[0]) { showWarning("Invalid", "Select a date and a PDF file."); return; }
+
+            const btn = document.getElementById('btn-acc-daybook');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading...';
+            btn.disabled = true;
+
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = async function(e) {
+                const base64Data = e.target.result;
+                const payload = { date: dateStr, pdf_data: base64Data, uploaded_at: new Date().toISOString(), uploaded_by: currentUserFullName };
+                
+                try {
+                    const { error } = await sbClient.from('daybooks').upsert([payload]);
+                    if (error) throw error;
+                    showSuccess(`Day Book for ${dateStr} uploaded!`);
+                    fileInput.value = ''; document.getElementById('acc-daybook-name').innerText = 'No file selected';
+                } catch(err) {
+                    showWarning("Upload Failed", "Could not upload to cloud. File might be too large.");
+                } finally {
+                    btn.innerHTML = '<i class="fas fa-upload"></i> Upload Day Book'; btn.disabled = false;
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        /* --- ADMIN ACCOUNTS DASHBOARD LOGIC --- */
+        async function renderAdminAccountsDash() {
+            const list = document.getElementById('admin-acc-bank-list');
+            const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            document.getElementById('admin-daybook-date').value = todayStr;
+
+            list.innerHTML = `<div style="text-align:center; padding: 20px;"><i class="fas fa-spinner fa-spin fa-2x" style="color:var(--brand);"></i></div>`;
+
+            // Lazy Load Banks & Txns if Admin just opened the app
+            if (!window.BANKS || window.BANKS.length === 0) {
+                const [bRes, tRes] = await Promise.all([
+                    sbClient.from('banks').select('*'),
+                    sbClient.from('bank_transactions').select('*')
+                ]);
+                window.BANKS = bRes.data || [];
+                window.BANK_TXNS = tRes.data || [];
+            }
+
+            let grandTotalBal = 0;
+            let grandTotalPending = 0;
+
+            if (window.BANKS.length === 0) {
+                list.innerHTML = `<div style="text-align:center; padding: 20px; color: var(--text-mut);">No banks configured yet.</div>`;
+                return;
+            }
+
+            list.innerHTML = window.BANKS.map(b => {
+                let currBal = b.opening_balance || 0;
+                
+                window.BANK_TXNS.forEach(t => {
+                    if (t.bank_id === b.id) {
+                        if (t.status === 'Cleared') {
+                            if (t.type === 'IN' || t.type === 'OTHER_IN') currBal += t.amount;
+                            if (t.type === 'OUT' || t.type === 'OTHER_OUT') currBal -= t.amount;
+                        } else if (t.status === 'Pending' && t.trans_date <= todayStr) {
+                            // Calculate pending checks strictly up to today's date
+                            grandTotalPending += t.amount;
+                        }
+                    }
+                });
+
+                grandTotalBal += currBal;
+
+                return `
+                <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                    <div style="font-weight: 800; font-size: 1rem; color:var(--text);">${b.name}</div>
+                    <div style="font-weight: 800; font-size: 1.2rem; color:var(--brand);">₹${fmt(currBal)}</div>
+                </div>`;
+            }).join('');
+
+            document.getElementById('admin-acc-total-bal').innerText = `₹${fmt(grandTotalBal)}`;
+            document.getElementById('admin-acc-pending-clear').innerText = `₹${fmt(grandTotalPending)}`;
+        }
+
+        async function downloadAdminDaybook() {
+            const dateStr = document.getElementById('admin-daybook-date').value;
+            if (!dateStr) return;
+
+            const btn = document.getElementById('btn-admin-daybook');
+            const origHtml = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            try {
+                const { data, error } = await sbClient.from('daybooks').select('pdf_data').eq('date', dateStr).single();
+                if (error || !data) throw new Error("No Day Book found for this date.");
+
+                // Convert base64 back to Blob and Download
+                const byteCharacters = atob(data.pdf_data.split(',')[1]);
+                const byteNumbers = new Array(byteCharacters.length);
+                for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+                const byteArray = new Uint8Array(byteNumbers);
+                const blob = new Blob([byteArray], {type: 'application/pdf'});
+
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = `DayBook_${dateStr}.pdf`;
+                link.click();
+            } catch(e) {
+                showWarning("Not Found", e.message);
+            } finally {
+                btn.innerHTML = origHtml;
+                btn.disabled = false;
+            }
         }
 
         function initAccCalendar() { renderAccCalendar(currAccMonth, currAccYear); }
