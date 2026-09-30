@@ -520,6 +520,17 @@
         </div>
     </div>
 
+    <!-- PDF VIEWER MODAL -->
+    <div id="pdf-viewer-modal" class="modal-overlay hidden" style="z-index: 5000; background: rgba(0,0,0,0.9); padding: 0;">
+        <div style="width: 100%; height: 100%; display: flex; flex-direction: column;">
+            <div style="text-align: right; padding: 10px 16px; flex-shrink: 0; background: #111827; display: flex; justify-content: space-between; align-items: center;">
+                <span style="color: white; font-weight: 700; font-size: 0.9rem;" id="pdf-viewer-title">Document Viewer</span>
+                <i class="fas fa-times" onclick="closeModal('pdf-viewer-modal')" style="color: white; font-size: 1.8rem; cursor: pointer;"></i>
+            </div>
+            <iframe id="pdf-viewer-frame" style="flex: 1; width: 100%; border: none; background: white;"></iframe>
+        </div>
+    </div>
+
     <!-- CONFIRM MODAL -->
     <div id="confirm-modal" class="modal-overlay hidden" style="z-index: 4000;">
         <div class="modal-content" style="max-width: 320px; text-align: center; padding: 24px 20px;">
@@ -831,27 +842,100 @@
                 <div class="ov-center"><div class="ov-title">Accounts Dashboard</div></div>
                 <i class="fas fa-check" style="color: transparent;"></i>
             </div>
-            <div class="scroll-area" style="padding: 16px;">
-                <div style="display:flex; gap:10px; margin-bottom:16px;">
-                    <div style="flex:1; background:var(--brand); padding:16px; border-radius:8px; text-align:center; color:white; box-shadow:0 2px 4px rgba(0,0,0,0.1);">
-                        <div style="font-size:0.75rem; font-weight:700; color:var(--brand-light); text-transform:uppercase; margin-bottom:4px;">Total Bank Balance</div>
-                        <div id="admin-acc-total-bal" style="font-size:1.4rem; font-weight:800;">₹0</div>
+            
+            <!-- Bottom Sub-Nav -->
+            <div class="hr-sub-nav">
+                <div class="hr-sub-nav-item active" id="aa-nav-bank" onclick="switchAdminAccTab('bank')"><i class="fas fa-university"></i>Banks</div>
+                <div class="hr-sub-nav-item" id="aa-nav-issued" onclick="switchAdminAccTab('issued')"><i class="fas fa-money-check"></i>Issued</div>
+                <div class="hr-sub-nav-item" id="aa-nav-daybook" onclick="switchAdminAccTab('daybook')"><i class="fas fa-book"></i>Daybook</div>
+            </div>
+
+            <!-- TAB 1: BANK -->
+            <div id="aa-tab-bank" class="scroll-area" style="padding: 16px; padding-bottom: 60px;">
+                <div onclick="openAdminPendingCheques()" style="background:#FEF2F2; border:1px solid #FCA5A5; padding:16px; border-radius:8px; display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; box-shadow:0 2px 4px rgba(0,0,0,0.05); cursor:pointer;">
+                    <div>
+                        <div style="font-size:0.8rem; font-weight:800; color:#991B1B; text-transform:uppercase; margin-bottom:4px;">Pending Cheques</div>
+                        <div style="font-size:0.7rem; color:#B45309; font-weight:600;">Needs Clearance</div>
                     </div>
-                    <div style="flex:1; background:#FEF2F2; border:1px solid #FCA5A5; padding:16px; border-radius:8px; text-align:center; color:#991B1B; box-shadow:0 2px 4px rgba(0,0,0,0.05);">
-                        <div style="font-size:0.7rem; font-weight:700; text-transform:uppercase; margin-bottom:4px;">Pending to Clear (Up to Today)</div>
-                        <div id="admin-acc-pending-clear" style="font-size:1.4rem; font-weight:800;">₹0</div>
+                    <div style="text-align:right;">
+                        <div id="admin-acc-pending-clear" style="font-size:1.4rem; font-weight:800; color:#991B1B;">₹0</div>
                     </div>
                 </div>
-
                 <div style="font-size:0.85rem; font-weight:800; color:var(--text-mut); margin-bottom:10px; text-transform:uppercase;">Bank Accounts</div>
-                <div id="admin-acc-bank-list" style="margin-bottom: 24px;"></div>
+                <div id="admin-acc-bank-list"></div>
+            </div>
 
-                <div style="font-size:0.85rem; font-weight:800; color:var(--text-mut); margin-bottom:10px; text-transform:uppercase;">Day Book Viewer</div>
-                <div style="background:white; padding:16px; border-radius:8px; border:1px solid var(--border); display:flex; gap:10px; align-items:center; box-shadow:0 1px 2px rgba(0,0,0,0.02);">
-                    <input type="date" id="admin-daybook-date" style="flex:1; border:1px solid var(--border); border-radius:4px; padding:10px; outline:none; font-weight:700;">
-                    <button onclick="downloadAdminDaybook()" id="btn-admin-daybook" style="background:#10B981; color:white; border:none; padding:10px 16px; border-radius:4px; font-weight:800; cursor:pointer;"><i class="fas fa-file-pdf"></i> View</button>
+            <!-- TAB 2: ISSUED -->
+            <div id="aa-tab-issued" class="scroll-area hidden" style="padding-bottom: 60px;">
+                <div class="pack-top-bar" style="background: white; border-bottom: 1px solid var(--border);">
+                    <span style="font-size: 0.9rem; font-weight: 800;">Issued Date</span>
+                    <input type="date" id="aa-issued-date" onchange="renderAdminIssuedDash()" style="border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-weight:700; outline:none; font-family: inherit; font-size: 0.8rem;">
+                </div>
+                <div id="aa-issued-feed" style="padding: 16px;"></div>
+            </div>
+
+            <!-- TAB 3: DAYBOOK -->
+            <div id="aa-tab-daybook" class="scroll-area hidden" style="padding-bottom: 60px;">
+                <div style="display:flex; gap:10px; padding:12px 16px; background:white; border-bottom:1px solid var(--border);">
+                    <div style="flex:1;">
+                        <div style="font-size:0.65rem; font-weight:700; color:var(--text-mut); margin-bottom:2px;">From Date</div>
+                        <input type="date" id="aa-db-from" onchange="fetchAdminDaybookMeta()" style="width:100%; border:1px solid var(--border); border-radius:4px; padding:6px; outline:none; font-weight:700; font-family: inherit;">
+                    </div>
+                    <div style="flex:1;">
+                        <div style="font-size:0.65rem; font-weight:700; color:var(--text-mut); margin-bottom:2px;">To Date</div>
+                        <input type="date" id="aa-db-to" onchange="fetchAdminDaybookMeta()" style="width:100%; border:1px solid var(--border); border-radius:4px; padding:6px; outline:none; font-weight:700; font-family: inherit;">
+                    </div>
+                </div>
+                <div id="aa-daybook-feed" style="padding: 16px;"></div>
+            </div>
+        </div>
+
+        <!-- ADMIN: PENDING CHEQUES OVERLAY -->
+        <div id="admin-pending-cheques-view" class="order-view hidden" style="z-index: 2100; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="closeAdminPendingCheques()" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center"><div class="ov-title">Pending Cheques</div></div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            <div class="pack-top-bar" style="justify-content: space-between; background: #FEF2F2; border-bottom: 1px solid #FCA5A5; flex-shrink: 0; padding: 12px 16px;">
+                <span style="font-size: 0.95rem; font-weight: 800; color: #991B1B;">Total Pending</span>
+                <span style="font-size: 1.1rem; font-weight: 800; color: #991B1B;" id="admin-pending-list-total">₹0</span>
+            </div>
+            <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="admin-pending-cheques-feed"></div>
+        </div>
+
+        <!-- ADMIN: BANK TRANSACTIONS OVERLAY -->
+        <div id="admin-bank-txns-view" class="order-view hidden" style="z-index: 2100; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="closeAdminBankTxns()" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center"><div class="ov-title" id="abt-title">Bank Name</div><div class="ov-sub">Transactions</div></div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            <div style="background: white; padding: 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; display:flex; flex-direction:column; gap:10px;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <div style="flex:1; display:flex; flex-direction:column;">
+                        <span style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-bottom:4px;">From</span>
+                        <input type="date" id="abt-from-date" onchange="renderAdminBankTxns()" style="width:100%; border:1px solid var(--border); border-radius:4px; padding:6px; outline:none; font-weight:700;">
+                    </div>
+                    <div style="flex:1; display:flex; flex-direction:column;">
+                        <span style="font-size:0.65rem; color:var(--text-mut); font-weight:700; margin-bottom:4px;">To</span>
+                        <input type="date" id="abt-to-date" onchange="renderAdminBankTxns()" style="width:100%; border:1px solid var(--border); border-radius:4px; padding:6px; outline:none; font-weight:700;">
+                    </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; border-top: 1px dashed var(--border); padding-top: 10px;">
+                    <span style="font-size:0.8rem; font-weight:700; color:var(--text-mut);">Filter:</span>
+                    <select id="abt-type-filter" onchange="renderAdminBankTxns()" style="padding:4px 8px; border:1px solid var(--brand); border-radius:4px; font-size:0.8rem; font-weight:700; outline:none; color:var(--brand); background:var(--brand-light);">
+                        <option value="All">All Transactions</option>
+                        <option value="Credit">Credit (Inflow)</option>
+                        <option value="Debit">Debit (Outflow)</option>
+                    </select>
                 </div>
             </div>
+            <div class="pack-top-bar" style="justify-content: space-between; background: #F9FAFB; border-bottom: 1px solid var(--border); flex-shrink: 0;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-mut);">Period Net:</span>
+                <span style="font-size: 1.05rem; font-weight: 800; color: var(--text);" id="abt-net-total">₹0</span>
+            </div>
+            <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="admin-bank-txns-feed"></div>
         </div>
 
         <!-- ADMIN: SPECIAL OFFERS OVERLAY -->
@@ -2279,9 +2363,17 @@
                 renderAdminOffersList();
                 document.getElementById('admin-offers-app').classList.remove('hidden');
                 } else if (app === 'accounts') {
-                renderAdminAccountsDash();
-                document.getElementById('admin-accounts-app').classList.remove('hidden');
+                const now = new Date();
+                const todayStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                document.getElementById('aa-issued-date').value = todayStr;
                 
+                // Set current week for daybook (Last 7 days)
+                const lastWeek = new Date(now.getTime() - (6 * 24 * 60 * 60 * 1000));
+                document.getElementById('aa-db-from').value = new Date(lastWeek.getTime() - (lastWeek.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                document.getElementById('aa-db-to').value = todayStr;
+
+                switchAdminAccTab('bank');
+                document.getElementById('admin-accounts-app').classList.remove('hidden');
             } else if (app === 'hr') {
                 const now = new Date();
                 const localTodayStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
@@ -9282,14 +9374,27 @@
         }
 
         /* --- ADMIN ACCOUNTS DASHBOARD LOGIC --- */
+        function switchAdminAccTab(tab) {
+            document.querySelectorAll('#admin-accounts-app .hr-sub-nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`aa-nav-${tab}`).classList.add('active');
+            
+            document.getElementById('aa-tab-bank').classList.add('hidden');
+            document.getElementById('aa-tab-issued').classList.add('hidden');
+            document.getElementById('aa-tab-daybook').classList.add('hidden');
+            
+            document.getElementById(`aa-tab-${tab}`).classList.remove('hidden');
+
+            if (tab === 'bank') renderAdminAccountsDash();
+            if (tab === 'issued') renderAdminIssuedDash();
+            if (tab === 'daybook') fetchAdminDaybookMeta();
+        }
+
         async function renderAdminAccountsDash() {
             const list = document.getElementById('admin-acc-bank-list');
             const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-            document.getElementById('admin-daybook-date').value = todayStr;
 
             list.innerHTML = `<div style="text-align:center; padding: 20px;"><i class="fas fa-spinner fa-spin fa-2x" style="color:var(--brand);"></i></div>`;
 
-            // Lazy Load Banks & Txns if Admin just opened the app
             if (!window.BANKS || window.BANKS.length === 0) {
                 const [bRes, tRes] = await Promise.all([
                     sbClient.from('banks').select('*'),
@@ -9299,7 +9404,6 @@
                 window.BANK_TXNS = tRes.data || [];
             }
 
-            let grandTotalBal = 0;
             let grandTotalPending = 0;
 
             if (window.BANKS.length === 0) {
@@ -9316,55 +9420,128 @@
                             if (t.type === 'IN' || t.type === 'OTHER_IN') currBal += t.amount;
                             if (t.type === 'OUT' || t.type === 'OTHER_OUT') currBal -= t.amount;
                         } else if (t.status === 'Pending' && t.trans_date <= todayStr) {
-                            // Calculate pending checks strictly up to today's date
                             grandTotalPending += t.amount;
                         }
                     }
                 });
 
-                grandTotalBal += currBal;
-
+                const safeBankName = b.name.replace(/'/g, "\\'");
                 return `
-                <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02); cursor: pointer;" onclick="openAdminBankTxns('${b.id}', '${safeBankName}')">
                     <div style="font-weight: 800; font-size: 1rem; color:var(--text);">${b.name}</div>
-                    <div style="font-weight: 800; font-size: 1.2rem; color:var(--brand);">₹${fmt(currBal)}</div>
+                    <div style="text-align: right;">
+                        <div style="font-weight: 800; font-size: 1.2rem; color:var(--brand);">₹${fmt(currBal)}</div>
+                        <div style="font-size: 0.65rem; color: var(--text-mut); font-weight: 700; margin-top: 4px;">View Txns <i class="fas fa-chevron-right"></i></div>
+                    </div>
                 </div>`;
             }).join('');
 
-            document.getElementById('admin-acc-total-bal').innerText = `₹${fmt(grandTotalBal)}`;
             document.getElementById('admin-acc-pending-clear').innerText = `₹${fmt(grandTotalPending)}`;
         }
 
-        async function downloadAdminDaybook() {
-            const dateStr = document.getElementById('admin-daybook-date').value;
-            if (!dateStr) return;
+        function renderAdminIssuedDash() {
+            const feed = document.getElementById('aa-issued-feed');
+            const targetDate = document.getElementById('aa-issued-date').value;
+            if(!targetDate) return;
 
-            const btn = document.getElementById('btn-admin-daybook');
-            const origHtml = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            btn.disabled = true;
+            const issued = window.BANK_TXNS.filter(t => t.type === 'OUT' && t.trans_date === targetDate);
+            issued.sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
 
+            if(issued.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No cheques issued on this date.</div>`;
+                return;
+            }
+
+            feed.innerHTML = issued.map(t => {
+                const isCleared = t.status === 'Cleared';
+                const bg = isCleared ? '#F0FDF4' : 'white';
+                const border = isCleared ? '#BBF7D0' : 'var(--border)';
+                const badge = isCleared ? `<span style="background:#DCFCE7; color:#166534; padding:2px 6px; border-radius:4px; font-size:0.6rem; font-weight:800;"><i class="fas fa-check"></i> CLEARED (${t.cleared_date})</span>` : `<span style="background:#FEF3C7; color:#B45309; padding:2px 6px; border-radius:4px; font-size:0.6rem; font-weight:800;"><i class="fas fa-clock"></i> PENDING</span>`;
+                const bank = window.BANKS.find(b => b.id === t.bank_id);
+                const bankName = bank ? bank.name : 'Unknown Bank';
+
+                return `
+                <div style="background: ${bg}; padding: 14px; border-radius: 8px; border: 1px solid ${border}; margin-bottom: 12px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div style="flex:1; padding-right:10px;">
+                            <div style="font-weight:800; font-size:0.95rem; color:var(--text); line-height:1.3; margin-bottom:4px;">${t.vendor_name}</div>
+                            <div style="font-size:0.75rem; color:var(--text-mut);"><i class="fas fa-university" style="margin-right:4px;"></i>${bankName}</div>
+                            <div style="font-size:0.7rem; color:var(--text-mut); margin-top:4px;">${t.particulars}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size:1.1rem; font-weight:800; color:var(--accent); margin-bottom:6px;">₹${fmt(t.amount)}</div>
+                            ${badge}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        let adminDaybookMetaCache = [];
+        async function fetchAdminDaybookMeta() {
+            const feed = document.getElementById('aa-daybook-feed');
+            const fromD = document.getElementById('aa-db-from').value;
+            const toD = document.getElementById('aa-db-to').value;
+            if(!fromD || !toD) return;
+
+            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+            try {
+                // Fetch just the dates to save bandwidth
+                const { data } = await sbClient.from('daybooks').select('date').gte('date', fromD).lte('date', toD);
+                adminDaybookMetaCache = (data || []).map(d => d.date);
+            } catch(e) {}
+            
+            renderAdminDaybookDash(fromD, toD);
+        }
+
+        function renderAdminDaybookDash(fromD, toD) {
+            const feed = document.getElementById('aa-daybook-feed');
+            let currentDate = new Date(fromD);
+            const endDate = new Date(toD);
+            const dateArray = [];
+
+            while(currentDate <= endDate) {
+                dateArray.push(new Date(currentDate).toISOString().split('T')[0]);
+                currentDate.setDate(currentDate.getDate() + 1);
+            }
+            
+            dateArray.reverse(); // Newest first
+
+            feed.innerHTML = dateArray.map(dStr => {
+                const dObj = new Date(dStr);
+                const displayDate = dObj.toLocaleDateString('en-GB', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' });
+                const hasFile = adminDaybookMetaCache.includes(dStr);
+                
+                if (hasFile) {
+                    return `
+                    <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text);">${displayDate}</div>
+                        <button onclick="viewDaybookPdf('${dStr}', '${displayDate}')" style="background:#10B981; color:white; border:none; padding:6px 16px; border-radius:4px; font-weight:800; font-size:0.8rem; cursor:pointer;"><i class="fas fa-eye"></i> View</button>
+                    </div>`;
+                } else {
+                    return `
+                    <div style="background: #F9FAFB; border-radius: 8px; border: 1px dashed var(--border-dark); margin-bottom: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center;">
+                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text-mut);">${displayDate}</div>
+                        <div style="font-size:0.7rem; font-weight:800; color:#991B1B; background:#FEE2E2; padding:4px 8px; border-radius:4px;"><i class="fas fa-times-circle"></i> Missing</div>
+                    </div>`;
+                }
+            }).join('');
+        }
+
+        async function viewDaybookPdf(dateStr, displayDate) {
+            document.getElementById('pdf-viewer-title').innerText = `Daybook: ${displayDate}`;
+            document.getElementById('pdf-viewer-frame').src = ''; // Clear old
+            document.getElementById('pdf-viewer-modal').classList.remove('hidden');
+            
             try {
                 const { data, error } = await sbClient.from('daybooks').select('pdf_data').eq('date', dateStr).single();
-                if (error || !data) throw new Error("No Day Book found for this date.");
-
-                // Convert base64 back to Blob and Download
-                const byteCharacters = atob(data.pdf_data.split(',')[1]);
-                const byteNumbers = new Array(byteCharacters.length);
-                for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
-                const byteArray = new Uint8Array(byteNumbers);
-                const blob = new Blob([byteArray], {type: 'application/pdf'});
-
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = `DayBook_${dateStr}.pdf`;
-                link.click();
+                if (error || !data) throw error;
+                
+                document.getElementById('pdf-viewer-frame').src = data.pdf_data;
             } catch(e) {
-                showWarning("Not Found", e.message);
-            } finally {
-                btn.innerHTML = origHtml;
-                btn.disabled = false;
-            }
+                closeModal('pdf-viewer-modal');
+                showWarning("Not Found", "Could not load the PDF.");
+            } 
         }
 
         function initAccCalendar() { renderAccCalendar(currAccMonth, currAccYear); }
@@ -10186,6 +10363,154 @@
                     </div>
                 </div>`;
             }).join('');
+        }
+        /* --- ADMIN: PENDING CHEQUES ENGINE --- */
+        function openAdminPendingCheques() {
+            renderAdminPendingCheques();
+            document.getElementById('admin-pending-cheques-view').classList.remove('hidden');
+        }
+
+        function closeAdminPendingCheques() {
+            document.getElementById('admin-pending-cheques-view').classList.add('hidden');
+        }
+
+        function renderAdminPendingCheques() {
+            const feed = document.getElementById('admin-pending-cheques-feed');
+            let pendingOut = window.BANK_TXNS.filter(t => t.type === 'OUT' && t.status === 'Pending');
+            pendingOut.sort((a, b) => new Date(a.trans_date) - new Date(b.trans_date));
+
+            let total = 0;
+            pendingOut.forEach(t => total += t.amount);
+            document.getElementById('admin-pending-list-total').innerText = `₹${fmt(total)}`;
+
+            if (pendingOut.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No pending cheques.</div>`;
+                return;
+            }
+
+            feed.innerHTML = pendingOut.map(t => {
+                const bank = window.BANKS.find(b => b.id === t.bank_id);
+                const bankName = bank ? bank.name : 'Unknown Bank';
+                
+                return `
+                <div style="background:white; padding:14px; border-radius:8px; border:1px solid var(--border); margin-bottom:12px; box-shadow:0 1px 3px rgba(0,0,0,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div style="flex:1; padding-right:10px;">
+                            <div style="font-weight:800; font-size:0.95rem; color:var(--text); line-height:1.3; margin-bottom:4px;">${t.vendor_name}</div>
+                            <div style="font-size:0.75rem; color:var(--text-mut);"><i class="fas fa-university" style="margin-right:4px;"></i>${bankName}</div>
+                            <div style="font-size:0.7rem; color:var(--text-mut); margin-top:4px;">Issued: <b>${t.trans_date}</b></div>
+                            <div style="font-size:0.7rem; color:var(--text-mut); margin-top:2px;">${t.particulars}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <span style="font-size:1.1rem; font-weight:800; color:var(--accent);">₹${fmt(t.amount)}</span>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        /* --- ADMIN: BANK TXNS ENGINE --- */
+        let currentAdminBankId = null;
+
+        function openAdminBankTxns(bankId, bankName) {
+            currentAdminBankId = bankId;
+            document.getElementById('abt-title').innerText = bankName;
+            
+            // Default: 1st of current month to today
+            const now = new Date();
+            const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+            const todayStr = new Date(now.getTime() - (now.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+            
+            document.getElementById('abt-from-date').value = firstDay;
+            document.getElementById('abt-to-date').value = todayStr;
+            document.getElementById('abt-type-filter').value = 'All';
+            
+            renderAdminBankTxns();
+            document.getElementById('admin-bank-txns-view').classList.remove('hidden');
+        }
+
+        function closeAdminBankTxns() {
+            currentAdminBankId = null;
+            document.getElementById('admin-bank-txns-view').classList.add('hidden');
+        }
+
+        function renderAdminBankTxns() {
+            const feed = document.getElementById('admin-bank-txns-feed');
+            const fromDate = document.getElementById('abt-from-date').value;
+            const toDate = document.getElementById('abt-to-date').value;
+            const typeFilter = document.getElementById('abt-type-filter').value;
+            
+            if (!currentAdminBankId || !fromDate || !toDate) return;
+
+            let txns = window.BANK_TXNS.filter(t => {
+                if (t.bank_id !== currentAdminBankId) return false;
+                
+                // Use effective date (clearance date if cleared cheque, otherwise trans date)
+                const effDate = (t.type === 'OUT' && t.status === 'Cleared') ? t.cleared_date : t.trans_date;
+                return effDate >= fromDate && effDate <= toDate;
+            });
+
+            if (typeFilter === 'Credit') {
+                txns = txns.filter(t => t.type === 'IN' || t.type === 'OTHER_IN');
+            } else if (typeFilter === 'Debit') {
+                txns = txns.filter(t => t.type === 'OUT' || t.type === 'OTHER_OUT');
+            }
+
+            // Sort by effective date descending
+            txns.sort((a,b) => {
+                const dateA = (a.type === 'OUT' && a.status === 'Cleared') ? a.cleared_date : a.trans_date;
+                const dateB = (b.type === 'OUT' && b.status === 'Cleared') ? b.cleared_date : b.trans_date;
+                return new Date(dateB) - new Date(dateA);
+            });
+
+            let netTotal = 0;
+            
+            if (txns.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No transactions found for this period.</div>`;
+                document.getElementById('abt-net-total').innerText = '₹0';
+                document.getElementById('abt-net-total').style.color = 'var(--text)';
+                return;
+            }
+
+            feed.innerHTML = txns.map(t => {
+                const isCredit = (t.type === 'IN' || t.type === 'OTHER_IN');
+                const isPending = (t.type === 'OUT' && t.status === 'Pending');
+                
+                if (!isPending) {
+                    if (isCredit) netTotal += t.amount;
+                    else netTotal -= t.amount;
+                }
+
+                let typeLabel = '';
+                if (t.type === 'IN') typeLabel = 'CASH INJECT';
+                else if (t.type === 'OTHER_IN') typeLabel = 'OTHER INCOME';
+                else if (t.type === 'OUT') typeLabel = 'CHEQUE';
+                else if (t.type === 'OTHER_OUT') typeLabel = 'OTHER EXPENSE';
+
+                let statBadge = '';
+                if (isPending) statBadge = `<span style="font-size:0.6rem; font-weight:800; color:#B45309; background:#FEF3C7; padding:2px 6px; border-radius:4px; margin-left:6px;">PENDING</span>`;
+                else if (t.type === 'OUT') statBadge = `<span style="font-size:0.6rem; font-weight:800; color:#166534; background:#DCFCE7; padding:2px 6px; border-radius:4px; margin-left:6px;">CLEARED</span>`;
+
+                const effDateStr = (t.type === 'OUT' && t.status === 'Cleared') ? t.cleared_date : t.trans_date;
+                const origDateHtml = (t.type === 'OUT' && t.status === 'Cleared') ? `<div style="font-size:0.65rem; color:var(--text-mut); margin-top:2px;">(Issued: ${t.trans_date})</div>` : '';
+
+                return `
+                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="flex:1; padding-right:10px;">
+                        <div style="font-weight: 800; font-size: 0.85rem; color:var(--text); margin-bottom:4px;">${t.vendor_name || typeLabel}</div>
+                        <div style="font-size: 0.75rem; color:var(--text-mut); font-weight:700;">${effDateStr} ${statBadge}</div>
+                        ${origDateHtml}
+                        <div style="font-size: 0.65rem; color:var(--text-mut); margin-top:4px; line-height:1.2;">${t.particulars}</div>
+                    </div>
+                    <div style="text-align: right; flex-shrink:0;">
+                        <b style="color:${isCredit ? 'var(--success)' : 'var(--accent)'}; font-size:1.05rem;">${isCredit ? '+' : '-'}₹${fmt(t.amount)}</b>
+                    </div>
+                </div>`;
+            }).join('');
+
+            const netEl = document.getElementById('abt-net-total');
+            netEl.innerText = `${netTotal > 0 ? '+' : ''}₹${fmt(netTotal)}`;
+            netEl.style.color = netTotal > 0 ? 'var(--success)' : (netTotal < 0 ? 'var(--accent)' : 'var(--text)');
         }
 
     </script>
