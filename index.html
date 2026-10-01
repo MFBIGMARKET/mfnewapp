@@ -9234,6 +9234,15 @@
         let currAccYear = new Date().getFullYear();
         let selectedAccDate = null;
 
+        function getCombinedVendors() {
+            // Merges ERP Primary Vendors with manually added Accountant Vendors
+            const erpVendors = INVENTORY.map(i => i.vendor);
+            const manualVendors = window.VENDORS.map(v => v.name);
+            return Array.from(new Set([...erpVendors, ...manualVendors]))
+                        .filter(v => v && v !== 'UNASSIGNED')
+                        .sort();
+        }
+
         function renderAccManage() {
             // Render Banks
             const bList = document.getElementById('acc-bank-list');
@@ -9242,8 +9251,8 @@
                 let currBal = b.opening_balance || 0;
                 window.BANK_TXNS.forEach(t => {
                     if (t.bank_id === b.id && t.status === 'Cleared') {
-                        if (t.type === 'IN') currBal += t.amount;
-                        if (t.type === 'OUT') currBal -= t.amount;
+                        if (t.type === 'IN' || t.type === 'OTHER_IN') currBal += t.amount;
+                        if (t.type === 'OUT' || t.type === 'OTHER_OUT') currBal -= t.amount;
                     }
                 });
                 return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #E5E7EB;">
@@ -9252,10 +9261,11 @@
                 </div>`;
             }).join('');
 
-            // Render Vendors
+            // Render Combined Vendors
+            const combinedVendors = getCombinedVendors();
             const vList = document.getElementById('acc-vendor-list');
-            vList.innerHTML = window.VENDORS.length === 0 ? "No vendors added." : window.VENDORS.map(v => 
-                `<div style="padding:4px 0; border-bottom:1px solid #E5E7EB; font-weight:600;">${v.name}</div>`
+            vList.innerHTML = combinedVendors.length === 0 ? "No vendors added." : combinedVendors.map(vName => 
+                `<div style="padding:4px 0; border-bottom:1px solid #E5E7EB; font-weight:600;">${vName}</div>`
             ).join('');
         }
 
@@ -9293,7 +9303,7 @@
                 }
                 await sbClient.from('vendors').upsert(upsertData);
                 window.VENDORS.push(...upsertData);
-                alert(`${upsertData.length} vendors uploaded!`);
+                alert(`${upsertData.length} manual vendors uploaded!`);
                 renderAccManage(); renderAccEntry();
                 document.getElementById('csv-upload-vendors').value = '';
             }; reader.readAsText(file);
@@ -9302,8 +9312,11 @@
         function renderAccEntry() {
             const bSel = document.getElementById('acc-txn-bank');
             bSel.innerHTML = window.BANKS.map(b => `<option value="${b.id}">${b.name}</option>`).join('');
+            
+            const combinedVendors = getCombinedVendors();
             const vSel = document.getElementById('acc-txn-vendor');
-            vSel.innerHTML = window.VENDORS.map(v => `<option value="${v.name}">${v.name}</option>`).join('');
+            vSel.innerHTML = combinedVendors.map(vName => `<option value="${vName.replace(/"/g, '&quot;')}">${vName}</option>`).join('');
+            
             toggleAccVendorDropdown();
         }
 
