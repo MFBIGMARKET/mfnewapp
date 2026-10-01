@@ -639,10 +639,13 @@
         <!-- ========================================== -->
         
         <div id="view-customers" class="tab-content salesman-view hidden">
-            <div class="search-bar" style="border-bottom: 1px solid var(--border); display: flex; gap: 8px;">
-                <i class="fas fa-search" style="color:var(--text-mut);"></i>
-                <input type="text" placeholder="Search customer..." id="cust-search-input" oninput="handleCustSearch(this.value)" style="flex:1; width: 100%;">
-                <button onclick="document.getElementById('new-cust-modal').classList.remove('hidden')" style="background: var(--brand); color: white; border: none; padding: 6px 12px; border-radius: 4px; font-weight: 700; font-size: 0.75rem; cursor: pointer; flex-shrink: 0;"><i class="fas fa-plus"></i> New</button>
+            <div class="search-bar" style="border-bottom: 1px solid var(--border); display: flex; gap: 8px; padding: 10px;">
+                <div style="flex:1; display:flex; align-items:center; background:#F3F4F6; border-radius:6px; padding:0 10px;">
+                    <i class="fas fa-search" style="color:var(--text-mut);"></i>
+                    <input type="text" placeholder="Search customer..." id="cust-search-input" oninput="handleCustSearch(this.value)" style="width: 100%; border:none; background:transparent; padding:10px; outline:none; font-size:0.9rem;">
+                </div>
+                <button onclick="openSalesmanCatalog()" style="background: var(--brand-light); color: var(--brand); border: 1px solid var(--brand); width: 40px; height: 40px; border-radius: 6px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;"><i class="fas fa-book-open"></i></button>
+                <button onclick="document.getElementById('new-cust-modal').classList.remove('hidden')" style="background: var(--brand); color: white; border: none; width: 40px; height: 40px; border-radius: 6px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;"><i class="fas fa-plus"></i></button>
             </div>
             <div class="scroll-area">
                 <div class="cust-list" id="full-cust-list"></div>
@@ -1680,6 +1683,21 @@
     <!-- OVERLAYS (Full Screen Views)               -->
     <!-- ========================================== -->
 
+    <!-- SALESMAN: MAGNIFIED PRODUCT CATALOG OVERLAY -->
+    <div id="sm-catalog-app" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
+        <div class="ov-head">
+            <i class="fas fa-arrow-left" onclick="closeSalesmanCatalog()" style="cursor:pointer; padding:4px;"></i>
+            <div class="ov-center"><div class="ov-title">Product Catalog</div></div>
+            <i class="fas fa-check" style="color: transparent;"></i>
+        </div>
+        <div class="search-bar" style="border-bottom: 1px solid var(--border); flex-shrink: 0; padding: 12px;">
+            <i class="fas fa-search" style="color:var(--text-mut);"></i>
+            <input type="text" placeholder="Search items..." id="sm-cat-search" oninput="renderSmCatFeed()" style="font-size: 1rem;">
+        </div>
+        <div class="cat-scroll" id="sm-cat-categories" style="padding: 12px; border-bottom: 1px solid var(--border-dark);"></div>
+        <div class="scroll-area" style="padding: 20px 16px; background: var(--bg);" id="sm-cat-feed"></div>
+    </div>
+
     <!-- SALESMAN: ORDER TAKING -->
     <div id="order-view" class="order-view hidden">
         <div class="ov-head">
@@ -1858,7 +1876,7 @@
         </div>
         <div class="scroll-area" style="background: var(--bg); padding: 12px;" id="delivery-detail-list"></div>
         <input type="file" id="camera-input" accept="image/*" capture="environment" style="display:none;" onchange="handlePhotoCapture(event)">
-        <input type="file" id="item-photo-input" accept="image/*" style="display:none;" onchange="handleItemPhotoUpload(event)">
+        <input type="file" id="item-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="handleItemPhotoUpload(event)">
     </div>
 
     <!-- BILLING: DETAIL VIEW -->
@@ -3147,6 +3165,113 @@
         function exitOrder() { 
             document.getElementById('order-view').classList.add('hidden'); 
             renderCustomersView(); // Refreshes the list to instantly show the yellow cart badges
+        }
+
+        /* --- SALESMAN MAGNIFIED CATALOG LOGIC --- */
+        let smCatalogCat = "All";
+
+        function openSalesmanCatalog() {
+            document.getElementById('sm-cat-search').value = '';
+            smCatalogCat = "All";
+            renderSmCatCategories();
+            renderSmCatFeed();
+            document.getElementById('sm-catalog-app').classList.remove('hidden');
+        }
+
+        function closeSalesmanCatalog() {
+            document.getElementById('sm-catalog-app').classList.add('hidden');
+        }
+
+        function setSmCatalogCat(cat) {
+            smCatalogCat = cat;
+            renderSmCatCategories();
+            renderSmCatFeed();
+        }
+
+        function renderSmCatCategories() {
+            const el = document.getElementById('sm-cat-categories');
+            if(el) el.innerHTML = CATEGORIES.map(cat => `<div class="cat-pill ${cat === smCatalogCat ? 'active' : ''}" onclick="setSmCatalogCat('${cat}')" style="font-size: 0.9rem; padding: 6px 16px;">${cat}</div>`).join('');
+        }
+
+        function renderSmCatFeed() {
+            const feed = document.getElementById('sm-cat-feed');
+            const searchQ = document.getElementById('sm-cat-search').value.toLowerCase();
+            
+            let items = smCatalogCat === "All" ? INVENTORY : (smCatalogCat === "🔥 Offers" ? INVENTORY.filter(i => i.is_scheme_active) : INVENTORY.filter(i => i.category === smCatalogCat));
+            
+            if (searchQ) {
+                items = items.filter(i => i.name.toLowerCase().includes(searchQ) || i.code.toLowerCase().includes(searchQ));
+            }
+
+            if (items.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut); font-size:1.1rem;">No items found.</div>`;
+                return;
+            }
+
+            // Render Magnified Cards (Designed to fit roughly 2 per screen)
+            feed.innerHTML = items.map(item => {
+                const isSchemeActive = item.is_scheme_active;
+                const cardStyle = isSchemeActive ? 'background: #FFFBEB; border: 2px solid #F59E0B;' : 'background: white; border: 1px solid var(--border-dark);';
+                
+                let slabHTML = '';
+                if (isSchemeActive && item.scheme_slabs && item.scheme_slabs.length > 0) {
+                    slabHTML = `<div style="margin-top: 20px; border-top: 1px dashed #FDE68A; padding-top: 20px;">
+                        <div style="font-size:0.95rem; font-weight:800; color:#B45309; margin-bottom:12px; letter-spacing:0.5px;"><i class="fas fa-bolt"></i> SPECIAL OFFER TIERS</div>
+                        <div style="display:flex; flex-direction:column; gap:8px;">
+                        ${item.scheme_slabs.map(s => `
+                            <div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:16px 20px; border-radius:8px; border:1px solid #FDE68A;">
+                                <div style="font-weight:800; color:#B45309; font-size:1.2rem;">Buy ${s.min} Pcs</div>
+                                <div style="font-weight:900; color:var(--text); font-size:1.4rem;">₹${fmt(s.rate)}</div>
+                            </div>
+                        `).join('')}
+                        </div>
+                    </div>`;
+                } else if (item.has_slabs) {
+                    const validSlabs = item.slabs.slice(1).filter(s => s.max > 0 || s.markup > 0 || s.min > 0);
+                    if (validSlabs.length > 0) {
+                        slabHTML = `<div style="margin-top: 20px; border-top: 1px dashed var(--border-dark); padding-top: 20px;">
+                            <div style="font-size:0.95rem; font-weight:800; color:var(--brand); margin-bottom:12px; letter-spacing:0.5px;">WHOLESALE TIERS</div>
+                            <div style="display:flex; flex-direction:column; gap:8px;">
+                            ${validSlabs.map(s => {
+                                const rate = fmt(getRate(item.cost, s.markup));
+                                const smartLabel = getSmartSlabLabel(s.min, s.max, item.caseQty);
+                                return `
+                                <div style="display:flex; justify-content:space-between; align-items:center; background:#F9FAFB; padding:14px 20px; border-radius:8px; border:1px solid var(--border);">
+                                    <div style="font-weight:800; color:var(--text-mut); font-size:1.1rem;">${smartLabel}</div>
+                                    <div style="font-weight:900; color:var(--text); font-size:1.3rem;">₹${rate.toFixed(2)}</div>
+                                </div>`;
+                            }).join('')}
+                            </div>
+                        </div>`;
+                    }
+                }
+
+                const baseRate = item.has_slabs ? fmt(getRate(item.cost, item.slabs[0].markup)) : fmt(item.price2);
+                
+                // Display huge image, or a clean placeholder if missing. NO onclick handlers here.
+                const imgBox = item.photo 
+                    ? `<div style="width:100%; height:280px; margin-bottom:20px; background:#F9FAFB; border-radius:8px; overflow:hidden; border:1px solid var(--border);"><img src="${item.photo}" style="width:100%; height:100%; object-fit:contain;"></div>` 
+                    : `<div style="width:100%; height:160px; margin-bottom:20px; background:#F3F4F6; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#9CA3AF; border:1px dashed var(--border-dark);"><i class="fas fa-image" style="font-size:3rem; margin-bottom:10px;"></i><span style="font-size:0.8rem; font-weight:700;">No Photo Available</span></div>`;
+
+                return `
+                <div style="${cardStyle} border-radius: 16px; margin-bottom: 24px; padding: 24px; box-shadow: 0 4px 10px rgba(0,0,0,0.06);">
+                    ${imgBox}
+                    <div style="font-weight: 900; font-size: 1.4rem; color:var(--text); line-height: 1.4; margin-bottom: 12px; word-break: break-word;">${item.name}</div>
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+                        <div>
+                            <div style="font-size: 0.95rem; color:var(--text-mut); font-weight:700;">Code: <span style="color:var(--text);">${item.code}</span></div>
+                            <div style="font-size: 0.95rem; color:var(--text-mut); font-weight:700; margin-top:4px;">MRP: <span style="color:var(--accent); text-decoration:line-through; font-size: 1.1rem;">₹${fmt(item.mrp)}</span></div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-size: 0.85rem; color:var(--brand); font-weight:800; text-transform:uppercase; margin-bottom:2px;">Standard Rate</div>
+                            <div style="font-weight: 900; font-size: 2rem; color:var(--brand);">₹${baseRate}</div>
+                        </div>
+                    </div>
+                    
+                    ${slabHTML}
+                </div>`;
+            }).join('');
         }
         function handleOrderSearch(val) { orderSearchQuery = val.toLowerCase(); renderOrderFeed(); }
         function setOrderCat(cat) { orderCat = cat; renderOrderCats(); renderOrderFeed(); }
