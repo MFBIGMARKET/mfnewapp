@@ -1515,6 +1515,18 @@
                     
                     <button onclick="uploadDaybook()" id="btn-acc-daybook" style="width:100%; background:#10B981; color:white; border:none; padding:12px; border-radius:6px; font-weight:800; cursor:pointer;"><i class="fas fa-upload"></i> Upload Day Book</button>
                 </div>
+
+                <!-- Uploaded List -->
+                <div style="background:white; padding:16px; border-radius:8px; border:1px solid var(--border); box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div style="font-weight:800; font-size:0.95rem; color:var(--text);">Uploaded Day Books</div>
+                        <button onclick="renderAccDaybookList()" style="background:var(--bg); border:1px solid var(--border-dark); border-radius:4px; padding:4px 8px; font-size:0.75rem; cursor:pointer; color:var(--text); font-weight:700;"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                    <div id="acc-uploaded-daybooks" style="display:flex; flex-direction:column; gap:8px; max-height:250px; overflow-y:auto; padding-right:4px;">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -9502,6 +9514,7 @@
                     if (error) throw error;
                     showSuccess(`Day Book for ${dateStr} uploaded!`);
                     fileInput.value = ''; document.getElementById('acc-daybook-name').innerText = 'No file selected';
+                    renderAccDaybookList(); // Refresh the list
                 } catch(err) {
                     showWarning("Upload Failed", "Could not upload to cloud. File might be too large.");
                 } finally {
@@ -9510,6 +9523,54 @@
             };
             reader.readAsDataURL(file);
         }
+
+        async function renderAccDaybookList() {
+            const list = document.getElementById('acc-uploaded-daybooks');
+            list.innerHTML = `<div style="text-align:center; padding: 20px;"><i class="fas fa-spinner fa-spin" style="color:var(--brand);"></i></div>`;
+            
+            try {
+                // Fetch just dates and metadata to keep it incredibly fast (omitting the heavy PDF string)
+                const { data, error } = await sbClient.from('daybooks').select('date, uploaded_at').order('date', { ascending: false }).limit(30);
+                if (error) throw error;
+
+                if (!data || data.length === 0) {
+                    list.innerHTML = `<div style="font-size:0.75rem; color:var(--text-mut); text-align:center;">No files uploaded yet.</div>`;
+                    return;
+                }
+
+                list.innerHTML = data.map(d => {
+                    const dObj = new Date(d.date);
+                    const displayDate = dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+                    
+                    return `
+                    <div style="background:#F9FAFB; padding:10px 12px; border-radius:6px; border:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+                        <div style="font-weight:800; font-size:0.85rem; color:var(--text);">${displayDate}</div>
+                        <div style="display:flex; gap:6px;">
+                            <button onclick="viewDaybookPdf('${d.date}', '${displayDate}')" style="background:#10B981; color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:700; font-size:0.7rem; cursor:pointer;"><i class="fas fa-eye"></i> View</button>
+                            <button onclick="deleteAccDaybook('${d.date}', '${displayDate}')" style="background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; padding:6px 10px; border-radius:4px; font-size:0.7rem; cursor:pointer;"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>`;
+                }).join('');
+            } catch (e) {
+                list.innerHTML = `<div style="font-size:0.75rem; color:var(--accent); text-align:center;">Failed to fetch history.</div>`;
+            }
+        }
+
+        async function deleteAccDaybook(dateStr, displayDate) {
+            const isConfirmed = await showConfirm("Delete Day Book?", `Are you sure you want to delete the Day Book for <b>${displayDate}</b>?`, "Yes, Delete");
+            if (!isConfirmed) return;
+
+            try {
+                const { error } = await sbClient.from('daybooks').delete().eq('date', dateStr);
+                if (error) throw error;
+                showSuccess("Day Book deleted successfully!");
+                renderAccDaybookList();
+            } catch (e) {
+                showWarning("Delete Failed", "Could not reach the cloud. Please try again.");
+            }
+        }
+
+
 
         /* --- ADMIN ACCOUNTS DASHBOARD LOGIC --- */
         function switchAdminAccTab(tab) {
@@ -10006,10 +10067,12 @@
         switchTab = function(tabId) {
             originalSwitchTab(tabId);
             if (tabId === 'acc-manage' && currentUserRole === 'Accountant') renderAccManage();
-            if (tabId === 'acc-entry' && currentUserRole === 'Accountant') renderAccEntry();
+            if (tabId === 'acc-entry' && currentUserRole === 'Accountant') {
+                renderAccEntry();
+                renderAccDaybookList(); // Load the uploaded files list
+            }
             if (tabId === 'acc-pending' && currentUserRole === 'Accountant') renderAccPending();
             if (tabId === 'acc-hr' && currentUserRole === 'Accountant') renderAccHR();
-            if (tabId === 'manager-stock' && currentUserRole === 'Manager') renderManagerStock();
         };
         /* ========================================== */
         /* HR & ATTENDANCE LOGIC                      */
