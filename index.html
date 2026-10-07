@@ -348,7 +348,12 @@
                 <input type="text" id="new-cust-area" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:10px; outline:none;" placeholder="E.g. Kannur">
 
                 <span class="step-lbl" style="display:block;">Phone Number</span>
-                <input type="number" id="new-cust-phone" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:15px; outline:none;" placeholder="Optional">
+                <input type="number" id="new-cust-phone" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:10px; outline:none;" placeholder="Optional">
+                
+                <span class="step-lbl" style="display:block;">Select Route *</span>
+                <select id="new-cust-route" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:15px; outline:none; background:white;">
+                    <!-- Options injected dynamically -->
+                </select>
                 
                 <button onclick="saveNewCustomer()" id="btn-save-new-cust" style="width: 100%; background: var(--brand); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: 700; cursor: pointer; box-shadow: 0 2px 4px rgba(10, 74, 156, 0.2);">Save Customer</button>
             </div>
@@ -645,7 +650,7 @@
                     <input type="text" placeholder="Search customer..." id="cust-search-input" oninput="handleCustSearch(this.value)" style="width: 100%; border:none; background:transparent; padding:10px; outline:none; font-size:0.9rem;">
                 </div>
                 <button onclick="openSalesmanCatalog()" style="background: var(--brand-light); color: var(--brand); border: 1px solid var(--brand); width: 40px; height: 40px; border-radius: 6px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem;"><i class="fas fa-book-open"></i></button>
-                <button onclick="document.getElementById('new-cust-modal').classList.remove('hidden')" style="background: var(--brand); color: white; border: none; width: 40px; height: 40px; border-radius: 6px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;"><i class="fas fa-plus"></i></button>
+                <button onclick="openNewCustModal()" style="background: var(--brand); color: white; border: none; width: 40px; height: 40px; border-radius: 6px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;"><i class="fas fa-plus"></i></button>
             </div>
             <div class="scroll-area">
                 <div class="cust-list" id="full-cust-list"></div>
@@ -1849,6 +1854,19 @@
         <div class="scroll-area" style="padding: 16px;" id="rem-feed"></div>
     </div>
 
+    <!-- ADMIN: SHORT ITEMS VIEW -->
+        <div id="admin-short-items-view" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="exitShortItemsView()" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center"><div class="ov-title">Short Items (Stock Deficit)</div></div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            <div style="padding: 12px 16px; background: white; border-bottom: 1px solid var(--border); font-size: 0.8rem; color: var(--text-mut); font-weight: 600;">
+                <i class="fas fa-info-circle" style="color:var(--warning);"></i> Items where Live Demand (Pending + Packed) exceeds ERP Stock.
+            </div>
+            <div class="scroll-area" style="padding: 16px;" id="short-items-feed"></div>
+        </div>
+
     <!-- PACKING: DETAIL VIEW -->
     <div id="packing-detail-view" class="order-view hidden">
         <div class="ov-head">
@@ -1939,8 +1957,8 @@
         /* SUPABASE INTEGRATION                       */
         /* ========================================== */
         
-        const SUPABASE_URL = 'https://xokjdpkskjctteondwxf.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhva2pkcGtza2pjdHRlb25kd3hmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUzOTM5ODgsImV4cCI6MjEwMDk2OTk4OH0.4SR4nFJJCo0igMKj644pNrjNLB71ZtKVnjGT-rPsy2g';
+        const SUPABASE_URL = 'https://vvqpllkegiqahomchant.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZ2cXBsbGtlZ2lxYWhvbWNoYW50Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEzNTYwMDgsImV4cCI6MjEwNjkzMjAwOH0.aixdXdSdgiXd08CUIDtbvhSQh0zqhFea_b4xKQVtZjQ';
         
         // Explicitly force Supabase to persist the session in LocalStorage so it survives app closures
         const sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
@@ -2098,107 +2116,110 @@
 
         async function fetchDataFromSupabase() {
             try {
-                // ALL HEAVY TRANSACTIONAL DATA IS NOW LAZY-LOADED. WE ONLY FETCH MASTER DATA HERE TO MAKE APP BOOT INSTANT.
+                const currentUserId = userSession ? userSession.user.id : "local_dev";
                 const fetchTasks = [];
 
-                fetchTasks.push(sbClient.from('profiles').select('*').then(({data}) => {
-                    if (data) PROFILES = data;
-                }));
+                // 1. Fetch Tiny Essential Configs (Costs basically zero bandwidth)
+                fetchTasks.push(sbClient.from('profiles').select('*').then(({data}) => { if (data) PROFILES = data; }));
+                fetchTasks.push(sbClient.from('shop_settings').select('*').eq('id', 1).limit(1).then(({data}) => { if (data && data.length > 0 && data[0].lat) window.SHOP_LOCATION = data[0]; }));
+                fetchTasks.push(sbClient.from('attendance').select('*').eq('user_id', currentUserId).then(({data}) => { if (data) window.MY_ATTENDANCE = data; }));
 
-                // Fetch Global Shop Coordinates
-                fetchTasks.push(sbClient.from('shop_settings').select('*').eq('id', 1).single().then(({data}) => {
-                    if (data && data.lat) window.SHOP_LOCATION = data;
-                }));
+                // 2. SMART CACHING: Check if ERP has synced since our last app boot
+                const { data: syncLogData } = await sbClient.from('sync_logs').select('last_sync').eq('id', 1).limit(1);
+                const syncLog = syncLogData && syncLogData.length > 0 ? syncLogData[0] : null;
+                const cloudSyncTime = syncLog ? syncLog.last_sync : 'force';
+                const localSyncTime = localStorage.getItem('b2b_sync_time');
 
-                // Fetch Personal Attendance for Profile Tab
-                const currentUserId = userSession ? userSession.user.id : "local_dev";
-                fetchTasks.push(sbClient.from('attendance').select('*').eq('user_id', currentUserId).then(({data}) => {
-                    if (data) window.MY_ATTENDANCE = data;
-                }));
+                const cachedInv = localStorage.getItem('b2b_inv');
+                const cachedCust = localStorage.getItem('b2b_cust');
 
-                fetchTasks.push((async () => {
-                    let itemsData = []; let iMore = true; let iPage = 0;
-                    while (iMore) {
-                        const { data } = await sbClient.from('items').select('*').range(iPage * 1000, (iPage + 1) * 1000 - 1);
-                        if (data) itemsData.push(...data);
-                        if (!data || data.length < 1000) iMore = false; iPage++;
-                    }
-                    if (itemsData.length > 0) {
-                        INVENTORY = itemsData.map(item => {
-                            item.code = item.code || "UNKNOWN"; item.name = item.name || "Unnamed Item"; item.category = item.category || "All";
-                            item.cost = parseFloat(item.cost) || 0; item.mrp = parseFloat(item.mrp) || 0; item.price2 = parseFloat(item.price2) || 0;
-                            item.stock = parseInt(item.stock) || 0; item.caseQty = parseInt(item.caseQty) || null;
-                            item.vendor = item.vendor || 'UNASSIGNED';
-                            if (!item.slabs || !Array.isArray(item.slabs) || item.slabs.length === 0) item.slabs = [{min: 0, max: 99999, markup: 0}];
-                            else {
-                                item.slabs = item.slabs.map(s => ({ min: parseInt(s?.min) || 0, max: parseInt(s?.max) || 0, markup: parseFloat(s?.markup) || 0 }));
-                                if (item.slabs.length > 0) item.slabs[item.slabs.length - 1].max = 99999;
-                            }
-                            const realSlabs = item.slabs.filter(s => s.markup > 0 || (s.max > 0 && s.max < 99999));
-                            if (realSlabs.length <= 1) item.has_slabs = false;
-                            
-                            // Parse Scheme Data & Dates
-                            item.is_scheme = !!item.is_scheme;
-                            item.scheme_start = item.scheme_start || null;
-                            item.scheme_end = item.scheme_end || null;
-                            item.scheme_slabs = Array.isArray(item.scheme_slabs) ? item.scheme_slabs : [];
-                            if (item.scheme_slabs.length > 0) item.scheme_slabs.sort((a,b) => b.min - a.min); // Descending for pricing engine
-                            
-                            // Dynamically determine if scheme is currently valid based on today's date
-                            const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                            item.is_scheme_active = item.is_scheme && item.scheme_slabs.length > 0;
-                            if (item.is_scheme_active && item.scheme_start && item.scheme_end) {
-                                if (todayStr < item.scheme_start || todayStr > item.scheme_end) {
-                                    item.is_scheme_active = false; // Auto-disable expired schemes
-                                }
-                            }
-                            
-                            return item;
-                        });
-                        CATEGORIES = ["All", "🔥 Offers", ...new Set(INVENTORY.map(i => i.category).filter(Boolean))];
-                    }
-                })());
+                // If nothing changed in ERP, load from phone memory instantly! (Zero Data Usage)
+                if (cloudSyncTime === localSyncTime && cachedInv && cachedCust) {
+                    console.log("Loading Master Data from Cache!");
+                    INVENTORY = JSON.parse(cachedInv);
+                    CATEGORIES = ["All", "🔥 Offers", ...new Set(INVENTORY.map(i => i.category).filter(Boolean))];
+                    CUSTOMERS = JSON.parse(cachedCust);
+                } 
+                else {
+                    // ERP updated! Download fresh data and save to phone memory
+                    console.log("Downloading fresh Master Data...");
+                    const itemCols = 'code, name, category, cost, mrp, price2, stock, caseQty, has_slabs, slabs, is_scheme, scheme_slabs, scheme_start, scheme_end, vendor';
 
-                if (currentUserRole !== 'Manager') {
                     fetchTasks.push((async () => {
-                        let custData = []; let cMore = true; let cPage = 0;
-                        while (cMore) {
-                            const { data } = await sbClient.from('customers').select('*').range(cPage * 1000, (cPage + 1) * 1000 - 1);
-                            if (data) custData.push(...data);
-                            if (!data || data.length < 1000) cMore = false; cPage++;
+                        let itemsData = []; let iMore = true; let iPage = 0;
+                        while (iMore) {
+                            const { data } = await sbClient.from('items').select(itemCols).range(iPage * 1000, (iPage + 1) * 1000 - 1);
+                            if (data) itemsData.push(...data);
+                            if (!data || data.length < 1000) iMore = false; iPage++;
                         }
-                        if (custData.length > 0) {
-                            const uniqueMap = new Map();
-                            custData.forEach(c => {
-                                const cleanCode = (c.code || "").trim().toUpperCase();
-                                if (cleanCode) uniqueMap.set(cleanCode, c);
+                        if (itemsData.length > 0) {
+                            INVENTORY = itemsData.map(item => {
+                                item.code = item.code || "UNKNOWN"; item.name = item.name || "Unnamed Item"; item.category = item.category || "All";
+                                item.cost = parseFloat(item.cost) || 0; item.mrp = parseFloat(item.mrp) || 0; item.price2 = parseFloat(item.price2) || 0;
+                                item.stock = parseInt(item.stock) || 0; item.caseQty = parseInt(item.caseQty) || null;
+                                item.vendor = item.vendor || 'UNASSIGNED';
+                                if (!item.slabs || !Array.isArray(item.slabs) || item.slabs.length === 0) item.slabs = [{min: 0, max: 99999, markup: 0}];
+                                else {
+                                    item.slabs = item.slabs.map(s => ({ min: parseInt(s?.min) || 0, max: parseInt(s?.max) || 0, markup: parseFloat(s?.markup) || 0 }));
+                                    if (item.slabs.length > 0) item.slabs[item.slabs.length - 1].max = 99999;
+                                }
+                                const realSlabs = item.slabs.filter(s => s.markup > 0 || (s.max > 0 && s.max < 99999));
+                                if (realSlabs.length <= 1) item.has_slabs = false;
+                                
+                                item.is_scheme = !!item.is_scheme;
+                                item.scheme_start = item.scheme_start || null;
+                                item.scheme_end = item.scheme_end || null;
+                                item.scheme_slabs = Array.isArray(item.scheme_slabs) ? item.scheme_slabs : [];
+                                if (item.scheme_slabs.length > 0) item.scheme_slabs.sort((a,b) => b.min - a.min); 
+                                
+                                const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                                item.is_scheme_active = item.is_scheme && item.scheme_slabs.length > 0;
+                                if (item.is_scheme_active && item.scheme_start && item.scheme_end) {
+                                    if (todayStr < item.scheme_start || todayStr > item.scheme_end) item.is_scheme_active = false;
+                                }
+                                return item;
                             });
-                            CUSTOMERS = Array.from(uniqueMap.values());
+                            CATEGORIES = ["All", "🔥 Offers", ...new Set(INVENTORY.map(i => i.category).filter(Boolean))];
+                            try { localStorage.setItem('b2b_inv', JSON.stringify(INVENTORY)); } catch(e){}
                         }
                     })());
+
+                    if (currentUserRole !== 'Manager') {
+                        fetchTasks.push((async () => {
+                            let custData = []; let cMore = true; let cPage = 0;
+                            while (cMore) {
+                                const { data } = await sbClient.from('customers').select('*').range(cPage * 1000, (cPage + 1) * 1000 - 1);
+                                if (data) custData.push(...data);
+                                if (!data || data.length < 1000) cMore = false; cPage++;
+                            }
+                            if (custData.length > 0) {
+                                const uniqueMap = new Map();
+                                custData.forEach(c => {
+                                    const cleanCode = (c.code || "").trim().toUpperCase();
+                                    if (cleanCode) uniqueMap.set(cleanCode, c);
+                                });
+                                CUSTOMERS = Array.from(uniqueMap.values());
+                                try { localStorage.setItem('b2b_cust', JSON.stringify(CUSTOMERS)); } catch(e){}
+                            }
+                        })());
+                    }
+
+                    // Update memory clock so it skips download next time
+                    try { localStorage.setItem('b2b_sync_time', cloudSyncTime); } catch(e){}
                 }
 
+                // 3. Dynamic Fetches for Specific Roles
                 if (currentUserRole === 'Admin') {
-                    fetchTasks.push(sbClient.from('attendance').select('*').then(({data}) => {
-                        if (data) window.ALL_ATTENDANCE = data;
-                    }));
+                    fetchTasks.push(sbClient.from('attendance').select('*').then(({data}) => { if (data) window.ALL_ATTENDANCE = data; }));
+                    fetchTasks.push(sbClient.from('purchase_orders').select('id, vendor_name, total_amount, status, created_at, created_by, items').order('created_at', { ascending: false }).limit(200).then(({data}) => { if (data) window.PURCHASE_ORDERS = data; }));
                 } else if (currentUserRole === 'Accountant') {
-                    fetchTasks.push(sbClient.from('bank_transactions').select('*').order('trans_date', { ascending: false }).then(({data}) => {
-                        if (data) window.BANK_TXNS = data;
-                    }));
-                    fetchTasks.push(sbClient.from('banks').select('*').then(({data}) => {
-                        if (data) window.BANKS = data;
-                    }));
-                    fetchTasks.push(sbClient.from('vendors').select('*').then(({data}) => {
-                        if (data) window.VENDORS = data;
-                    }));
-                    fetchTasks.push(sbClient.from('attendance').select('*').then(({data}) => {
-                        if (data) window.ALL_ATTENDANCE = data;
-                    }));
+                    fetchTasks.push(sbClient.from('bank_transactions').select('*').order('trans_date', { ascending: false }).then(({data}) => { if (data) window.BANK_TXNS = data; }));
+                    fetchTasks.push(sbClient.from('banks').select('*').then(({data}) => { if (data) window.BANKS = data; }));
+                    fetchTasks.push(sbClient.from('vendors').select('*').then(({data}) => { if (data) window.VENDORS = data; }));
+                    fetchTasks.push(sbClient.from('attendance').select('*').then(({data}) => { if (data) window.ALL_ATTENDANCE = data; }));
                 }
 
-                await Promise.all(fetchTasks); // Fetches everything above simultaneously
-
+                await Promise.all(fetchTasks); // Execute remaining queries
             } catch (e) { console.warn("Cloud Fetch Failed: ", e); }
         }
 
@@ -2948,7 +2969,7 @@
         let BANK_TXNS = [];
         let BANKS = [];
         let VENDORS = [];
-        let offlineDeliveries = []; // Offline sync queue
+        
         let CREDIT_CACHE_LOADED = false;
         let CUSTOMER_CREDIT_MAP = {}; 
 
@@ -3085,15 +3106,9 @@
             else cart = {};
             
             if (localStorage.getItem('b2b_packs')) allPacks = JSON.parse(localStorage.getItem('b2b_packs'));
-            if (localStorage.getItem('b2b_offline_dels')) offlineDeliveries = JSON.parse(localStorage.getItem('b2b_offline_dels'));
             if (localStorage.getItem('b2b_erp_del_cache')) ERP_DELIVERIES = JSON.parse(localStorage.getItem('b2b_erp_del_cache'));
             
             updateBadge();
-
-            // Auto-trigger sync if coming back online
-            window.addEventListener('online', syncOfflineDeliveries);
-            // Run on boot in case they closed app while offline
-            setTimeout(syncOfflineDeliveries, 2000);
         }
         
         function saveLocalState() {
@@ -3104,7 +3119,6 @@
             if (currentPackOrder) allPacks[currentPackOrder.id] = currentPackOrder;
             localStorage.setItem('b2b_packs', JSON.stringify(allPacks));
             
-            localStorage.setItem('b2b_offline_dels', JSON.stringify(offlineDeliveries));
             localStorage.setItem('b2b_erp_del_cache', JSON.stringify(ERP_DELIVERIES));
         }
 
@@ -3585,6 +3599,12 @@
                 }
             } else {
                 if (!wasInCart) d.added_at = Date.now(); // Track exact addition order
+                
+                // LOCK THE RATE AT THE TIME OF ADDING TO CART
+                const item = INVENTORY.find(i => i.code === code);
+                const totalPcs = (d.c * (item.caseQty || 0)) + d.p;
+                d.locked_rate = getApplicableRate(item, totalPcs, d.r, d.cr);
+                
                 cart[code] = {...d}; 
                 if (btnElement) {
                     btnElement.innerText = wasInCart ? "UPDATED" : "ADDED";
@@ -3597,7 +3617,6 @@
             saveLocalState(); 
             updateBadge(); 
             
-            // Wait 600 milliseconds to show the feedback, then refresh the list
             setTimeout(() => {
                 renderOrderFeed();
             }, 600); 
@@ -3628,6 +3647,11 @@
             
             cart[code].c = cases;
             cart[code].p = pcs;
+            
+            // LOCK THE NEW SLAB RATE
+            const totalPcs = (cases * (item.caseQty || 0)) + pcs;
+            cart[code].locked_rate = getApplicableRate(item, totalPcs, cart[code].r, cart[code].cr);
+            
             draft[code] = {...cart[code]};
             
             saveLocalState();
@@ -3656,7 +3680,9 @@
                 const item = INVENTORY.find(i => i.code === code);
                 const cq = item.caseQty || 0;
                 const totalPcs = (qty.c * cq) + qty.p;
-                const rate = getApplicableRate(item, totalPcs, qty.r, qty.cr);
+                
+                // USE LOCKED RATE IF AVAILABLE
+                const rate = qty.locked_rate || getApplicableRate(item, totalPcs, qty.r, qty.cr);
                 
                 const itemSellPrice = totalPcs * rate;
                 const itemMrpValue = totalPcs * item.mrp;
@@ -3773,7 +3799,14 @@
                 if (hasCases) c.c = parsedVal < 0 ? 0 : parsedVal;
             }
 
-            if(c.c === 0 && c.p === 0) delete cart[code];
+            if(c.c === 0 && c.p === 0) {
+                delete cart[code];
+            } else {
+                // UPDATE AND LOCK THE RATE FOR THE NEW QUANTITY
+                const totalPcs = (c.c * (item.caseQty || 0)) + c.p;
+                c.locked_rate = getApplicableRate(item, totalPcs, c.r, c.cr);
+            }
+
             draft[code] = cart[code] ? {...cart[code]} : {c:0, p:0}; 
             saveLocalState(); updateBadge(); renderCart();
         }
@@ -3796,7 +3829,13 @@
                 const qty = cart[code];
                 const item = INVENTORY.find(i => i.code === code);
                 const totalPcs = (qty.c * (item.caseQty||0)) + qty.p;
-                totalAmount += totalPcs * getApplicableRate(item, totalPcs, qty.r, qty.cr);
+                
+                // USE LOCKED RATE FOR FINAL ORDER TOTAL
+                const finalRate = qty.locked_rate || getApplicableRate(item, totalPcs, qty.r, qty.cr);
+                totalAmount += totalPcs * finalRate;
+                
+                // Ensure locked_rate is saved into the database JSON
+                cart[code].locked_rate = finalRate; 
             }
 
             // Find base maximum ID
@@ -5738,7 +5777,7 @@
                         <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 4px;">${custName}</div>
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span style="font-size: 0.8rem; color:${textCol}; font-weight:800;">${statusText}</span>
-                            <button onclick="showPhotoModal('${order.delivery_photo}')" style="background:white; color:${textCol}; border:1px solid ${textCol}; padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:700; cursor:pointer;">View Photo</button>
+                            <button onclick="showPhotoModal('${order.id}')" style="background:white; color:${textCol}; border:1px solid ${textCol}; padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:700; cursor:pointer;">View Photo</button>
                         </div>
                     </div>`;
                 } else {
@@ -5914,25 +5953,134 @@
         }
 
        async function proceedToSaveDelivery() {
-            const cash = parseFloat(document.getElementById('del-cash').value) || 0;
-            const gpay = parseFloat(document.getElementById('del-gpay').value) || 0;
+            if (!navigator.onLine) {
+                showWarning("No Internet Connection", "You must be online to confirm deliveries and securely sync payments. Please find a connection.");
+                return;
+            }
+
+            const cashAmt = parseFloat(document.getElementById('del-cash').value) || 0;
+            const gpayAmt = parseFloat(document.getElementById('del-gpay').value) || 0;
             const isPayLater = document.getElementById('del-pay-later').checked;
+            const totalCol = cashAmt + gpayAmt;
+            const orderId = currentPhotoOrderId;
             
             closeModal('del-confirm-modal');
             
             const btn = document.getElementById(`btn-del-stop`);
-            if(btn) btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Saving Delivery...`;
-            
-            await saveDeliveryToCloud(currentPhotoOrderId, tempBase64Photo, cash, gpay, isPayLater);
-            
-            if(btn) btn.innerHTML = `<i class="fas fa-camera"></i> Verify & Deliver`; // Reset for next time
-            
-            // Reset checkbox for next time
-            document.getElementById('del-pay-later').checked = false;
-            document.getElementById('del-payment-inputs').style.opacity = '1';
-            document.getElementById('del-payment-inputs').style.pointerEvents = 'auto';
+            if (btn) {
+                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Securely Syncing to Cloud...`;
+                btn.disabled = true;
+            }
 
-            exitDeliveryStop(); // Closes the stop view instantly on success
+            const now = new Date().toISOString();
+            const isErp = orderId.startsWith('ERP') || orderId.startsWith('BAT');
+            const tableName = isErp ? 'erp_deliveries' : 'orders';
+
+            let verifiedItems = [];
+            try {
+                const checkboxes = document.querySelectorAll(`.del-chk-${orderId}:checked`);
+                checkboxes.forEach(chk => verifiedItems.push(chk.getAttribute('data-item-id')));
+            } catch(err) {}
+
+            const targetArray = isErp ? ERP_DELIVERIES : SUBMITTED_ORDERS;
+            const orderIndex = targetArray.findIndex(o => o.id === orderId);
+            
+            let custCode = orderId;
+            let custName = "Unknown";
+            if (orderIndex > -1) {
+                custCode = targetArray[orderIndex].customer_code || targetArray[orderIndex].customer_name || orderId; 
+                custName = targetArray[orderIndex].customer_name || CUSTOMERS.find(c => c.code === custCode)?.name || custCode;
+            }
+
+            try {
+                // 1. PUSH DELIVERY DIRECTLY TO CLOUD
+                const deliveryPayload = {
+                    status: 'Delivered',
+                    pay_later: isPayLater,
+                    delivery_photo: tempBase64Photo,
+                    delivered_at: now
+                };
+                if (isErp) deliveryPayload.verified_items = verifiedItems;
+
+                const { error: delErr } = await sbClient.from(tableName).update(deliveryPayload).eq('id', orderId);
+                if (delErr) throw delErr;
+
+                // 2. AUTO-LINK APP ORDERS
+                if (isErp && custName) {
+                    const appOrdersToClose = SUBMITTED_ORDERS.filter(o => 
+                        o.status === 'Loaded' && 
+                        (CUSTOMERS.find(c => c.code === o.customer_code)?.name === custName || o.customer_code === custName)
+                    );
+                    if (appOrdersToClose.length > 0) {
+                        const idsToUpdate = appOrdersToClose.map(o => o.id);
+                        await sbClient.from('orders').update({ status: 'Delivered', pay_later: isPayLater, delivery_photo: tempBase64Photo, delivered_at: now }).in('id', idsToUpdate);
+                        appOrdersToClose.forEach(o => { o.status = 'Delivered'; o.pay_later = isPayLater; });
+                    }
+                }
+                
+                // 3. PUSH COLLECTION DIRECTLY TO CLOUD (GUARANTEED NO DUPLICATES)
+                if (totalCol > 0 && !isPayLater) {
+                    let nextRecNum = 1;
+                    const { data: latestCol } = await sbClient.from('collections').select('id').order('created_at', { ascending: false }).limit(10);
+                    if (latestCol && latestCol.length > 0) {
+                        nextRecNum = Math.max(...latestCol.map(o => parseInt(o.id.replace(/\D/g, '')) || 0)) + 1;
+                    }
+                    const colId = 'REC' + String(nextRecNum).padStart(4, '0') + '_' + Math.floor(Math.random() * 90 + 10);
+                    
+                    const colPayload = {
+                        id: colId,
+                        customer_code: custCode,
+                        customer_name: custName,
+                        salesman_id: userSession ? userSession.user.id : "local_dev",
+                        amount_cash: cashAmt,
+                        amount_gpay: gpayAmt,
+                        total_amount: totalCol,
+                        created_at: now
+                    };
+
+                    const { error: colErr } = await sbClient.from('collections').insert([colPayload]);
+                    if (colErr) throw colErr;
+
+                    MY_COLLECTIONS.unshift(colPayload);
+                    ALL_COLLECTIONS.unshift(colPayload);
+                }
+
+                // 4. CLOUD SUCCESS! UPDATE LOCAL UI
+                if (orderIndex > -1) {
+                    targetArray[orderIndex].status = 'Delivered';
+                    targetArray[orderIndex].pay_later = isPayLater;
+                    targetArray[orderIndex].delivered_at = now;
+                    if (isErp) targetArray[orderIndex].verified_items = verifiedItems;
+                }
+
+                saveLocalState();
+                
+                if (isErp && targetArray[orderIndex]) {
+                    const batchId = targetArray[orderIndex].batch_id;
+                    const remainingStops = targetArray.filter(o => o.batch_id === batchId && o.status === 'Loaded');
+                    if (remainingStops.length > 0) promptNextStop(batchId, remainingStops);
+                    else showSuccess(totalCol > 0 ? `Delivered and ₹${totalCol} Collected! Batch Complete!` : `Batch Complete!`);
+                } else {
+                    showSuccess(totalCol > 0 ? `Delivered and ₹${totalCol} Collected!` : `Order marked as Delivered.`);
+                }
+                
+                renderDeliveryDetailList();
+                renderDelivery(); 
+                
+                // Cleanup UI for next delivery
+                document.getElementById('del-pay-later').checked = false;
+                document.getElementById('del-payment-inputs').style.opacity = '1';
+                document.getElementById('del-payment-inputs').style.pointerEvents = 'auto';
+                exitDeliveryStop(); 
+
+            } catch (e) {
+                showWarning("Sync Failed", `Could not connect to database. Please check your signal and try again.\n\nError: ${e.message}`);
+            } finally {
+                if (btn) {
+                    btn.innerHTML = `<i class="fas fa-camera"></i> Verify & Deliver`;
+                    btn.disabled = false;
+                }
+            }
         }
 
         function openDeliveryPayment(orderId, isErp) {
@@ -5940,7 +6088,7 @@
             if(!order) return;
             const custName = order.customer_name || CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
             
-            currentColCust = { code: order.customer_code, name: custName };
+            currentColCust = { code: order.customer_code || order.customer_name || order.id, name: custName };
             document.getElementById('col-cust-name').innerText = custName;
             document.getElementById('col-cust-bal').innerText = `Order Amount: ₹${fmt(order.total_amount || order.amount || 0)}`;
             
@@ -5951,195 +6099,9 @@
             document.getElementById('collection-modal').classList.remove('hidden');
         }
 
-        async function saveDeliveryToCloud(orderId, base64Photo, cashAmt = 0, gpayAmt = 0, isPayLater = false) {
-            const now = new Date().toISOString();
-            const isErp = orderId.startsWith('ERP') || orderId.startsWith('BAT');
-            
-            let verifiedItems = [];
-            try {
-                const checkboxes = document.querySelectorAll(`.del-chk-${orderId}:checked`);
-                checkboxes.forEach(chk => verifiedItems.push(chk.getAttribute('data-item-id')));
-            } catch(err) {}
-
-            // 1. ADD TO OFFLINE QUEUE (Include pay_later)
-            offlineDeliveries.push({
-                orderId, isErp, base64Photo, cashAmt, gpayAmt, verifiedItems, timestamp: now, pay_later: isPayLater
-            });
-
-            // 2. UPDATE MEMORY LOCALLY INSTANTLY
-            const targetArray = isErp ? ERP_DELIVERIES : SUBMITTED_ORDERS;
-            const idx = targetArray.findIndex(o => o.id === orderId);
-            
-            let custCode = orderId;
-            let custName = "Unknown";
-            
-            if (idx > -1) {
-                targetArray[idx].status = 'Delivered';
-                targetArray[idx].pay_later = isPayLater;
-                targetArray[idx].delivery_photo = base64Photo;
-                targetArray[idx].delivered_at = now;
-                if (isErp) targetArray[idx].verified_items = verifiedItems;
-                
-                custCode = targetArray[idx].customer_code || targetArray[idx].customer_name; 
-                custName = targetArray[idx].customer_name || CUSTOMERS.find(c => c.code === targetArray[idx].customer_code)?.name || "";
-            }
-
-            if (isErp && custName) {
-                const appOrdersToClose = SUBMITTED_ORDERS.filter(o => 
-                    o.status === 'Loaded' && 
-                    (CUSTOMERS.find(c => c.code === o.customer_code)?.name === custName || o.customer_code === custName)
-                );
-                if (appOrdersToClose.length > 0) {
-                    appOrdersToClose.forEach(o => {
-                        o.status = 'Delivered'; o.pay_later = isPayLater; o.delivery_photo = base64Photo; o.delivered_at = now;
-                    });
-                }
-            }
-            
-            const totalCol = cashAmt + gpayAmt;
-            if (totalCol > 0 && !isPayLater) {
-                let nextRecNum = 1;
-                if (ALL_COLLECTIONS.length > 0) nextRecNum = Math.max(nextRecNum, ...ALL_COLLECTIONS.map(o => parseInt(o.id.replace(/\D/g, '')) || 0)) + 1;
-                if (MY_COLLECTIONS.length > 0) nextRecNum = Math.max(nextRecNum, ...MY_COLLECTIONS.map(o => parseInt(o.id.replace(/\D/g, '')) || 0)) + 1;
-                
-                const colId = 'REC' + String(nextRecNum).padStart(4, '0');
-                
-                const colPayload = {
-                    id: colId,
-                    customer_code: custCode,
-                    customer_name: custName,
-                    salesman_id: userSession ? userSession.user.id : "local_dev",
-                    amount_cash: cashAmt,
-                    amount_gpay: gpayAmt,
-                    total_amount: totalCol,
-                    created_at: now
-                };
-                MY_COLLECTIONS.unshift(colPayload);
-                ALL_COLLECTIONS.unshift(colPayload);
-            }
-
-            // SAFE CACHE
-            try {
-                saveLocalState();
-            } catch (e) {
-                offlineDeliveries[offlineDeliveries.length - 1].base64Photo = null;
-                saveLocalState();
-                showWarning("Storage Full", "Delivery saved to queue, but photo was discarded due to device storage limits.");
-            }
-            
-            // 3. INSTANT UI FEEDBACK & NEXT STOP PROMPT
-            const isOnline = navigator.onLine;
-            
-            if (isErp) {
-                const batchId = targetArray[idx]?.batch_id;
-                const remainingStops = targetArray.filter(o => o.batch_id === batchId && o.status === 'Loaded');
-                
-                if (remainingStops.length > 0) {
-                    promptNextStop(batchId, remainingStops);
-                } else {
-                    showSuccess(totalCol > 0 ? `${isOnline?'Saved!':'Offline Save!'} Delivered! Batch Complete!` : `Batch Complete!`);
-                }
-            } else {
-                showSuccess(totalCol > 0 ? `${isOnline?'Saved!':'Offline Save!'} Delivered and ₹${totalCol} Collected!` : `${isOnline?'Saved!':'Offline Save!'} Order marked as Delivered.`);
-            }
-            
-            renderDeliveryDetailList();
-            renderDelivery(); // Updates sync bar
-
-            // 4. ATTEMPT BACKGROUND SYNC
-            syncOfflineDeliveries();
-        }
-
-        let isSyncingDels = false;
-        async function syncOfflineDeliveries() {
-            if (isSyncingDels || offlineDeliveries.length === 0 || !navigator.onLine) return;
-            isSyncingDels = true;
-            
-            const syncBtn = document.querySelector('#offline-sync-bar button');
-            if (syncBtn) syncBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Syncing...';
-
-            let successfulIndexes = [];
-
-            for (let i = 0; i < offlineDeliveries.length; i++) {
-                const task = offlineDeliveries[i];
-                const tableName = task.isErp ? 'erp_deliveries' : 'orders';
-                
-                // INJECT PAY_LATER FLAG HERE
-                const payload = {
-                    status: 'Delivered',
-                    pay_later: !!task.pay_later,
-                    delivery_photo: task.base64Photo,
-                    delivered_at: task.timestamp
-                };
-                if (task.isErp) payload.verified_items = task.verifiedItems;
-
-                try {
-                    // Push delivery status
-                    const { error: err1 } = await sbClient.from(tableName).update(payload).eq('id', task.orderId);
-                    if (err1) throw err1;
-
-                    // Push auto-link app orders if ERP
-                    if (task.isErp) {
-                        const targetOrder = ERP_DELIVERIES.find(o => o.id === task.orderId);
-                        const custName = targetOrder ? (targetOrder.customer_name || CUSTOMERS.find(c => c.code === targetOrder.customer_code)?.name) : null;
-                        
-                        if (custName) {
-                            const appOrdersToClose = SUBMITTED_ORDERS.filter(o => 
-                                o.status === 'Delivered' && o.delivered_at === task.timestamp &&
-                                (CUSTOMERS.find(c => c.code === o.customer_code)?.name === custName || o.customer_code === custName)
-                            );
-                            if (appOrdersToClose.length > 0) {
-                                const idsToUpdate = appOrdersToClose.map(o => o.id);
-                                await sbClient.from('orders').update({ status: 'Delivered', pay_later: !!task.pay_later, delivery_photo: task.base64Photo, delivered_at: task.timestamp }).in('id', idsToUpdate);
-                            }
-                        }
-                    }
-
-                    // Push Collection if exists AND not marked as pay later
-                    const totalCol = task.cashAmt + task.gpayAmt;
-                    if (totalCol > 0 && !task.pay_later) {
-                        const targetOrder = ERP_DELIVERIES.find(o => o.id === task.orderId) || SUBMITTED_ORDERS.find(o => o.id === task.orderId);
-                        const custCode = targetOrder ? (targetOrder.customer_code || targetOrder.customer_name) : task.orderId;
-                        const custNameStr = targetOrder ? (targetOrder.customer_name || CUSTOMERS.find(c => c.code === custCode)?.name) : "Unknown";
-                        
-                        // Re-calculate ID securely on cloud push
-                        let nextRecNum = 1;
-                        const { data: latestCol } = await sbClient.from('collections').select('id').order('created_at', { ascending: false }).limit(1);
-                        if (latestCol && latestCol.length > 0) {
-                            nextRecNum = (parseInt(latestCol[0].id.replace(/\D/g, '')) || 0) + 1;
-                        }
-                        const colId = 'REC' + String(nextRecNum).padStart(4, '0') + '_' + Math.floor(Math.random() * 100);
-
-                        await sbClient.from('collections').insert({
-                            id: colId,
-                            customer_code: custCode,
-                            customer_name: custNameStr,
-                            salesman_id: userSession ? userSession.user.id : "local_dev",
-                            amount_cash: task.cashAmt,
-                            amount_gpay: task.gpayAmt,
-                            total_amount: totalCol,
-                            created_at: task.timestamp
-                        });
-                    }
-
-                    successfulIndexes.push(i);
-                } catch(e) {
-                    console.warn("Sync failed for task", task.orderId, e);
-                    if (!navigator.onLine) break; 
-                    continue; 
-                }
-            }
-
-            for (let i = successfulIndexes.length - 1; i >= 0; i--) {
-                offlineDeliveries.splice(successfulIndexes[i], 1);
-            }
-
-            saveLocalState();
-            renderDelivery(); 
-            
-            if (syncBtn) syncBtn.innerHTML = 'Sync Now';
-            isSyncingDels = false;
-        }
+        // Hide offline sync bar completely since we are 100% online
+        const syncBar = document.getElementById('offline-sync-bar');
+        if (syncBar) syncBar.classList.add('hidden');
 
         function promptNextStop(batchId, remainingStops) {
             const list = document.getElementById('next-stop-list');
@@ -6211,9 +6173,32 @@
         window.addEventListener('online', syncOfflineNextStops);
         setTimeout(syncOfflineNextStops, 3000);
 
-        function showPhotoModal(base64) {
-            document.getElementById('photo-modal-img').src = base64;
+        async function showPhotoModal(orderId) {
+            const imgEl = document.getElementById('photo-modal-img');
+            imgEl.src = ''; // Clear old photo
             document.getElementById('photo-modal').classList.remove('hidden');
+            
+            // Show a temporary loading text inside the modal
+            imgEl.alt = "Loading securely from Cloud...";
+
+            try {
+                let photoData = null;
+                const isErp = orderId.startsWith('ERP') || orderId.startsWith('BAT') || orderId.startsWith('STOP');
+                const tableName = isErp ? 'erp_deliveries' : 'orders';
+
+                // We ask Supabase for JUST the image of this specific order, ONLY when requested!
+                const { data, error } = await sbClient.from(tableName).select('delivery_photo').eq('id', orderId).single();
+                if (data && data.delivery_photo) {
+                    imgEl.src = data.delivery_photo;
+                    imgEl.alt = "Delivery Proof";
+                } else {
+                    closeModal('photo-modal');
+                    showWarning("No Photo", "This delivery photo was not uploaded, or it was automatically deleted by the 30-day cleanup system.");
+                }
+            } catch (e) {
+                closeModal('photo-modal');
+                showWarning("Network Error", "Could not load the photo from the cloud.");
+            }
         }
 
         // --- DELIVERY HISTORY ---
@@ -6353,7 +6338,7 @@
                         </div>
                         <div style="display:flex; gap: 6px;">
                             <button onclick="openDeliveryPaymentEdit('${order.id}', '${safeName}', ${order.amount}, '${filterDate}')" style="background:var(--brand-light); color:var(--brand); border:1px solid var(--brand); padding:4px 10px; border-radius:4px; font-size:0.7rem; font-weight:800; cursor:pointer;"><i class="fas fa-edit"></i> Edit Pay</button>
-                            <button onclick="showPhotoModal('${order.delivery_photo}')" style="background:#F3F4F6; color:var(--text-mut); border:1px solid var(--border-dark); padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:800; cursor:pointer;"><i class="fas fa-camera"></i> Proof</button>
+                            <button onclick="showPhotoModal('${order.id}')" style="background:#F3F4F6; color:var(--text-mut); border:1px solid var(--border-dark); padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:800; cursor:pointer;"><i class="fas fa-camera"></i> Proof</button>
                         </div>
                     </div>
                 </div>`;
@@ -7367,8 +7352,9 @@
                 document.getElementById('live-top-dashboard').innerHTML = '';
                 feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br><b>Loading Live Data...</b></div>`;
                 
+                const ordCols = 'id, customer_code, customer_name, salesman_id, total_amount, status, items, created_at, packed_at, pay_later, packer_id';
                 const [ordRes, colRes] = await Promise.all([
-                    sbClient.from('orders').select('*').gte('created_at', fromDate).lte('created_at', toDate + 'T23:59:59.999Z').order('created_at', { ascending: false }),
+                    sbClient.from('orders').select(ordCols).gte('created_at', fromDate).lte('created_at', toDate + 'T23:59:59.999Z').order('created_at', { ascending: false }),
                     sbClient.from('collections').select('*').gte('created_at', fromDate).lte('created_at', toDate + 'T23:59:59.999Z').order('created_at', { ascending: false })
                 ]);
                 
@@ -7451,48 +7437,54 @@
                 });
             }
 
-            // 4. Calculate KPIs, Pipeline & Margin
-            let stPendingPack = 0, stPendingBill = 0, stPendingLoad = 0, stPendingDel = 0, stDelivered = 0;
-            let totalOrderVal = 0, totalOrderCost = 0;
+            // 4. Calculate Pipeline Counts (Always based on ALL orders for the day)
+            let stPendingPack = 0, stPendingBill = 0, stBilled = 0;
+            const totalOrderCountUnfiltered = filteredOrders.length;
             
             filteredOrders.forEach(o => {
                 const status = o.status || 'Pending';
                 if (status === 'Pending') stPendingPack++;
                 else if (status === 'Packed') stPendingBill++;
-                else if (status === 'Billed') stPendingLoad++;
-                else if (status === 'Loaded') stPendingDel++;
-                else if (status === 'Delivered') stDelivered++;
-                
-                totalOrderVal += o.total_amount;
+                else if (status === 'Billed' || status === 'Loaded' || status === 'Delivered') stBilled++; // Group everything billed and beyond
+            });
 
-                // Calculate real cost by iterating over the items in the order
+            // 5. Apply Status Filter for Feed & KPIs
+            let feedOrders = filteredOrders;
+            if (adminLiveStatusFilter !== "All") {
+                if (adminLiveStatusFilter === 'Billed') {
+                    feedOrders = feedOrders.filter(o => o.status === 'Billed' || o.status === 'Loaded' || o.status === 'Delivered');
+                } else {
+                    feedOrders = feedOrders.filter(o => (o.status || 'Pending') === adminLiveStatusFilter);
+                }
+            }
+
+            // Calculate KPIs dynamically based ONLY on the filtered feed
+            let totalOrderVal = 0, totalOrderCost = 0;
+            feedOrders.forEach(o => {
+                totalOrderVal += o.total_amount;
                 if (o.items) {
                     for (const code in o.items) {
                         const qty = o.items[code];
-                        const item = INVENTORY.find(i => i.code === code);
-                        if (item) {
-                            const cQty = parseInt(item.caseQty) || 0;
-                            const totalPcs = (qty.c * cQty) + qty.p;
-                            totalOrderCost += (totalPcs * item.cost);
+                        // Ignore removed items for accurate profit math
+                        const isRemoved = (o.status !== 'Pending') && qty.packed === false;
+                        if (!isRemoved) {
+                            const item = INVENTORY.find(i => i.code === code);
+                            if (item) {
+                                const cQty = parseInt(item.caseQty) || 0;
+                                const totalPcs = (qty.c * cQty) + qty.p;
+                                totalOrderCost += (totalPcs * item.cost);
+                            }
                         }
                     }
                 }
             });
 
             let totalCollection = 0;
-            filteredCols.forEach(c => totalCollection += c.total_amount);
+            filteredCols.forEach(c => totalCollection += c.total_amount); // Keep collection global for the day
             
-            const totalOrderCount = filteredOrders.length;
+            const totalOrderCount = feedOrders.length;
             const avgOrderVal = totalOrderCount > 0 ? (totalOrderVal / totalOrderCount) : 0;
-            
-            // Gross Margin % based on Sales Value (Revenue)
             const overallMarginPerc = totalOrderVal > 0 ? (((totalOrderVal - totalOrderCost) / totalOrderVal) * 100) : 0;
-
-            // 5. Apply Status Filter for Feed
-            let feedOrders = filteredOrders;
-            if (adminLiveStatusFilter !== "All") {
-                feedOrders = feedOrders.filter(o => (o.status || 'Pending') === adminLiveStatusFilter);
-            }
 
             // 6. Sort Feed Orders
             feedOrders.sort((a, b) => {
@@ -7504,10 +7496,9 @@
                 }
                 if (adminLiveSort === 'amount') return b.total_amount - a.total_amount;
                 
-                // Advanced sorting requires unpacking margins
                 let costA = 0, costB = 0;
-                if (a.items) { for(let k in a.items) { const i=INVENTORY.find(x=>x.code===k); if(i) costA+= ((a.items[k].c*(i.caseQty||0))+a.items[k].p)*i.cost; } }
-                if (b.items) { for(let k in b.items) { const i=INVENTORY.find(x=>x.code===k); if(i) costB+= ((b.items[k].c*(i.caseQty||0))+b.items[k].p)*i.cost; } }
+                if (a.items) { for(let k in a.items) { const i=INVENTORY.find(x=>x.code===k); if(i && a.items[k].packed !== false) costA+= ((a.items[k].c*(i.caseQty||0))+a.items[k].p)*i.cost; } }
+                if (b.items) { for(let k in b.items) { const i=INVENTORY.find(x=>x.code===k); if(i && b.items[k].packed !== false) costB+= ((b.items[k].c*(i.caseQty||0))+b.items[k].p)*i.cost; } }
                 
                 const profA = a.total_amount - costA;
                 const profB = b.total_amount - costB;
@@ -7521,14 +7512,12 @@
                 return 0;
             });
 
-            // Clean up the old stat filter bar so it completely vanishes
             const oldStatBar = document.getElementById('live-stat-filter-bar');
             if (oldStatBar) oldStatBar.innerHTML = '';
 
             // 7. Inject Dashboard Stats HTML with Clickable Pipeline
             const getPipeStyle = (status) => adminLiveStatusFilter === status ? 'background: #F3F4F6; opacity: 1;' : 'background: white; opacity: 0.6;';
 
-            // Safe formatting variables
             const roundedAvg = Math.round(avgOrderVal / 100) * 100;
             const totalProfit = Math.round(totalOrderVal - totalOrderCost);
             const profitStr = String(totalProfit);
@@ -7572,25 +7561,29 @@
                 </div>
 
                 <div style="background:white; border-radius:8px; border:1px solid var(--border); margin-bottom:16px; box-shadow: 0 1px 2px rgba(0,0,0,0.02); display:flex; overflow:hidden;">
-                    <div onclick="updateLiveFilters('status', 'All')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:var(--text); ${getPipeStyle('All')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${totalOrderCount}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">All<br>Orders</div></div>
-                    <div onclick="updateLiveFilters('status', 'Pending')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:#B45309; border-left:1px solid var(--border); ${getPipeStyle('Pending')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${stPendingPack}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">Pend<br>Packing</div></div>
+                    <div onclick="updateLiveFilters('status', 'All')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:var(--text); ${getPipeStyle('All')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${totalOrderCountUnfiltered}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">All<br>Orders</div></div>
+                    <div onclick="updateLiveFilters('status', 'Pending')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:#B45309; border-left:1px solid var(--border); ${getPipeStyle('Pending')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${stPendingPack}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">Pending</div></div>
                     <div onclick="updateLiveFilters('status', 'Packed')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:#166534; border-left:1px solid var(--border); ${getPipeStyle('Packed')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${stPendingBill}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">Packed</div></div>
-                    <div onclick="updateLiveFilters('status', 'Billed')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:#1E3A8A; border-left:1px solid var(--border); ${getPipeStyle('Billed')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${stPendingLoad}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">Billed</div></div>
+                    <div onclick="updateLiveFilters('status', 'Billed')" style="flex:1; padding:12px 4px; text-align:center; cursor:pointer; color:#1E3A8A; border-left:1px solid var(--border); ${getPipeStyle('Billed')}"><div style="font-size:1.1rem; font-weight:800; margin-bottom:2px;">${stBilled}</div><div style="font-size:0.6rem; font-weight:700; line-height:1.2;">Billed</div></div>
                 </div>
 
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
                     <h4 style="color:var(--text); font-size:0.9rem;">Order Feed</h4>
                     <div style="display:flex; gap:8px;">
+                        <button onclick="openShortItemsView()" style="background: #FFFBEB; color: #B45309; border: 1px solid #FDE68A; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                            <i class="fas fa-exclamation-triangle"></i> Short Items
+                        </button>
                         <button onclick="openRemovedItemsView()" style="background: #FEF2F2; color: var(--accent); border: 1px solid #FEE2E2; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
                             <i class="fas fa-times-circle"></i> Not Packed
                         </button>
                         <select onchange="updateLiveFilters('sort', this.value)" style="padding: 4px 8px; border: 1px solid var(--border); border-radius: 4px; outline: none; font-size: 0.75rem; font-weight: 700; color: var(--brand); background: var(--brand-light);">
                             <option value="time" ${adminLiveSort === 'time' ? 'selected' : ''}>Sort by Time</option>
                             <option value="alpha" ${adminLiveSort === 'alpha' ? 'selected' : ''}>A-Z Name</option>
-                        <option value="amount" ${adminLiveSort === 'amount' ? 'selected' : ''}>Amount (₹)</option>
-                        <option value="profit" ${adminLiveSort === 'profit' ? 'selected' : ''}>Profit (₹)</option>
-                        <option value="margin" ${adminLiveSort === 'margin' ? 'selected' : ''}>Margin (%)</option>
-                    </select>
+                            <option value="amount" ${adminLiveSort === 'amount' ? 'selected' : ''}>Amount (₹)</option>
+                            <option value="profit" ${adminLiveSort === 'profit' ? 'selected' : ''}>Profit (₹)</option>
+                            <option value="margin" ${adminLiveSort === 'margin' ? 'selected' : ''}>Margin (%)</option>
+                        </select>
+                    </div>
                 </div>
             `;
 
@@ -7783,6 +7776,89 @@
 
         function exitRemovedItemsView() {
             document.getElementById('admin-removed-items-view').classList.add('hidden');
+        }
+
+        /* --- SHORT ITEMS VIEWER --- */
+        function openShortItemsView() {
+            renderShortItems();
+            document.getElementById('admin-short-items-view').classList.remove('hidden');
+        }
+
+        function exitShortItemsView() {
+            document.getElementById('admin-short-items-view').classList.add('hidden');
+        }
+
+        function renderShortItems() {
+            const feed = document.getElementById('short-items-feed');
+            const fromDate = document.getElementById('live-from-date').value;
+            const toDate = document.getElementById('live-to-date').value;
+
+            // Calculate Demand from Active Orders (Pending, Packed) within the date range
+            let validOrders = SUBMITTED_ORDERS.filter(o => o.status === 'Pending' || o.status === 'Packed');
+            
+            if (fromDate && toDate) {
+                validOrders = validOrders.filter(o => {
+                    const localDate = new Date(new Date(o.created_at).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                    return localDate >= fromDate && localDate <= toDate;
+                });
+            }
+
+            let demandMap = {};
+            validOrders.forEach(o => {
+                if (o.items) {
+                    for (let key in o.items) {
+                        if (o.items[key].packed === false) continue; // Skip removed items
+                        const realCode = key.split('__')[0];
+                        if (!demandMap[realCode]) demandMap[realCode] = 0;
+                        
+                        const item = INVENTORY.find(i => i.code === realCode);
+                        const cQty = item ? (parseInt(item.caseQty) || 0) : 0;
+                        demandMap[realCode] += (o.items[key].c * cQty) + o.items[key].p;
+                    }
+                }
+            });
+
+            let shortItems = [];
+            for (let code in demandMap) {
+                const demand = demandMap[code];
+                const item = INVENTORY.find(i => i.code === code);
+                if (item) {
+                    const stock = parseInt(item.stock) || 0;
+                    const shortage = demand - stock;
+                    if (shortage > 0) {
+                        shortItems.push({
+                            item: item,
+                            demand: demand,
+                            stock: stock,
+                            shortage: shortage
+                        });
+                    }
+                }
+            }
+
+            shortItems.sort((a,b) => b.shortage - a.shortage);
+
+            if (shortItems.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--success); font-weight:800;"><i class="fas fa-check-circle fa-3x" style="margin-bottom:10px;"></i><br>No shortages detected!</div>`;
+                return;
+            }
+
+            feed.innerHTML = shortItems.map(s => {
+                return `
+                <div style="background: white; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; padding: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                    <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3;">${s.item.name}</div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
+                        <div style="font-size: 0.75rem; color: var(--text-mut);">
+                            ERP Stock: <b style="color:var(--text);">${s.stock}</b><br>
+                            Live Demand: <b style="color:var(--brand);">${s.demand}</b>
+                        </div>
+                        <div style="text-align: right;">
+                            <span style="font-size: 0.65rem; font-weight: 700; color: var(--accent); text-transform: uppercase;">Shortage</span><br>
+                            <b style="color: var(--accent); font-size: 1.2rem;">${s.shortage} NOS</b>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
         }
 
         function updateRemovedFilters(type, val) {
@@ -10372,10 +10448,22 @@
                 showWarning("Error", "Could not get location. Ensure GPS is on.");
             }, { enableHighAccuracy: true });
         }
+        function openNewCustModal() {
+            // Dynamically grab all existing routes from ERP customers
+            const routeSelect = document.getElementById('new-cust-route');
+            const routes = Array.from(new Set(CUSTOMERS.map(c => c.route).filter(r => r && r !== 'UNASSIGNED'))).sort();
+            
+            routeSelect.innerHTML = '<option value="UNASSIGNED">-- Select Route (Optional) --</option>' + 
+                                    routes.map(r => `<option value="${r.replace(/'/g, "\\'")}">${r}</option>`).join('');
+            
+            document.getElementById('new-cust-modal').classList.remove('hidden');
+        }
+
         async function saveNewCustomer() {
             const name = document.getElementById('new-cust-name').value.trim();
             const area = document.getElementById('new-cust-area').value.trim();
             const phone = document.getElementById('new-cust-phone').value.trim();
+            const route = document.getElementById('new-cust-route').value;
 
             if (!name || !area) {
                 showWarning("Missing Info", "Please enter the Shop Name and Area.");
@@ -10386,34 +10474,30 @@
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
             btn.disabled = true;
 
-            // Generate a unique code that sync.js will ignore
             const code = 'NEW_' + Date.now();
-            
             let fullName = `${name} - ${area}`;
             if (phone) fullName += ` (${phone})`;
 
-            // Automatically assign it to this salesman's group
             const mySubgroup = currentUserFullName.split(' ')[0].toUpperCase();
 
             const payload = {
                 code: code,
                 name: fullName,
                 bal: 0,
-                subgroup: mySubgroup
+                subgroup: mySubgroup,
+                route: route // Saves the selected route
             };
 
             try {
                 const { error } = await sbClient.from('customers').insert([payload]);
                 if (error) throw error;
 
-                // Insert directly into local memory and re-render
                 CUSTOMERS.unshift(payload);
                 renderCustomersView();
                 
                 closeModal('new-cust-modal');
                 showSuccess(`${name} added successfully! You can now take their order.`);
                 
-                // Clear inputs for next time
                 document.getElementById('new-cust-name').value = '';
                 document.getElementById('new-cust-area').value = '';
                 document.getElementById('new-cust-phone').value = '';
