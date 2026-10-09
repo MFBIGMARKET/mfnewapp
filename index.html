@@ -5619,15 +5619,10 @@
             if(!feed) return;
             const filterDate = document.getElementById('del-date-filter').value;
             
-            // Offline UI update
+            // Hide the old offline sync bar since we are enforcing 100% online deliveries now
             const syncBar = document.getElementById('offline-sync-bar');
             if (syncBar) {
-                if (offlineDeliveries.length > 0) {
-                    syncBar.classList.remove('hidden');
-                    document.getElementById('offline-sync-count').innerText = offlineDeliveries.length;
-                } else {
-                    syncBar.classList.add('hidden');
-                }
+                syncBar.classList.add('hidden');
             }
 
             feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
