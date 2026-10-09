@@ -1393,21 +1393,43 @@
                 </div>
                 <i class="fas fa-check" style="color: transparent;"></i>
             </div>
-            <div style="background: white; padding: 16px; border-bottom: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); z-index:10;">
+            <div style="background: white; padding: 16px; border-bottom: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); z-index:10; flex-shrink: 0;">
                 <div style="display:flex; justify-content:space-between; margin-bottom: 12px;">
                     <div style="text-align:center; flex:1; border-right: 1px solid var(--border);">
-                        <div style="font-size: 1.2rem; font-weight: 800; color: var(--success);" id="adb-del-amt">₹0</div>
-                        <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-mut); text-transform: uppercase;">Delivered</div>
+                        <div style="font-size: 1.2rem; font-weight: 800; color: var(--success);" id="adb-del-amt">₹ 0</div>
+                        <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-mut); text-transform: uppercase;">Deliv. Bill</div>
                     </div>
                     <div style="text-align:center; flex:1;">
-                        <div style="font-size: 1.2rem; font-weight: 800; color: #B45309;" id="adb-pend-amt">₹0</div>
-                        <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-mut); text-transform: uppercase;">Pending</div>
+                        <div style="font-size: 1.2rem; font-weight: 800; color: #B45309;" id="adb-pend-amt">₹ 0</div>
+                        <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-mut); text-transform: uppercase;">Pending Bill</div>
                     </div>
                 </div>
-                <div style="background: #F3F4F6; border-radius: 8px; height: 8px; overflow: hidden; width: 100%;">
+                <div style="background: #F3F4F6; border-radius: 8px; height: 8px; overflow: hidden; width: 100%; margin-bottom: 12px;">
                     <div id="adb-progress" style="background: var(--success); height: 100%; width: 0%; transition: width 0.5s ease;"></div>
                 </div>
-                <div style="text-align:center; font-size: 0.75rem; font-weight: 700; color: var(--text-mut); margin-top: 8px;" id="adb-stops-text">0 / 0 Stops Delivered</div>
+                
+                <!-- NEW COLLECTIONS SUMMARY ROW (COMPACT) -->
+                <div style="background: var(--success-bg); border: 1px solid #BBF7D0; border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <i class="fas fa-wallet" style="color: var(--success); font-size: 1.2rem;"></i>
+                        <div style="display: flex; flex-direction: column; justify-content: center;">
+                            <div style="font-size: 0.6rem; font-weight: 800; color: #166534; text-transform: uppercase; line-height: 1; margin-bottom: 2px;">Collected</div>
+                            <div style="font-size: 1.05rem; font-weight: 800; color: var(--success); line-height: 1;" id="adb-col-total">₹ 0</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 12px; text-align: right; align-items: center;">
+                        <div style="display: flex; flex-direction: column; justify-content: center;">
+                            <div style="font-size: 0.55rem; font-weight: 800; color: #166534; text-transform: uppercase; line-height: 1; margin-bottom: 2px;">Cash</div>
+                            <div style="font-size: 0.8rem; font-weight: 800; color: var(--text); line-height: 1;" id="adb-col-cash">₹ 0</div>
+                        </div>
+                        <div style="width: 1px; height: 20px; background: #86EFAC;"></div>
+                        <div style="display: flex; flex-direction: column; justify-content: center;">
+                            <div style="font-size: 0.55rem; font-weight: 800; color: #166534; text-transform: uppercase; line-height: 1; margin-bottom: 2px;">UPI</div>
+                            <div style="font-size: 0.8rem; font-weight: 800; color: var(--text); line-height: 1;" id="adb-col-upi">₹ 0</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align:center; font-size: 0.75rem; font-weight: 700; color: var(--text-mut); margin-top: 10px;" id="adb-stops-text">0 / 0 Stops Delivered</div>
             </div>
             <div class="scroll-area" style="padding: 12px; background: var(--bg);" id="admin-delivery-batch-list"></div>
         </div>
@@ -2459,8 +2481,15 @@
             feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br><b>Loading Batches...</b></div>`;
             
             if (filterDate) {
-                const { data } = await sbClient.from('erp_deliveries').select('*').eq('batch_date', filterDate);
-                if (data) ERP_DELIVERIES = data;
+                // FETCH BOTH DELIVERIES AND COLLECTIONS SO THE AMOUNTS SHOW UP!
+                // We purposefully DO NOT select 'delivery_photo' here, so it uses 0 bandwidth.
+                const [delRes, colRes] = await Promise.all([
+                    sbClient.from('erp_deliveries').select('id, batch_id, customer_name, document_numbers, amount, status, batch_date, created_at, delivered_at, pay_later, is_next_stop, verified_items').eq('batch_date', filterDate),
+                    sbClient.from('collections').select('*').gte('created_at', filterDate).lte('created_at', filterDate + 'T23:59:59.999Z')
+                ]);
+                
+                if (delRes.data) ERP_DELIVERIES = delRes.data;
+                if (colRes.data) ALL_COLLECTIONS = colRes.data;
             }
 
             let filtered = (ERP_DELIVERIES || []).filter(o => o.batch_id && o.batch_date === filterDate);
@@ -2556,9 +2585,36 @@
             const pendAmt = totalAmt - delivAmt;
             const progress = totalAmt > 0 ? (delivAmt / totalAmt) * 100 : 0;
 
-            document.getElementById('adb-del-amt').innerText = `₹   ${fmt(delivAmt)}`;
-            document.getElementById('adb-pend-amt').innerText = `₹   ${fmt(pendAmt)}`;
+            // CALCULATE COLLECTIONS FOR THIS BATCH
+            let totalCash = 0;
+            let totalGpay = 0;
+            let totalCollected = 0;
+
+            stops.forEach(s => {
+                if (s.status === 'Delivered' && !s.pay_later) {
+                    const myCol = (ALL_COLLECTIONS || []).find(c => {
+                        const d = new Date(c.created_at);
+                        const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                        const isMatch = (c.customer_code === s.customer_code || c.customer_code === s.customer_name || c.customer_code === s.id);
+                        return isMatch && localDate === filterDate;
+                    });
+                    if (myCol) {
+                        totalCash += myCol.amount_cash || 0;
+                        totalGpay += myCol.amount_gpay || 0;
+                        totalCollected += myCol.total_amount || 0;
+                        s._myCol = myCol; // Cache it so we don't look it up again during the mapping
+                    }
+                }
+            });
+
+            document.getElementById('adb-del-amt').innerText = `₹ ${fmt(delivAmt)}`;
+            document.getElementById('adb-pend-amt').innerText = `₹ ${fmt(pendAmt)}`;
             document.getElementById('adb-progress').style.width = `${progress}%`;
+            
+            document.getElementById('adb-col-total').innerText = `₹ ${fmt(totalCollected)}`;
+            document.getElementById('adb-col-cash').innerText = `₹ ${fmt(totalCash)}`;
+            document.getElementById('adb-col-upi').innerText = `₹ ${fmt(totalGpay)}`;
+            
             document.getElementById('adb-stops-text').innerText = `${deliveredStops} / ${totalStops} Stops Delivered`;
 
             const list = document.getElementById('admin-delivery-batch-list');
@@ -2567,15 +2623,12 @@
             stops.sort((a, b) => {
                 const aDeliv = a.status === 'Delivered';
                 const bDeliv = b.status === 'Delivered';
-                
                 if (a.pay_later !== b.pay_later) return a.pay_later ? -1 : 1;
                 if (aDeliv !== bDeliv) return aDeliv ? 1 : -1;
-                
                 if (!aDeliv) {
                     if (a.is_next_stop !== b.is_next_stop) return a.is_next_stop ? -1 : 1;
                     return (a.customer_name || '').localeCompare(b.customer_name || '');
                 }
-                
                 return new Date(b.delivered_at || 0) - new Date(a.delivered_at || 0);
             });
 
@@ -2591,7 +2644,7 @@
                 let border = isDelivered ? (isPayLater ? '#FCA5A5' : '#BBF7D0') : 'var(--border)';
                 let statusBadgeText = isDelivered ? (isPayLater ? 'PAY LATER' : timeStr) : 'Pending';
 
-                // Extract Salesman Name for this specific order safely
+                // Extract Salesman Name
                 let smName = 'COUNTER'; 
                 const sName = (s.customer_name || '').trim().toUpperCase();
                 const sCode = (s.customer_code || '').trim().toUpperCase();
@@ -2613,7 +2666,6 @@
                         const cCode = (c.code || '').trim().toUpperCase();
                         return cName === sName || cCode === sName || (sCode && cCode === sCode);
                     });
-                    
                     if (cust && cust.subgroup) {
                         let sg = cust.subgroup.trim().toUpperCase();
                         if (sg.includes('SUNNY')) smName = 'SUNNY';
@@ -2628,45 +2680,44 @@
                     nextStopBadge = `<div style="margin-bottom: 4px;"><span style="background: #FEF08A; color: #854D0E; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-location-dot"></i> DRIVER HEADING HERE</span></div>`;
                 }
 
-                // Check for associated Collection on this specific date
-                let collectionAmt = 0;
-                let colBreakdown = '';
-                
-                if (isDelivered && !isPayLater) {
-                    const myCol = (ALL_COLLECTIONS || []).find(c => {
-                        const d = new Date(c.created_at);
-                        const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                        const isMatch = (c.customer_code === s.customer_code || c.customer_code === s.customer_name || c.customer_code === s.id);
-                        return isMatch && localDate === filterDate;
-                    });
+                // Layout for Right Column (Bill vs Collected)
+                let rightColumnHTML = `
+                    <div style="font-weight:800; color:var(--text); font-size:1.1rem; margin-bottom:4px;">₹ ${fmt(s.amount)}</div>
+                `;
 
-                    if (myCol) {
-                        collectionAmt = myCol.total_amount;
+                if (isDelivered) {
+                    if (isPayLater) {
+                        rightColumnHTML += `<div style="font-size:0.7rem; color:#991B1B; font-weight:800; background:#FEE2E2; padding:2px 6px; border-radius:4px; border:1px solid #FCA5A5; display:inline-block; margin-top:2px;">UNPAID</div>`;
+                    } else if (s._myCol) {
                         let tags = [];
-                        if (myCol.amount_cash > 0) tags.push(`C: ₹   ${fmt(myCol.amount_cash)}`);
-                        if (myCol.amount_gpay > 0) tags.push(`U: ₹   ${fmt(myCol.amount_gpay)}`);
-                        colBreakdown = tags.join(' | ');
+                        if (s._myCol.amount_cash > 0) tags.push(`<span style="color:#166534;">C: ₹${fmt(s._myCol.amount_cash)}</span>`);
+                        if (s._myCol.amount_gpay > 0) tags.push(`<span style="color:#1E3A8A;">U: ₹${fmt(s._myCol.amount_gpay)}</span>`);
+                        
+                        rightColumnHTML += `
+                            <div style="margin-top:2px; display:flex; flex-direction:column; align-items:flex-end;">
+                                <span style="font-size:0.75rem; font-weight:800; background:var(--success-bg); padding:3px 6px; border-radius:4px; border:1px solid #BBF7D0;">${tags.join(' <span style="color:#A7F3D0; margin:0 2px;">|</span> ')}</span>
+                            </div>
+                        `;
                     }
                 }
 
-                let paymentBadge = '';
+                // Layout for Status Row (Adding Photo Button cleanly next to the time badge)
+                let statusRowHTML = `
+                    <span style="color:${statusColor}; font-weight:700; font-size:0.7rem; display:inline-block; background:${isDelivered?(isPayLater?'#FEF2F2':'#DCFCE7'):'#FEF3C7'}; padding:4px 8px; border-radius:4px;">
+                        <i class="fas ${icon}"></i> ${statusBadgeText}
+                    </span>
+                `;
+                
                 if (isDelivered) {
-                    if (isPayLater) {
-                        paymentBadge = `
-                        <div style="text-align: right; flex-shrink: 0; margin-top: 6px;">
-                            <span style="font-size: 0.7rem; font-weight: 800; color: #991B1B; background: #FEE2E2; padding: 4px 8px; border-radius: 4px; border: 1px solid #FCA5A5;">UNPAID</span>
-                        </div>`;
-                    } else if (collectionAmt > 0) {
-                        paymentBadge = `
-                        <div style="text-align: right; flex-shrink: 0; display:flex; flex-direction:column; align-items:flex-end; margin-top: 6px;">
-                            <span style="font-size: 1.05rem; font-weight: 800; color: var(--success);">₹   ${fmt(collectionAmt)}</span>
-                            <span style="font-size: 0.6rem; color: var(--text-mut); font-weight: 700; background: var(--success-bg); padding: 2px 4px; border-radius: 4px; margin-top: 2px;">${colBreakdown}</span>
-                        </div>`;
-                    }
+                    statusRowHTML += `
+                        <button onclick="event.stopPropagation(); showPhotoModal('${s.id}')" style="background:white; color:var(--text-mut); border:1px solid var(--border-dark); padding:3px 8px; border-radius:4px; font-size:0.65rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
+                            <i class="fas fa-camera"></i> Proof
+                        </button>
+                    `;
                 }
 
                 return `
-                <div style="background: ${bg}; padding: 14px; border-radius: 6px; border: 1px solid ${s.is_next_stop && !isDelivered ? '#FDE047' : border}; margin-bottom: 10px;">
+                <div style="background: ${bg}; padding: 14px; border-radius: 6px; border: 1px solid ${s.is_next_stop && !isDelivered ? '#FDE047' : border}; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap: 10px;">
                         <div style="color:var(--text); font-weight:800; font-size:0.95rem; flex:1; min-width: 0;">
                             ${nextStopBadge}
@@ -2678,13 +2729,12 @@
                                 <span style="font-weight: 700; color: var(--brand);"><i class="fas fa-user-tie" style="margin-right:2px;"></i> ${smName}</span>
                             </div>
                             
-                            <span style="color:${statusColor}; font-weight:700; font-size:0.7rem; margin-top:8px; display:inline-block; background:${isDelivered?(isPayLater?'#FEF2F2':'#DCFCE7'):'#FEF3C7'}; padding:4px 8px; border-radius:4px;">
-                                <i class="fas ${icon}"></i> ${statusBadgeText}
-                            </span>
+                            <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+                                ${statusRowHTML}
+                            </div>
                         </div>
                         <div style="text-align:right; flex-shrink:0;">
-                            <span style="font-weight:800; color:var(--text); font-size:1.05rem;">₹   ${fmt(s.amount)}</span><br>
-                            ${paymentBadge}
+                            ${rightColumnHTML}
                         </div>
                     </div>
                 </div>`;
@@ -5630,7 +5680,7 @@
             if (filterDate) {
                 try {
                     if (!navigator.onLine) throw new Error("Offline");
-                    const { data, error } = await sbClient.from('erp_deliveries').select('*').eq('batch_date', filterDate).in('status', ['Loaded', 'Delivered']);
+                    const { data, error } = await sbClient.from('erp_deliveries').select('id, batch_id, customer_name, document_numbers, amount, status, batch_date, created_at, delivered_at, pay_later, is_next_stop, verified_items').eq('batch_date', filterDate).in('status', ['Loaded', 'Delivered']);
                     if (error) throw error;
                     if (data) {
                         ERP_DELIVERIES = data;
@@ -6217,7 +6267,7 @@
                             .eq('salesman_id', userSession ? userSession.user.id : "local_dev")
                             .gte('created_at', filterDate)
                             .lte('created_at', filterDate + 'T23:59:59.999Z'),
-                        sbClient.from('erp_deliveries').select('*')
+                        sbClient.from('erp_deliveries').select('id, batch_id, customer_name, document_numbers, amount, status, batch_date, created_at, delivered_at, pay_later, is_next_stop, verified_items')
                             .eq('status', 'Delivered')
                             .gte('delivered_at', filterDate)
                             .lte('delivered_at', filterDate + 'T23:59:59.999Z')
