@@ -2536,7 +2536,7 @@
                         </div>
                     </div>
                     <div style="text-align:right;">
-                        <div style="font-weight: 800; font-size: 1.15rem; color:var(--text); margin-bottom:6px;">₹${fmt(totalAmt)}</div>
+                        <div style="font-weight: 800; font-size: 1.15rem; color:var(--text); margin-bottom:6px;">₹ ${fmt(totalAmt)}</div>
                         <span style="color:var(--brand); font-size:0.8rem; font-weight:700;">View Details <i class="fas fa-arrow-right"></i></span>
                     </div>
                 </div>`;
@@ -2556,8 +2556,8 @@
             const pendAmt = totalAmt - delivAmt;
             const progress = totalAmt > 0 ? (delivAmt / totalAmt) * 100 : 0;
 
-            document.getElementById('adb-del-amt').innerText = `₹${fmt(delivAmt)}`;
-            document.getElementById('adb-pend-amt').innerText = `₹${fmt(pendAmt)}`;
+            document.getElementById('adb-del-amt').innerText = `₹ ${fmt(delivAmt)}`;
+            document.getElementById('adb-pend-amt').innerText = `₹ ${fmt(pendAmt)}`;
             document.getElementById('adb-progress').style.width = `${progress}%`;
             document.getElementById('adb-stops-text').innerText = `${deliveredStops} / ${totalStops} Stops Delivered`;
 
@@ -2643,8 +2643,8 @@
                     if (myCol) {
                         collectionAmt = myCol.total_amount;
                         let tags = [];
-                        if (myCol.amount_cash > 0) tags.push(`C: ₹${fmt(myCol.amount_cash)}`);
-                        if (myCol.amount_gpay > 0) tags.push(`U: ₹${fmt(myCol.amount_gpay)}`);
+                        if (myCol.amount_cash > 0) tags.push(`C: ₹ ${fmt(myCol.amount_cash)}`);
+                        if (myCol.amount_gpay > 0) tags.push(`U: ₹ ${fmt(myCol.amount_gpay)}`);
                         colBreakdown = tags.join(' | ');
                     }
                 }
@@ -2659,7 +2659,7 @@
                     } else if (collectionAmt > 0) {
                         paymentBadge = `
                         <div style="text-align: right; flex-shrink: 0; display:flex; flex-direction:column; align-items:flex-end; margin-top: 6px;">
-                            <span style="font-size: 1.05rem; font-weight: 800; color: var(--success);">₹${fmt(collectionAmt)}</span>
+                            <span style="font-size: 1.05rem; font-weight: 800; color: var(--success);">₹ ${fmt(collectionAmt)}</span>
                             <span style="font-size: 0.6rem; color: var(--text-mut); font-weight: 700; background: var(--success-bg); padding: 2px 4px; border-radius: 4px; margin-top: 2px;">${colBreakdown}</span>
                         </div>`;
                     }
@@ -2683,7 +2683,7 @@
                             </span>
                         </div>
                         <div style="text-align:right; flex-shrink:0;">
-                            <span style="font-weight:800; color:var(--text); font-size:1.05rem;">₹${fmt(s.amount)}</span><br>
+                            <span style="font-weight:800; color:var(--text); font-size:1.05rem;">₹ ${fmt(s.amount)}</span><br>
                             ${paymentBadge}
                         </div>
                     </div>
@@ -2813,7 +2813,7 @@
             // Calculate Total
             let totalCredit = 0;
             filtered.forEach(c => totalCredit += (c.bal || 0));
-            document.getElementById('admin-credit-total').innerText = `₹${fmt(totalCredit)}`;
+            document.getElementById('admin-credit-total').innerText = `₹ ${fmt(totalCredit)}`;
 
             // Apply Sort
             filtered.sort((a,b) => {
@@ -2868,7 +2868,7 @@
                         </div>
                         <div style="flex: 0 0 30%; text-align: right; min-width: 0;">
                             <span style="font-size: 0.6rem; color:var(--text-mut); text-transform:uppercase; font-weight:700;">Balance</span><br>
-                            <b style="color:var(--accent); font-size: 1.1rem; word-break: break-word;">₹${fmt(c.bal)}</b>
+                            <b style="color:var(--accent); font-size: 1.1rem; word-break: break-word;">₹ ${fmt(c.bal)}</b>
                         </div>
                     </div>
                     <div id="cr-sales-${safeId}" class="hidden" style="padding: 0 14px 14px 14px; background: #F9FAFB; border-top: 1px dashed var(--border);">
@@ -3076,7 +3076,7 @@
                 if (b.status === 'UNPAID') {
                     statBadge = `<span style="background:#FEE2E2; color:#991B1B; padding:2px 4px; border-radius:3px; font-size:0.6rem; font-weight:800;">UNPAID</span>`;
                 } else if (b.status === 'PARTIAL') {
-                    statBadge = `<span style="background:#FEF08A; color:#854D0E; padding:2px 4px; border-radius:3px; font-size:0.6rem; font-weight:800;">PARTIAL (₹${fmt(b.due)} Due)</span>`;
+                    statBadge = `<span style="background:#FEF08A; color:#854D0E; padding:2px 4px; border-radius:3px; font-size:0.6rem; font-weight:800;">PARTIAL (₹ ${fmt(b.due)} Due)</span>`;
                 } else {
                     statBadge = `<span style="background:#DCFCE7; color:#166534; padding:2px 4px; border-radius:3px; font-size:0.6rem; font-weight:800;">PAID</span>`;
                 }
@@ -3085,7 +3085,7 @@
                 <div style="display:flex; justify-content:space-between; align-items:center; padding: 6px 0; border-bottom: 1px dashed var(--border); font-size: 0.85rem;">
                     <div style="color:var(--text-mut); font-weight: 600;">${b.doc} <br><span style="font-size:0.7rem; color:var(--text);">${dateStr}</span></div>
                     <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end;">
-                        <span style="font-weight:800; color:var(--text);">₹${fmt(b.amt)}</span>
+                        <span style="font-weight:800; color:var(--text);">₹ ${fmt(b.amt)}</span>
                         ${statBadge}
                     </div>
                 </div>`;
@@ -3157,7 +3157,7 @@
                 <div class="cust-card">
                     <div style="flex: 1; min-width: 0; padding-right: 15px;">
                         <div class="ov-title" style="margin-bottom: 2px;">${c.name} ${cartBadge}</div>
-                        <span style="font-weight:700; color:var(--brand); display:inline-block;">Bal: ₹${fmt(c.bal)}</span>
+                        <span style="font-weight:700; color:var(--brand); display:inline-block;">Bal: ₹ ${fmt(c.bal)}</span>
                     </div>
                     <button class="btn-take-order" style="flex-shrink: 0;" onclick="startOrder('${c.code}')">Take Order</button>
                 </div>
@@ -3180,7 +3180,7 @@
             saveLocalState();
 
             document.getElementById('ov-cust-name').innerText = activeCust.name;
-            document.getElementById('ov-cust-bal').innerText = `Bal: ₹${fmt(activeCust.bal)}`;
+            document.getElementById('ov-cust-bal').innerText = `Bal: ₹ ${fmt(activeCust.bal)}`;
             updateBadge();
             
             orderSearchQuery = ""; document.getElementById('order-search-input').value = "";
@@ -3247,7 +3247,7 @@
                         ${item.scheme_slabs.map(s => `
                             <div style="display:flex; justify-content:space-between; align-items:center; background:white; padding:16px 20px; border-radius:8px; border:1px solid #FDE68A;">
                                 <div style="font-weight:800; color:#B45309; font-size:1.2rem;">Buy ${s.min} Pcs</div>
-                                <div style="font-weight:900; color:var(--text); font-size:1.4rem;">₹${fmt(s.rate)}</div>
+                                <div style="font-weight:900; color:var(--text); font-size:1.4rem;">₹ ${fmt(s.rate)}</div>
                             </div>
                         `).join('')}
                         </div>
@@ -3264,7 +3264,7 @@
                                 return `
                                 <div style="display:flex; justify-content:space-between; align-items:center; background:#F9FAFB; padding:14px 20px; border-radius:8px; border:1px solid var(--border);">
                                     <div style="font-weight:800; color:var(--text-mut); font-size:1.1rem;">${smartLabel}</div>
-                                    <div style="font-weight:900; color:var(--text); font-size:1.3rem;">₹${rate.toFixed(2)}</div>
+                                    <div style="font-weight:900; color:var(--text); font-size:1.3rem;">₹ ${rate.toFixed(2)}</div>
                                 </div>`;
                             }).join('')}
                             </div>
@@ -3287,11 +3287,11 @@
                     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
                         <div>
                             <div style="font-size: 0.95rem; color:var(--text-mut); font-weight:700;">Code: <span style="color:var(--text);">${item.code}</span></div>
-                            <div style="font-size: 0.95rem; color:var(--text-mut); font-weight:700; margin-top:4px;">MRP: <span style="color:var(--accent); text-decoration:line-through; font-size: 1.1rem;">₹${fmt(item.mrp)}</span></div>
+                            <div style="font-size: 0.95rem; color:var(--text-mut); font-weight:700; margin-top:4px;">MRP: <span style="color:var(--accent); text-decoration:line-through; font-size: 1.1rem;">₹ ${fmt(item.mrp)}</span></div>
                         </div>
                         <div style="text-align:right;">
                             <div style="font-size: 0.85rem; color:var(--brand); font-weight:800; text-transform:uppercase; margin-bottom:2px;">Standard Rate</div>
-                            <div style="font-weight: 900; font-size: 2rem; color:var(--brand);">₹${baseRate}</div>
+                            <div style="font-weight: 900; font-size: 2rem; color:var(--brand);">₹ ${baseRate}</div>
                         </div>
                     </div>
                     
@@ -3384,7 +3384,7 @@
                     const slabHTML = item.scheme_slabs.map(s => `
                         <div class="slab-row" style="background:white; border-color:#FDE68A;">
                             <div class="sl-col-name" style="color:#B45309;">Buy ${s.min} Pcs</div>
-                            <div class="sl-col-rate" style="color:#92400E; font-size:0.85rem;">₹${fmt(s.rate)}</div>
+                            <div class="sl-col-rate" style="color:#92400E; font-size:0.85rem;">₹ ${fmt(s.rate)}</div>
                             <div class="sl-col-act"><button class="btn-apply" style="background:#F59E0B; color:white; border:none;" onclick="applySlab('${item.code}', ${s.min})">Apply</button></div>
                         </div>`).join('');
                     
@@ -3408,7 +3408,7 @@
                         return `
                             <div class="slab-row">
                                 <div class="sl-col-name">${smartLabel}</div>
-                                <div class="sl-col-rate">₹${rate.toFixed(2)} <span class="prof">(${retailerMargin.toFixed(2)}%)</span></div>
+                                <div class="sl-col-rate">₹ ${rate.toFixed(2)} <span class="prof">(${retailerMargin.toFixed(2)}%)</span></div>
                                 <div class="sl-col-act"><button class="btn-apply" onclick="applySlab('${item.code}', ${s.min})">Apply</button></div>
                             </div>
                         `;
@@ -3421,8 +3421,8 @@
 
                     pricingUI = `
                         <div style="display: flex; gap: 6px; margin-top: 4px; flex-wrap: wrap;">
-                            <div class="quick-price">Rate: ₹${baseRate.toFixed(2)}</div>
-                            ${bestRate < baseRate ? `<div class="quick-price" style="background: var(--success-bg); color: var(--success);">Best Rate: ₹${bestRate.toFixed(2)}</div>` : ''}
+                            <div class="quick-price">Rate: ₹ ${baseRate.toFixed(2)}</div>
+                            ${bestRate < baseRate ? `<div class="quick-price" style="background: var(--success-bg); color: var(--success);">Best Rate: ₹ ${bestRate.toFixed(2)}</div>` : ''}
                         </div>
                     `;
                     
@@ -3440,7 +3440,7 @@
                     
                     pricingUI = `
                         <div style="font-size: 1.05rem; font-weight: 800; color: var(--brand); margin-top: 4px;">
-                            Rate: ₹${flatRate.toFixed(2)}
+                            Rate: ₹ ${flatRate.toFixed(2)}
                             <span style="color: var(--success); font-size: 0.8rem; font-weight: 600; margin-left: 4px;">(${retailerMargin.toFixed(2)}%)</span>
                         </div>
                     `;
@@ -3465,7 +3465,7 @@
                             <div class="c-img" style="cursor:pointer;" onclick="triggerItemPhotoUpload('${item.code}')" title="Tap to add/change photo">${imgBox}</div>
                             <div class="c-info">
                                 <div class="c-title">${item.name}</div>
-                                <div class="c-meta">MRP: <span class="c-mrp">₹${fmt(item.mrp)}</span> <span style="font-weight: 600;">${cQtyStr}</span> ${stockStr}</div>
+                                <div class="c-meta">MRP: <span class="c-mrp">₹ ${fmt(item.mrp)}</span> <span style="font-weight: 600;">${cQtyStr}</span> ${stockStr}</div>
                                 ${pricingUI}
                             </div>
                         </div>
@@ -3578,7 +3578,7 @@
             const perc = ourSellPrice > 0 ? ((sav / ourSellPrice) * 100).toFixed(1) : 0;
             
             if (sav > 0) {
-                el.innerHTML = `Total Savings: ₹${fmt(sav)} (${perc}%)`;
+                el.innerHTML = `Total Savings: ₹ ${fmt(sav)} (${perc}%)`;
                 el.style.display = 'block';
             } else {
                 el.style.display = 'none';
@@ -3714,7 +3714,7 @@
                         }
                         upsellUI = `
                         <div style="background: #EFF6FF; padding: 6px 10px; font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #BFDBFE; color: #1E3A8A;">
-                            <span><i class="fas fa-arrow-trend-up" style="margin-right:4px;"></i>Add <b>${addText}</b> for <b>₹${nextRate}</b> rate</span>
+                            <span><i class="fas fa-arrow-trend-up" style="margin-right:4px;"></i>Add <b>${addText}</b> for <b>₹ ${nextRate}</b> rate</span>
                             <button onclick="applyCartSlab('${code}', ${nextSlab.min})" style="background: white; border: 1px solid #2563EB; color: #2563EB; border-radius: 4px; padding: 4px 10px; font-weight: 700; cursor: pointer; font-size: 0.7rem;">Apply</button>
                         </div>
                         `;
@@ -3730,12 +3730,12 @@
                                     <span style="color: var(--text-mut); font-weight: 800; margin-right: 4px;">${index + 1}.</span>${item.name}
                                 </div>
                                 <div style="text-align: right; flex-shrink: 0;">
-                                    <span style="color: var(--accent); font-size: 0.95rem; font-weight: 800;">₹${fmt(item.mrp)}</span>
+                                    <span style="color: var(--accent); font-size: 0.95rem; font-weight: 800;">₹ ${fmt(item.mrp)}</span>
                                 </div>
                             </div>
                             <div style="font-size: 0.8rem; color: var(--text-mut); font-weight: 600; display: flex; justify-content: space-between; align-items: center;">
-                                <span style="background: var(--brand-light); color: var(--brand); padding: 3px 6px; border-radius: 4px;">₹${fmt(rate)} × ${totalPcs} Pcs</span>
-                                <span style="color:var(--text); font-size: 1.1rem; font-weight: 800;">₹${fmt(itemSellPrice)}</span>
+                                <span style="background: var(--brand-light); color: var(--brand); padding: 3px 6px; border-radius: 4px;">₹ ${fmt(rate)} × ${totalPcs} Pcs</span>
+                                <span style="color:var(--text); font-size: 1.1rem; font-weight: 800;">₹ ${fmt(itemSellPrice)}</span>
                             </div>
                         </div>
                         <div class="ct-controls">
@@ -3759,7 +3759,7 @@
                         </div>
                     </div>
                     ${upsellUI}
-                    <div class="savings-strip" style="display:${sav > 0 ? 'block' : 'none'};">Savings: ₹${fmt(sav)} (${savPerc}%)</div>
+                    <div class="savings-strip" style="display:${sav > 0 ? 'block' : 'none'};">Savings: ₹ ${fmt(sav)} (${savPerc}%)</div>
                 </div>
                 `;
             }).join('');
@@ -3769,9 +3769,9 @@
             // Calculate overall Retailer Margin %
             const retailerMarginPerc = tPay > 0 ? ((tRetailerSav / tPay) * 100).toFixed(1) : 0;
             
-            document.getElementById('sum-mrp').innerText = `₹${fmt(tMrpTotal)}`;
-            document.getElementById('sum-ret-margin').innerText = `₹${fmt(tRetailerSav)} (${fmt(retailerMarginPerc)}%)`;
-            document.getElementById('sum-pay').innerText = `₹${fmt(tPay)}`;
+            document.getElementById('sum-mrp').innerText = `₹ ${fmt(tMrpTotal)}`;
+            document.getElementById('sum-ret-margin').innerText = `₹ ${fmt(tRetailerSav)} (${fmt(retailerMarginPerc)}%)`;
+            document.getElementById('sum-pay').innerText = `₹ ${fmt(tPay)}`;
         }
 
         function editCartStep(code, type, change) {
@@ -3982,7 +3982,7 @@
             let totalAmt = 0;
             filtered.forEach(o => totalAmt += (o.total_amount || 0));
             const totalEl = document.getElementById('salesman-hist-total');
-            if (totalEl) totalEl.innerText = `₹${fmt(totalAmt)}`;
+            if (totalEl) totalEl.innerText = `₹ ${fmt(totalAmt)}`;
             
             if (filtered.length === 0) {
                 feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No orders found for this period.</div>`;
@@ -4010,7 +4010,7 @@
                         </div>
                     </div>
                     <div style="text-align: right; flex-shrink:0;">
-                        <b style="color:var(--brand)">₹${fmt(item.total_amount)}</b><br>
+                        <b style="color:var(--brand)">₹ ${fmt(item.total_amount)}</b><br>
                         <small style="color:${statusColor}; font-weight: 700;">${displayStatus}</small>
                     </div>
                 </div>
@@ -4055,8 +4055,8 @@
                 const totalQty = (data.c * cQty) + data.p; // Extract pure NOS count
                 
                 // Formulate Price/Overrides
-                let mrpText = `₹${fmt(item.mrp)}`;
-                if (data.mrp_override) mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹${fmt(data.old_mrp)}</del> ₹${fmt(data.mrp_override)}`;
+                let mrpText = `₹ ${fmt(item.mrp)}`;
+                if (data.mrp_override) mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹ ${fmt(data.old_mrp)}</del> ₹ ${fmt(data.mrp_override)}`;
                 
                 const isRemoved = (order.status === 'Packed' || order.status === 'Billed') && data.packed === false;
                 let badgeHTML = '';
@@ -4088,7 +4088,7 @@
                             ${index + 1}. ${item.name}
                         </div>
                         <div style="font-weight:800; font-size:1rem; color:var(--text); flex-shrink:0;">
-                            ₹${fmt(totalItemCost)}
+                            ₹ ${fmt(totalItemCost)}
                         </div>
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; ${dimStyle}">
@@ -4097,7 +4097,7 @@
                             ${badgeHTML}
                         </div>
                         <span style="background: var(--brand-light); color: var(--brand); padding: 3px 8px; border-radius: 4px; font-size:0.75rem; font-weight:700; white-space:nowrap; flex-shrink:0; margin-left: 6px;">
-                            ₹${fmt(rate)} × ${qtyDisplay}
+                            ₹ ${fmt(rate)} × ${qtyDisplay}
                         </span>
                     </div>
                 </div>`;
@@ -4198,8 +4198,8 @@
                     tTotal += item.total_amount;
 
                     let breakdown = [];
-                    if (item.amount_cash > 0) breakdown.push(`Cash: ₹${item.amount_cash}`);
-                    if (item.amount_gpay > 0) breakdown.push(`UPI: ₹${item.amount_gpay}`);
+                    if (item.amount_cash > 0) breakdown.push(`Cash: ₹ ${item.amount_cash}`);
+                    if (item.amount_gpay > 0) breakdown.push(`UPI: ₹ ${item.amount_gpay}`);
                     
                     return `
                     <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
@@ -4208,16 +4208,16 @@
                             <div style="font-size: 0.75rem; color:var(--text-mut); font-weight: 700;">${item.id}</div>
                         </div>
                         <div style="text-align: right; flex-shrink:0;">
-                            <b style="color:var(--success); font-size: 1.05rem;">₹${fmt(item.total_amount)}</b><br>
+                            <b style="color:var(--success); font-size: 1.05rem;">₹ ${fmt(item.total_amount)}</b><br>
                             <small style="color:var(--text-mut); font-weight: 600; font-size:0.75rem;">${breakdown.join(' | ')}</small>
                         </div>
                     </div>`;
                 }).join('');
             }
 
-            document.getElementById('sm-col-hist-cash').innerText = `₹${fmt(tCash)}`;
-            document.getElementById('sm-col-hist-upi').innerText = `₹${fmt(tUpi)}`;
-            document.getElementById('sm-col-hist-total').innerText = `₹${fmt(tTotal)}`;
+            document.getElementById('sm-col-hist-cash').innerText = `₹ ${fmt(tCash)}`;
+            document.getElementById('sm-col-hist-upi').innerText = `₹ ${fmt(tUpi)}`;
+            document.getElementById('sm-col-hist-total').innerText = `₹ ${fmt(tTotal)}`;
         }
 
         function renderCollectionCustomers() {
@@ -4239,7 +4239,7 @@
                 <div class="cust-card">
                     <div style="flex: 1; min-width: 0; padding-right: 15px;">
                         <div class="ov-title" style="margin-bottom: 2px;">${c.name}</div>
-                        <span style="font-weight:700; color:var(--accent); display:inline-block;">Bal: ₹${fmt(c.bal)}</span>
+                        <span style="font-weight:700; color:var(--accent); display:inline-block;">Bal: ₹ ${fmt(c.bal)}</span>
                     </div>
                     <button style="flex-shrink: 0; background: var(--success-bg); color: var(--success); border: 2px solid var(--success); border-radius: 50%; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; cursor:pointer;" onclick="openCollectionModal('${c.code}')"><i class="fas fa-rupee-sign"></i></button>
                 </div>
@@ -4249,7 +4249,7 @@
         function openCollectionModal(custCode) {
             currentColCust = CUSTOMERS.find(c => c.code === custCode);
             document.getElementById('col-cust-name').innerText = currentColCust.name;
-            document.getElementById('col-cust-bal').innerText = `Current Balance: ₹${fmt(currentColCust.bal)}`;
+            document.getElementById('col-cust-bal').innerText = `Current Balance: ₹ ${fmt(currentColCust.bal)}`;
             
             document.getElementById('col-cash').value = '';
             document.getElementById('col-gpay').value = '';
@@ -4261,7 +4261,7 @@
         function calcColTotal() {
             const c = parseFloat(document.getElementById('col-cash').value) || 0;
             const g = parseFloat(document.getElementById('col-gpay').value) || 0;
-            document.getElementById('col-total').innerText = `₹${fmt(c + g)}`;
+            document.getElementById('col-total').innerText = `₹ ${fmt(c + g)}`;
         }
 
         async function submitCollection() {
@@ -4321,7 +4321,7 @@
                 MY_COLLECTIONS.unshift(payload);
                 closeModal('collection-modal');
                 updateTodayCollectionTile();
-                showSuccess(`Payment of ₹${total} synced to Cloud for ${currentColCust.name}!`);
+                showSuccess(`Payment of ₹ ${total} synced to Cloud for ${currentColCust.name}!`);
                 
             } catch(e) {
                 alert(`❌ COLLECTION FAILED: Could not connect to the cloud. Please check your internet and try again.\n\nError: ${e.message}`);
@@ -4349,7 +4349,7 @@
             
             let totalCredit = 0;
             filtered.forEach(c => totalCredit += (c.bal || 0));
-            document.getElementById('cr-total-bal').innerText = `₹${fmt(totalCredit)}`;
+            document.getElementById('cr-total-bal').innerText = `₹ ${fmt(totalCredit)}`;
 
             let sorted = [...filtered];
             sorted.sort((a,b) => {
@@ -4393,7 +4393,7 @@
                         </div>
                         <div style="flex: 0 0 30%; text-align: right; min-width: 0;">
                             <span style="font-size: 0.6rem; color:var(--text-mut); text-transform:uppercase; font-weight:700;">Balance</span><br>
-                            <b style="color:var(--accent); font-size: 1.1rem; word-break: break-word;">₹${fmt(c.bal)}</b>
+                            <b style="color:var(--accent); font-size: 1.1rem; word-break: break-word;">₹ ${fmt(c.bal)}</b>
                         </div>
                     </div>
                     <div id="cr-sales-${safeId}" class="hidden" style="padding: 0 14px 14px 14px; background: #F9FAFB; border-top: 1px dashed var(--border);">
@@ -4843,8 +4843,8 @@
                 const cQty = parseInt(item.caseQty) || 0;
                 const totalQty = (data.c * cQty) + data.p; 
                 
-                let mrpText = `₹${fmt(item.mrp)}`;
-                if (data.mrp_override) mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹${fmt(data.old_mrp)}</del> ₹${fmt(data.mrp_override)}`;
+                let mrpText = `₹ ${fmt(item.mrp)}`;
+                if (data.mrp_override) mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹ ${fmt(data.old_mrp)}</del> ₹ ${fmt(data.mrp_override)}`;
                 
                 const isRemoved = data.packed === false;
                 let badgeHTML = '';
@@ -4987,7 +4987,7 @@
                     </div>
                     
                     <div class="pack-mrp ${mrpChangedClass}" onclick="openPackEditModal('${data.key}')" title="Click to edit quantity or MRP">
-                        ₹${fmt(activeMRP)} <i class="fas fa-edit"></i>
+                        ₹ ${fmt(activeMRP)} <i class="fas fa-edit"></i>
                     </div>
 
                     <input type="checkbox" class="pack-chk success" style="${!data.sort_marked ? 'opacity:0.3;' : ''}" ${data.packed ? 'checked' : ''} ${!data.sort_marked ? 'disabled' : ''} onchange="togglePacked('${data.key}')" title="Confirm packed">
@@ -5166,7 +5166,7 @@
                 <div class="pack-row" style="cursor:pointer;" onclick="addItemToPackOrder('${item.code}')">
                     <div class="pack-info">
                         <div class="pack-title">${item.name}</div>
-                        <div class="pack-meta" style="margin:0;">MRP: ₹${item.mrp}</div>
+                        <div class="pack-meta" style="margin:0;">MRP: ₹ ${item.mrp}</div>
                     </div>
                     <i class="fas fa-plus-circle" style="color:var(--brand); font-size:1.2rem;"></i>
                 </div>
@@ -5396,7 +5396,7 @@
                             <div class="pack-title" style="white-space:normal; color:#991B1B;">${b.cust}</div>
                             <div class="pack-meta" style="margin:0; font-weight:700; color:#991B1B;">${b.doc} <span style="background:#EF4444; color:white; padding:2px 4px; border-radius:4px; font-size:0.6rem; margin-left:4px;">RETURN</span></div>
                         </div>
-                        <div style="font-weight:800; color:#991B1B;">₹${fmt(b.amt)}</div>
+                        <div style="font-weight:800; color:#991B1B;">₹ ${fmt(b.amt)}</div>
                     </div>`;
                 }
 
@@ -5407,7 +5407,7 @@
                         <div class="pack-title" style="white-space:normal;">${b.cust}</div>
                         <div class="pack-meta" style="margin:0; font-weight:700; color:var(--brand);">${b.doc}</div>
                     </div>
-                    <div style="font-weight:800; color:var(--text);">₹${fmt(b.amt)}</div>
+                    <div style="font-weight:800; color:var(--text);">₹ ${fmt(b.amt)}</div>
                 </div>`;
             }).join('');
         }
@@ -5560,7 +5560,7 @@
                     <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.8rem; ${isRemoved ? 'opacity:0.5; text-decoration:line-through;' : ''}">
                         <div style="color:var(--text); font-weight:700; flex:1; padding-right:10px;">${s.customer_name}</div>
                         <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
-                            <span style="font-weight:800; color:var(--brand);">₹${fmt(s.amount)}</span>
+                            <span style="font-weight:800; color:var(--brand);">₹ ${fmt(s.amount)}</span>
                             ${canRemove ? `<button onclick="removeStopFromBatch('${s.id}', '${b.id}')" style="background:#FEE2E2; color:var(--accent); border:1px solid #FCA5A5; border-radius:4px; padding:4px 8px; cursor:pointer;"><i class="fas fa-trash"></i></button>` : ''}
                         </div>
                     </div>`;
@@ -5800,7 +5800,7 @@
                             ${markNextBtn}
                         </div>
                         <div style="text-align:right;">
-                            <div style="font-weight: 800; font-size: 1.1rem; color:var(--text); margin-bottom:6px;">₹${fmt(order.amount)}</div>
+                            <div style="font-weight: 800; font-size: 1.1rem; color:var(--text); margin-bottom:6px;">₹ ${fmt(order.amount)}</div>
                             ${isDriver 
                                 ? `<span style="background:var(--brand-light); color:var(--brand); border: 1px solid var(--brand); padding: 4px 10px; border-radius:4px; font-size:0.75rem; font-weight:700; display:inline-block;">Loaded</span>`
                                 : `<span style="background:var(--warning); color:white; padding: 4px 10px; border-radius:4px; font-size:0.75rem; font-weight:700; display:inline-block;">Deliver <i class="fas fa-chevron-right" style="margin-left:4px;"></i></span>`
@@ -5877,7 +5877,7 @@
 
             document.getElementById('ds-cust-name').innerText = order.customer_name || CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
             document.getElementById('ds-bills').innerText = order.document_numbers ? order.document_numbers.join(', ') : '';
-            document.getElementById('ds-amt').innerText = `₹${fmt(order.amount)}`;
+            document.getElementById('ds-amt').innerText = `₹ ${fmt(order.amount)}`;
 
             let myItems = [];
             if (order.document_numbers && Array.isArray(order.document_numbers)) {
@@ -6059,9 +6059,9 @@
                     const batchId = targetArray[orderIndex].batch_id;
                     const remainingStops = targetArray.filter(o => o.batch_id === batchId && o.status === 'Loaded');
                     if (remainingStops.length > 0) promptNextStop(batchId, remainingStops);
-                    else showSuccess(totalCol > 0 ? `Delivered and ₹${totalCol} Collected! Batch Complete!` : `Batch Complete!`);
+                    else showSuccess(totalCol > 0 ? `Delivered and ₹ ${totalCol} Collected! Batch Complete!` : `Batch Complete!`);
                 } else {
-                    showSuccess(totalCol > 0 ? `Delivered and ₹${totalCol} Collected!` : `Order marked as Delivered.`);
+                    showSuccess(totalCol > 0 ? `Delivered and ₹ ${totalCol} Collected!` : `Order marked as Delivered.`);
                 }
                 
                 renderDeliveryDetailList();
@@ -6090,7 +6090,7 @@
             
             currentColCust = { code: order.customer_code || order.customer_name || order.id, name: custName };
             document.getElementById('col-cust-name').innerText = custName;
-            document.getElementById('col-cust-bal').innerText = `Order Amount: ₹${fmt(order.total_amount || order.amount || 0)}`;
+            document.getElementById('col-cust-bal').innerText = `Order Amount: ₹ ${fmt(order.total_amount || order.amount || 0)}`;
             
             document.getElementById('col-cash').value = '';
             document.getElementById('col-gpay').value = '';
@@ -6261,9 +6261,9 @@
                     }
                 });
             }
-            document.getElementById('dh-cash').innerText = `₹${fmt(tCash)}`;
-            document.getElementById('dh-upi').innerText = `₹${fmt(tUpi)}`;
-            document.getElementById('dh-total').innerText = `₹${fmt(tTotal)}`;
+            document.getElementById('dh-cash').innerText = `₹ ${fmt(tCash)}`;
+            document.getElementById('dh-upi').innerText = `₹ ${fmt(tUpi)}`;
+            document.getElementById('dh-total').innerText = `₹ ${fmt(tTotal)}`;
 
             if (filtered.length === 0) {
                 feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No deliveries found for this date.</div>`;
@@ -6302,15 +6302,15 @@
                     if (myCol) {
                         collectionAmt = myCol.total_amount;
                         let tags = [];
-                        if (myCol.amount_cash > 0) tags.push(`C: ₹${fmt(myCol.amount_cash)}`);
-                        if (myCol.amount_gpay > 0) tags.push(`U: ₹${fmt(myCol.amount_gpay)}`);
+                        if (myCol.amount_cash > 0) tags.push(`C: ₹ ${fmt(myCol.amount_cash)}`);
+                        if (myCol.amount_gpay > 0) tags.push(`U: ₹ ${fmt(myCol.amount_gpay)}`);
                         colBreakdown = tags.join(' | ');
                     }
                 }
 
                 let paymentBadge = collectionAmt > 0 
                     ? `<div style="text-align: right; flex-shrink: 0; display:flex; flex-direction:column; align-items:flex-end;">
-                           <span style="font-size: 1.05rem; font-weight: 800; color: var(--success);">₹${fmt(collectionAmt)}</span>
+                           <span style="font-size: 1.05rem; font-weight: 800; color: var(--success);">₹ ${fmt(collectionAmt)}</span>
                            <span style="font-size: 0.6rem; color: var(--text-mut); font-weight: 700; background: var(--success-bg); padding: 2px 4px; border-radius: 4px; margin-top: 2px;">${colBreakdown}</span>
                        </div>`
                     : `<div style="text-align: right; flex-shrink: 0;">
@@ -6326,7 +6326,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
                         <div style="flex:1; min-width: 0;">
                             <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
-                            <div style="font-size:0.75rem; color:var(--text-mut); font-weight:700; margin-top:4px;">Total Bill: ₹${fmt(order.amount)}</div>
+                            <div style="font-size:0.75rem; color:var(--text-mut); font-weight:700; margin-top:4px;">Total Bill: ₹ ${fmt(order.amount)}</div>
                             ${checklistHTML}
                         </div>
                         ${paymentBadge}
@@ -6350,7 +6350,7 @@
         function openDeliveryPaymentEdit(orderId, custName, totalAmt, filterDate) {
             document.getElementById('del-edit-order-id').value = orderId;
             document.getElementById('del-edit-pay-cust').innerText = custName;
-            document.getElementById('del-edit-pay-amt').innerText = `Total Bill Amount: ₹${fmt(totalAmt)}`;
+            document.getElementById('del-edit-pay-amt').innerText = `Total Bill Amount: ₹ ${fmt(totalAmt)}`;
             currentEditDelDate = filterDate;
 
             // Search for an existing collection on this date for this order to pre-fill the inputs
@@ -6600,11 +6600,11 @@
                     highlightTags += isSplit ? `<span class="pack-new-badge" style="background:#B45309;">SPLIT</span> ` : `<span class="pack-new-badge" style="background:var(--success);">ADDED</span> `; 
                 }
                 
-                let mrpText = `₹${fmt(item.mrp)}`;
+                let mrpText = `₹ ${fmt(item.mrp)}`;
                 if (data.mrp_override) {
                     if (!data.is_new && !isRemoved) rowClass += " highlight-mrp";
                     highlightTags += `<span class="pack-new-badge" style="background:var(--warning); color:#B45309;">MRP CHANGED</span> `;
-                    mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹${fmt(data.old_mrp)}</del><br>₹${fmt(data.mrp_override)}`;
+                    mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹ ${fmt(data.old_mrp)}</del><br>₹ ${fmt(data.mrp_override)}`;
                 }
 
                 return `
@@ -6745,7 +6745,7 @@
                             <span style="font-size:0.8rem; color:var(--text-mut);">${grp.count} Receipts</span>
                         </div>
                         <div style="text-align: right;">
-                            <b style="color:var(--success); font-size:1.1rem;">₹${fmt(grp.total)}</b>
+                            <b style="color:var(--success); font-size:1.1rem;">₹ ${fmt(grp.total)}</b>
                         </div>
                     </div>
                     <button class="btn-take-order" style="width: 100%; background: var(--brand-light); color: var(--brand); border-color: var(--brand);" onclick="openSalesGroupCollections('${sg}', '${filterDate}')">View Details & Download</button>
@@ -6841,12 +6841,12 @@
                     </div>
                     <div style="text-align: right; flex-shrink:0;">
                         ${badge}<br>
-                        <b style="color:var(--success); font-size: 1rem; margin-top: 4px; display: block;">₹${fmt(item.total_amount)}</b>
+                        <b style="color:var(--success); font-size: 1rem; margin-top: 4px; display: block;">₹ ${fmt(item.total_amount)}</b>
                     </div>
                 </div>`;
             }).join('');
 
-            document.getElementById('bill-col-total-sum').innerText = `₹${fmt(grandTotal)}`;
+            document.getElementById('bill-col-total-sum').innerText = `₹ ${fmt(grandTotal)}`;
         }
 
         function downloadCollectionPDF() {
@@ -6940,7 +6940,7 @@
                                     ${smartLabel}
                                 </div>
                                 <div style="text-align: right; font-size: 0.85rem; font-weight: 700; color: var(--text);">
-                                    ₹${rate.toFixed(2)} <span style="color: var(--success); font-weight: 600; font-size: 0.7rem; margin-left: 6px;">(${markupFmt}%)</span>
+                                    ₹ ${rate.toFixed(2)} <span style="color: var(--success); font-weight: 600; font-size: 0.7rem; margin-left: 6px;">(${markupFmt}%)</span>
                                 </div>
                             </div>
                         `;
@@ -6951,8 +6951,8 @@
 
                     pricingUI = `
                         <div style="display:flex; gap:6px; margin-top:4px; align-items:center;">
-                            <div style="font-size:0.7rem; color:var(--text-mut); font-weight:600; border:1px solid var(--border); padding:2px 6px; border-radius:4px;">Cost: ₹${fmt(item.cost)}</div>
-                            <div style="font-size:0.8rem; font-weight:800; color:var(--brand); background:var(--brand-light); padding:2px 6px; border-radius:4px;">Rate: ₹${baseRate.toFixed(2)}</div>
+                            <div style="font-size:0.7rem; color:var(--text-mut); font-weight:600; border:1px solid var(--border); padding:2px 6px; border-radius:4px;">Cost: ₹ ${fmt(item.cost)}</div>
+                            <div style="font-size:0.8rem; font-weight:800; color:var(--brand); background:var(--brand-light); padding:2px 6px; border-radius:4px;">Rate: ₹ ${baseRate.toFixed(2)}</div>
                         </div>
                     `;
                     
@@ -6966,8 +6966,8 @@
                 } else {
                     pricingUI = `
                         <div style="display:flex; gap:6px; margin-top:4px; align-items:center;">
-                            <div style="font-size:0.7rem; color:var(--text-mut); font-weight:600; border:1px solid var(--border); padding:2px 6px; border-radius:4px;">Cost: ₹${fmt(item.cost)}</div>
-                            <div style="font-size: 0.95rem; font-weight: 800; color: var(--brand);">Rate: ₹${fmt(item.price2)}</div>
+                            <div style="font-size:0.7rem; color:var(--text-mut); font-weight:600; border:1px solid var(--border); padding:2px 6px; border-radius:4px;">Cost: ₹ ${fmt(item.cost)}</div>
+                            <div style="font-size: 0.95rem; font-weight: 800; color: var(--brand);">Rate: ₹ ${fmt(item.price2)}</div>
                         </div>
                     `;
                 }
@@ -6992,7 +6992,7 @@
                                 <div class="c-title">${item.name}</div>
                                 ${pricingUI}
                                 <div style="font-size: 0.85rem; font-weight: 600; color: var(--text); margin-top: 2px;">
-                                    MRP: <span style="color: var(--accent);">₹${fmt(item.mrp)}</span> <span style="font-weight: 500;">${cQtyStr}</span>
+                                    MRP: <span style="color: var(--accent);">₹ ${fmt(item.mrp)}</span> <span style="font-weight: 500;">${cQtyStr}</span>
                                     ${stockUI}
                                 </div>
                             </div>
@@ -7024,7 +7024,7 @@
                     </div>
                     <div style="text-align: right; flex-shrink:0;">
                         <span style="font-size: 0.65rem; color:var(--text-mut); text-transform:uppercase; font-weight:700;">Balance</span><br>
-                        <b style="color:var(--accent); font-size: 1.05rem;">₹${fmt(c.bal)}</b>
+                        <b style="color:var(--accent); font-size: 1.05rem;">₹ ${fmt(c.bal)}</b>
                     </div>
                 </div>
             `).join('');
@@ -7225,13 +7225,13 @@
 
             document.getElementById('sales-kpi-board').innerHTML = `
                 <div style="background:var(--brand); padding:12px; border-radius:8px; border:1px solid var(--brand-dark); text-align:center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; flex-direction:column; justify-content:center;">
-                    <div style="font-size:1.4rem; color:white; font-weight:800; margin-bottom:4px;">₹${Math.round(tSales)}</div>
+                    <div style="font-size:1.4rem; color:white; font-weight:800; margin-bottom:4px;">₹ ${Math.round(tSales)}</div>
                     <div style="font-size:0.7rem; color:var(--brand-light); font-weight:700; text-transform:uppercase;">Total Sales</div>
                 </div>
                 
                 <div style="background:white; border-radius:8px; border:1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.02); display:flex; overflow:hidden;">
                     <div style="flex:3; padding:10px; text-align:center; display:flex; flex-direction:column; justify-content:center;">
-                        <div style="font-size:1.4rem; color:var(--text); font-weight:800; margin-bottom:4px;">₹${Math.round(avgSale / 100) * 100}</div>
+                        <div style="font-size:1.4rem; color:var(--text); font-weight:800; margin-bottom:4px;">₹ ${Math.round(avgSale / 100) * 100}</div>
                         <div style="font-size:0.65rem; color:var(--text-mut); font-weight:700; text-transform:uppercase;">Avg Sale</div>
                     </div>
                     <div style="flex:1; background:#F9FAFB; padding:10px; border-left:1px solid var(--border); text-align:center; display:flex; flex-direction:column; justify-content:center;">
@@ -7241,13 +7241,13 @@
                 </div>
 
                 <div style="background:var(--accent); padding:12px; border-radius:8px; border:1px solid #991B1B; text-align:center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; flex-direction:column; justify-content:center;">
-                    <div style="font-size:1.4rem; color:white; font-weight:800; margin-bottom:4px;">₹${Math.round(totalCredit)}</div>
+                    <div style="font-size:1.4rem; color:white; font-weight:800; margin-bottom:4px;">₹ ${Math.round(totalCredit)}</div>
                     <div style="font-size:0.7rem; color:#FEE2E2; font-weight:700; text-transform:uppercase;">Credit Pending</div>
                 </div>
 
                 <div style="background:white; border-radius:8px; border:1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.02); display:flex; overflow:hidden;">
                     <div style="flex:3; padding:10px; text-align:center; display:flex; flex-direction:column; justify-content:center;">
-                        <div style="font-size:${profitFontSize}; color:var(--brand); font-weight:800; margin-bottom:4px; white-space:nowrap;">₹${Math.round(tProfit)}</div>
+                        <div style="font-size:${profitFontSize}; color:var(--brand); font-weight:800; margin-bottom:4px; white-space:nowrap;">₹ ${Math.round(tProfit)}</div>
                         <div style="font-size:0.65rem; color:var(--text-mut); font-weight:700; text-transform:uppercase;">Total Profit</div>
                     </div>
                     <div style="flex:1; background:#EFF6FF; padding:10px; border-left:1px solid #BFDBFE; text-align:center; display:flex; flex-direction:column; justify-content:center;">
@@ -7314,8 +7314,8 @@
                         ${salesViewMode === 'cust' ? `<div style="font-size: 0.75rem; color:var(--text-mut); font-weight:700;"><i class="fas fa-file-invoice" style="margin-right:4px;"></i>${invoices}</div>` : ''}
                     </div>
                     <div style="text-align:right; flex-shrink:0;">
-                        <span style="background:var(--brand-light); color:var(--brand); padding:4px 8px; border-radius:4px; font-size:0.9rem; font-weight:800; display:inline-block; margin-bottom:4px;">₹${fmt(g.sales)}</span>
-                        <div style="font-weight: 700; font-size: 0.75rem; color:var(--success);">₹${fmt(g.profit)} (${g.margin.toFixed(1)}%)</div>
+                        <span style="background:var(--brand-light); color:var(--brand); padding:4px 8px; border-radius:4px; font-size:0.9rem; font-weight:800; display:inline-block; margin-bottom:4px;">₹ ${fmt(g.sales)}</span>
+                        <div style="font-weight: 700; font-size: 0.75rem; color:var(--success);">₹ ${fmt(g.profit)} (${g.margin.toFixed(1)}%)</div>
                     </div>
                 </div>`;
             }).join('');
@@ -7528,13 +7528,13 @@
             document.getElementById('live-top-dashboard').innerHTML = `
                 <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-bottom: 10px;">
                     <div style="background:var(--brand); padding:12px; border-radius:8px; border:1px solid var(--brand-dark); text-align:center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; flex-direction:column; justify-content:center;">
-                        <div style="font-size:1.4rem; color:white; font-weight:800; margin-bottom:4px;">₹${Math.round(totalOrderVal)}</div>
+                        <div style="font-size:1.4rem; color:white; font-weight:800; margin-bottom:4px;">₹ ${Math.round(totalOrderVal)}</div>
                         <div style="font-size:0.7rem; color:var(--brand-light); font-weight:700; text-transform:uppercase;">Total Value</div>
                     </div>
                     
                     <div style="background:white; border-radius:8px; border:1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.02); display:flex; overflow:hidden;">
                         <div style="flex:3; padding:10px; text-align:center; display:flex; flex-direction:column; justify-content:center;">
-                            <div style="font-size:1.4rem; color:var(--text); font-weight:800; margin-bottom:4px;">₹${roundedAvg}</div>
+                            <div style="font-size:1.4rem; color:var(--text); font-weight:800; margin-bottom:4px;">₹ ${roundedAvg}</div>
                             <div style="font-size:0.65rem; color:var(--text-mut); font-weight:700; text-transform:uppercase;">Avg Order</div>
                         </div>
                         <div style="flex:1; background:#F9FAFB; padding:10px; border-left:1px solid var(--border); text-align:center; display:flex; flex-direction:column; justify-content:center;">
@@ -7544,13 +7544,13 @@
                     </div>
 
                     <div style="background:var(--success); padding:12px; border-radius:8px; border:1px solid #065F46; text-align:center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); display:flex; flex-direction:column; justify-content:center;">
-                        <div style="font-size:1.4rem; color:white; font-weight:800; margin-bottom:4px;">₹${Math.round(totalCollection)}</div>
+                        <div style="font-size:1.4rem; color:white; font-weight:800; margin-bottom:4px;">₹ ${Math.round(totalCollection)}</div>
                         <div style="font-size:0.7rem; color:#D1FAE5; font-weight:700; text-transform:uppercase;">Collected</div>
                     </div>
 
                     <div style="background:white; border-radius:8px; border:1px solid var(--border); box-shadow: 0 1px 2px rgba(0,0,0,0.02); display:flex; overflow:hidden;">
                         <div style="flex:3; padding:10px; text-align:center; display:flex; flex-direction:column; justify-content:center;">
-                            <div style="font-size:${profitFontSize}; color:var(--brand); font-weight:800; margin-bottom:4px; white-space:nowrap;">₹${totalProfit}</div>
+                            <div style="font-size:${profitFontSize}; color:var(--brand); font-weight:800; margin-bottom:4px; white-space:nowrap;">₹ ${totalProfit}</div>
                             <div style="font-size:0.65rem; color:var(--text-mut); font-weight:700; text-transform:uppercase;">Est. Profit</div>
                         </div>
                         <div style="flex:1; background:#EFF6FF; padding:10px; border-left:1px solid #BFDBFE; text-align:center; display:flex; flex-direction:column; justify-content:center;">
@@ -7670,8 +7670,8 @@
                         </div>
                         <div style="text-align: right; flex-shrink:0;">
                             <span style="background:${statBg}; color:${statColor}; padding:4px 8px; border-radius:4px; font-size:0.65rem; font-weight:800; display:inline-flex; align-items:center; gap:4px;"><i class="fas ${statIcon}"></i> ${uiStatus.toUpperCase()}</span>
-                            <div style="margin-top:6px; font-weight:800; color:var(--text); font-size:1.05rem;">₹${fmt(order.total_amount)}</div>
-                            <div style="font-size:0.7rem; font-weight:700; color:var(--success); margin-top:2px;">₹${fmt(indProfit)} (${fmt(indMargin)}%)</div>
+                            <div style="margin-top:6px; font-weight:800; color:var(--text); font-size:1.05rem;">₹ ${fmt(order.total_amount)}</div>
+                            <div style="font-size:0.7rem; font-weight:700; color:var(--success); margin-top:2px;">₹ ${fmt(indProfit)} (${fmt(indMargin)}%)</div>
                         </div>
                     </div>`;
                 }).join('');
@@ -7711,8 +7711,8 @@
                 const cQty = parseInt(item.caseQty) || 0;
                 const totalQty = (data.c * cQty) + data.p;
                 
-                let mrpText = `₹${fmt(item.mrp)}`;
-                if (data.mrp_override) mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹${fmt(data.old_mrp)}</del> ₹${fmt(data.mrp_override)}`;
+                let mrpText = `₹ ${fmt(item.mrp)}`;
+                if (data.mrp_override) mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹ ${fmt(data.old_mrp)}</del> ₹ ${fmt(data.mrp_override)}`;
                 
                 const isRemoved = (statusStr !== 'Pending') && data.packed === false;
                 let badgeHTML = '';
@@ -7737,7 +7737,7 @@
                             ${index + 1}. ${item.name}
                         </div>
                         <div style="font-weight:800; font-size:1rem; color:var(--text); flex-shrink:0;">
-                            ₹${fmt(totalItemCost)}
+                            ₹ ${fmt(totalItemCost)}
                         </div>
                     </div>
                     <div style="display:flex; justify-content:space-between; align-items:center; ${dimStyle}">
@@ -7746,12 +7746,12 @@
                             ${badgeHTML}
                         </div>
                         <span style="background: var(--brand-light); color: var(--brand); padding: 3px 8px; border-radius: 4px; font-size:0.75rem; font-weight:700;">
-                            ₹${fmt(rate)} × ${totalQty} NOS
+                            ₹ ${fmt(rate)} × ${totalQty} NOS
                         </span>
                     </div>
                     ${!isRemoved ? `
                     <div style="text-align:right; font-size:0.7rem; color:var(--success); font-weight:700; margin-top:4px;">
-                        Profit: ₹${fmt(itemProfit)} (${fmt(itemMargin)}%)
+                        Profit: ₹ ${fmt(itemProfit)} (${fmt(itemMargin)}%)
                     </div>` : ''}
                 </div>`;
             }).join('');
@@ -7971,7 +7971,7 @@
                         <div style="padding: 12px; display: flex; justify-content: space-between; align-items: center; cursor:pointer;" onclick="toggleAccordion('rem-item-${idx}', null)">
                             <div style="flex:1; padding-right:10px;">
                                 <div style="font-weight: 800; font-size: 0.9rem; color:var(--text); line-height: 1.3;">${g.name}</div>
-                                <div style="font-weight: 800; font-size: 0.8rem; color:var(--success); margin-top:2px;">₹${fmt(g.mrp)}</div>
+                                <div style="font-weight: 800; font-size: 0.8rem; color:var(--success); margin-top:2px;">₹ ${fmt(g.mrp)}</div>
                             </div>
                             <div style="text-align:right; flex-shrink:0;">
                                 <span style="background:#FEF2F2; color:var(--accent); padding:4px 8px; border-radius:4px; font-size:0.8rem; font-weight:800;">${g.totalQty} NOS</span>
@@ -8019,7 +8019,7 @@
                                 <div style="font-weight: 800; font-size: 0.9rem; color:var(--text); line-height:1.3;">${g.custName}</div>
                                 <div style="display:flex; gap:6px; align-items:center; margin-top:2px;">
                                     <span style="font-size: 0.75rem; color:var(--brand); font-weight:700;">${oid}</span>
-                                    <span style="font-size: 0.75rem; color:var(--success); font-weight:700;">₹${fmt(g.amount)} (${fmt(g.margin)}%)</span>
+                                    <span style="font-size: 0.75rem; color:var(--success); font-weight:700;">₹ ${fmt(g.amount)} (${fmt(g.margin)}%)</span>
                                 </div>
                             </div>
                             <div style="text-align:right; flex-shrink:0;">
@@ -8203,13 +8203,13 @@
                         <label class="switch"><input type="checkbox" id="switch-${item.code}" ${item.has_slabs ? 'checked' : ''} onchange="toggleDim('${item.code}', this.checked)"><span class="slider"></span></label>
                     </td>
                     <td class="pt-mrp">
-                        ₹${fmt(item.mrp)}<br>
+                        ₹ ${fmt(item.mrp)}<br>
                         <div style="display:flex; justify-content:center; margin-top:4px;">
                             <input type="number" id="s-caseqty-${item.code}" class="slab-input" style="width:40px; font-size:0.75rem; padding: 4px;" value="${item.caseQty || ''}" oninput="autoGenSlabs('${item.code}', this.value)" onfocus="this.select()">
                         </div>
                     </td>
                     <td class="pt-cost">
-                        ₹${fmt(item.cost)}<br>
+                        ₹ ${fmt(item.cost)}<br>
                         <div style="margin-top: 6px; font-size: 0.8rem; font-weight: 800; color: ${
                             (parseInt(item.stock) || 0) <= 0 ? 'var(--accent)' : 
                             ((parseInt(item.stock) || 0) < (item.caseQty || 10)) ? '#B45309' : 
@@ -8489,8 +8489,8 @@
 
             document.getElementById('sd-title').innerText = g.name;
             document.getElementById('sd-sub').innerText = salesViewMode === 'cust' ? "Customer Breakdown" : "Item Breakdown";
-            document.getElementById('sd-total-sales').innerText = `₹${fmt(g.sales)}`;
-            document.getElementById('sd-total-profit').innerText = `₹${fmt(g.profit)} (${g.margin.toFixed(1)}%)`;
+            document.getElementById('sd-total-sales').innerText = `₹ ${fmt(g.sales)}`;
+            document.getElementById('sd-total-profit').innerText = `₹ ${fmt(g.profit)} (${g.margin.toFixed(1)}%)`;
 
             // Group the drilldown details and calculate exact Profit/Margin per line!
             const dMap = {};
@@ -8513,8 +8513,8 @@
                         <div style="font-size: 0.75rem; color:var(--text-mut); margin-top:4px; font-weight:700;">${d.qty} Pcs</div>
                     </div>
                     <div style="text-align: right; flex-shrink:0;">
-                        <b style="color:var(--brand); font-size:0.95rem;">₹${fmt(d.sales)}</b><br>
-                        <span style="font-size:0.7rem; color:var(--success); font-weight:700;">₹${fmt(d.profit)} (${fmt(marg)}%)</span>
+                        <b style="color:var(--brand); font-size:0.95rem;">₹ ${fmt(d.sales)}</b><br>
+                        <span style="font-size:0.7rem; color:var(--success); font-weight:700;">₹ ${fmt(d.profit)} (${fmt(marg)}%)</span>
                     </div>
                 </div>`;
             }).join('');
@@ -8971,8 +8971,8 @@
                             </div>
                         </div>
                         <div style="text-align:right;">
-                            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-mut);">MRP <b style="color:var(--accent); font-size: 0.9rem;">₹${fmt(r.item.mrp)}</b></div>
-                            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-mut); margin-top: 4px;">Cost <b style="color:var(--text); font-size: 0.9rem;">₹${fmt(r.item.cost)}</b></div>
+                            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-mut);">MRP <b style="color:var(--accent); font-size: 0.9rem;">₹ ${fmt(r.item.mrp)}</b></div>
+                            <div style="font-size: 0.7rem; font-weight: 700; color: var(--text-mut); margin-top: 4px;">Cost <b style="color:var(--text); font-size: 0.9rem;">₹ ${fmt(r.item.cost)}</b></div>
                         </div>
                     </div>
                     
@@ -9120,8 +9120,8 @@
                     <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
                         <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); line-height: 1.3; flex:1; padding-right:10px;">${item.name} ${outsideTag}</div>
                         <div style="text-align:right;">
-                            <div style="font-weight: 800; font-size: 1rem; color:var(--text);">₹${fmt(itemTotalCost)}</div>
-                            <div style="font-size: 0.7rem; color:var(--text-mut); font-weight:600;">Cost: ₹${fmt(item.cost)}</div>
+                            <div style="font-weight: 800; font-size: 1rem; color:var(--text);">₹ ${fmt(itemTotalCost)}</div>
+                            <div style="font-size: 0.7rem; color:var(--text-mut); font-weight:600;">Cost: ₹ ${fmt(item.cost)}</div>
                         </div>
                     </div>
                     <div style="display:flex; gap:10px; align-items:flex-end;">
@@ -9145,7 +9145,7 @@
                 </div>`;
             }).join('');
 
-            document.getElementById('po-total-val').innerText = `₹${fmt(totalVal)}`;
+            document.getElementById('po-total-val').innerText = `₹ ${fmt(totalVal)}`;
         }
 
         async function submitPurchaseOrder() {
@@ -9233,7 +9233,7 @@
                         <div style="font-size: 0.7rem; color:var(--brand); font-weight: 700; margin-top:4px;">${itemCount} Items Ordered</div>
                     </div>
                     <div style="text-align: right; display:flex; flex-direction:column; align-items:flex-end;">
-                        <b style="color:var(--text); font-size: 1.1rem; margin-bottom: 8px;">₹${fmt(po.total_amount)}</b>
+                        <b style="color:var(--text); font-size: 1.1rem; margin-bottom: 8px;">₹ ${fmt(po.total_amount)}</b>
                         <button onclick='downloadPOPDF(${JSON.stringify(po)})' style="background:var(--brand-light); color:var(--brand); border:1px solid var(--brand); padding:4px 10px; border-radius:4px; font-weight:700; font-size:0.75rem; cursor:pointer;"><i class="fas fa-file-pdf"></i> Download</button>
                     </div>
                 </div>`;
@@ -9325,7 +9325,7 @@
                 <div style="background: ${isCurrentlyActive ? '#FFFBEB' : 'white'}; border-radius: 8px; border: 1px solid ${isCurrentlyActive ? '#FDE68A' : 'var(--border)'}; margin-bottom: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; box-shadow: 0 1px 2px rgba(0,0,0,0.05);" onclick="openOfferEditor('${i.code}')">
                     <div style="flex:1; padding-right:10px;">
                         <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3;">${i.name}</div>
-                        <div style="font-size: 0.75rem; color:var(--text-mut); font-weight: 600;">Cost: ₹${fmt(i.cost)} | MRP: ₹${fmt(i.mrp)}</div>
+                        <div style="font-size: 0.75rem; color:var(--text-mut); font-weight: 600;">Cost: ₹ ${fmt(i.cost)} | MRP: ₹ ${fmt(i.mrp)}</div>
                         ${dateStr}
                     </div>
                     <div style="text-align: right;">
@@ -9342,7 +9342,7 @@
 
             document.getElementById('offer-item-code').value = code;
             document.getElementById('offer-item-name').innerText = item.name;
-            document.getElementById('offer-item-meta').innerText = `Cost: ₹${fmt(item.cost)} | MRP: ₹${fmt(item.mrp)} | Std Rate: ₹${fmt(item.price2)}`;
+            document.getElementById('offer-item-meta').innerText = `Cost: ₹ ${fmt(item.cost)} | MRP: ₹ ${fmt(item.mrp)} | Std Rate: ₹ ${fmt(item.price2)}`;
             
             document.getElementById('offer-toggle-active').checked = item.is_scheme;
             document.getElementById('offer-dates-wrap').style.display = item.is_scheme ? 'block' : 'none';
@@ -9470,7 +9470,7 @@
                 });
                 return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #E5E7EB;">
                     <span style="font-weight:700;">${b.name}</span>
-                    <span style="color:var(--brand); font-weight:800;">₹${fmt(currBal)}</span>
+                    <span style="color:var(--brand); font-weight:800;">₹ ${fmt(currBal)}</span>
                 </div>`;
             }).join('');
 
@@ -9705,13 +9705,13 @@
                 <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02); cursor: pointer;" onclick="openAdminBankTxns('${b.id}', '${safeBankName}')">
                     <div style="font-weight: 800; font-size: 1rem; color:var(--text);">${b.name}</div>
                     <div style="text-align: right;">
-                        <div style="font-weight: 800; font-size: 1.2rem; color:var(--brand);">₹${fmt(currBal)}</div>
+                        <div style="font-weight: 800; font-size: 1.2rem; color:var(--brand);">₹ ${fmt(currBal)}</div>
                         <div style="font-size: 0.65rem; color: var(--text-mut); font-weight: 700; margin-top: 4px;">View Txns <i class="fas fa-chevron-right"></i></div>
                     </div>
                 </div>`;
             }).join('');
 
-            document.getElementById('admin-acc-pending-clear').innerText = `₹${fmt(grandTotalPending)}`;
+            document.getElementById('admin-acc-pending-clear').innerText = `₹ ${fmt(grandTotalPending)}`;
         }
 
         function renderAdminIssuedDash() {
@@ -9744,7 +9744,7 @@
                             <div style="font-size:0.7rem; color:var(--text-mut); margin-top:4px;">${t.particulars}</div>
                         </div>
                         <div style="text-align:right;">
-                            <div style="font-size:1.1rem; font-weight:800; color:var(--accent); margin-bottom:6px;">₹${fmt(t.amount)}</div>
+                            <div style="font-size:1.1rem; font-weight:800; color:var(--accent); margin-bottom:6px;">₹ ${fmt(t.amount)}</div>
                             ${badge}
                         </div>
                     </div>
@@ -9932,7 +9932,7 @@
 
                 return `
                 <div style="background:white; padding:8px; border-radius:6px; border:1px solid var(--border); margin-bottom:6px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                    <div style="font-weight:800; font-size:0.75rem; color:${isOut?'var(--accent)':'var(--success)'};">${isOut?'-':'+'}₹${fmt(t.amount)}</div>
+                    <div style="font-weight:800; font-size:0.75rem; color:${isOut?'var(--accent)':'var(--success)'};">${isOut?'-':'+'}₹ ${fmt(t.amount)}</div>
                     <div style="font-weight:700; font-size:0.65rem; color:var(--text); margin:4px 0;">${isOut ? t.vendor_name : 'CASH INJECT'}</div>
                     ${statusBadge}
                     <div style="font-size:0.6rem; color:var(--text-mut); line-height:1.2; margin-top:4px;">${t.particulars}</div>
@@ -9951,7 +9951,7 @@
 
             let total = 0;
             pendingOut.forEach(t => total += t.amount);
-            totalEl.innerText = `₹${fmt(total)}`;
+            totalEl.innerText = `₹ ${fmt(total)}`;
 
             if (pendingOut.length === 0) {
                 feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No pending cheques.</div>`;
@@ -9968,7 +9968,7 @@
                             <div style="font-size:0.75rem; color:var(--text-mut); margin-top:2px;">${t.particulars}</div>
                         </div>
                         <div style="text-align:right;">
-                            <span style="font-size:1.2rem; font-weight:800; color:var(--accent);">₹${fmt(t.amount)}</span>
+                            <span style="font-size:1.2rem; font-weight:800; color:var(--accent);">₹ ${fmt(t.amount)}</span>
                         </div>
                     </div>
                     <div style="margin-top:12px; padding-top:12px; border-top:1px dashed var(--border); display:flex; gap:10px;">
@@ -10666,7 +10666,7 @@
 
             let total = 0;
             pendingOut.forEach(t => total += t.amount);
-            document.getElementById('admin-pending-list-total').innerText = `₹${fmt(total)}`;
+            document.getElementById('admin-pending-list-total').innerText = `₹ ${fmt(total)}`;
 
             if (pendingOut.length === 0) {
                 feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No pending cheques.</div>`;
@@ -10687,7 +10687,7 @@
                             <div style="font-size:0.7rem; color:var(--text-mut); margin-top:2px;">${t.particulars}</div>
                         </div>
                         <div style="text-align:right;">
-                            <span style="font-size:1.1rem; font-weight:800; color:var(--accent);">₹${fmt(t.amount)}</span>
+                            <span style="font-size:1.1rem; font-weight:800; color:var(--accent);">₹ ${fmt(t.amount)}</span>
                         </div>
                     </div>
                 </div>`;
@@ -10788,13 +10788,13 @@
                         <div style="font-size: 0.65rem; color:var(--text-mut); margin-top:4px; line-height:1.2;">${t.particulars}</div>
                     </div>
                     <div style="text-align: right; flex-shrink:0;">
-                        <b style="color:${isCredit ? 'var(--success)' : 'var(--accent)'}; font-size:1.05rem;">${isCredit ? '+' : '-'}₹${fmt(t.amount)}</b>
+                        <b style="color:${isCredit ? 'var(--success)' : 'var(--accent)'}; font-size:1.05rem;">${isCredit ? '+' : '-'}₹ ${fmt(t.amount)}</b>
                     </div>
                 </div>`;
             }).join('');
 
             const netEl = document.getElementById('abt-net-total');
-            netEl.innerText = `${netTotal > 0 ? '+' : ''}₹${fmt(netTotal)}`;
+            netEl.innerText = `${netTotal > 0 ? '+' : ''}₹ ${fmt(netTotal)}`;
             netEl.style.color = netTotal > 0 ? 'var(--success)' : (netTotal < 0 ? 'var(--accent)' : 'var(--text)');
         }
 
