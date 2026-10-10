@@ -11837,10 +11837,10 @@
             doc.text(`Date: ${m.date}`, 14, 34);
 
             const tableBody = currentBatchReportData.map((r, i) => {
-                // If there is an unpaid amount, we inject an object to tell jsPDF to color it Red
-                const unpaidCell = r.unpaid > 0 
+                // Check if unpaid is 20 or more. If so, highlight red. Otherwise, normal text.
+                const unpaidCell = r.unpaid >= 20 
                     ? { content: `Rs ${fmt(r.unpaid)}`, styles: { textColor: [220, 38, 38], fontStyle: 'bold' } }
-                    : `Rs 0`;
+                    : `Rs ${fmt(r.unpaid)}`;
 
                 return [
                     i + 1,
@@ -11851,11 +11851,16 @@
                 ];
             });
 
+            // Apply the same >= 20 logic to the Grand Total unpaid cell
+            const grandUnpaidCell = m.unpaid >= 20
+                ? { content: `Rs ${fmt(m.unpaid)}`, styles: { textColor: [220, 38, 38], fontStyle: 'bold' } }
+                : `Rs ${fmt(m.unpaid)}`;
+
             tableBody.push([
                 { content: 'GRAND TOTAL', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold' } }, 
                 `Rs ${fmt(m.totalAmt)}`, 
                 `Rs ${fmt(m.totalCol)}`, 
-                { content: `Rs ${fmt(m.unpaid)}`, styles: { textColor: [220, 38, 38], fontStyle: 'bold' } }
+                grandUnpaidCell
             ]);
 
             doc.autoTable({
