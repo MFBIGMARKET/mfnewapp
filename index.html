@@ -587,6 +587,39 @@
             </div>
         </div>
     </div>
+    <!-- RECEIPT EDIT MODAL -->
+    <div id="rec-edit-modal" class="modal-overlay hidden" style="z-index: 4000;">
+        <div class="modal-content" style="max-width: 350px;">
+            <div class="modal-header">
+                <span>Edit Vendor Bill</span>
+                <i class="fas fa-times" onclick="closeModal('rec-edit-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="rec-edit-id">
+                
+                <span class="step-lbl" style="display:block; margin-bottom:6px;">Select Vendor *</span>
+                <select id="rec-edit-vendor" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:700; margin-bottom:16px; outline:none; background:#F9FAFB;"></select>
+
+                <span class="step-lbl" style="display:block; margin-bottom:6px;">Bill / Invoice Number *</span>
+                <input type="text" id="rec-edit-no" placeholder="e.g. INV-12345" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:700; margin-bottom:16px; outline:none; text-transform:uppercase;">
+
+                <span class="step-lbl" style="display:block; margin-bottom:6px;">Total Bill Amount (₹) *</span>
+                <input type="number" id="rec-edit-amt" placeholder="0.00" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:12px; font-weight:800; margin-bottom:16px; outline:none; font-size:1.2rem; color:var(--brand);">
+
+                <div style="background: #F9FAFB; border: 1px dashed var(--border-dark); border-radius: 6px; padding: 10px; margin-bottom: 20px; text-align:center;">
+                    <button onclick="document.getElementById('rec-edit-photo-input').click()" style="background: white; color: var(--text); border: 1px solid var(--border-dark); padding: 8px 16px; border-radius: 4px; font-size: 0.8rem; font-weight: 800; cursor: pointer; margin-bottom:10px;"><i class="fas fa-camera"></i> Update Photo (Optional)</button>
+                    <div id="rec-edit-photo-preview" style="display:none; width:100%; height:200px; border-radius:4px; overflow:hidden; border:1px solid var(--border); position:relative;">
+                        <img id="rec-edit-img" src="" style="width:100%; height:100%; object-fit:contain; background:#E5E7EB;">
+                        <div onclick="clearRecEditPhoto()" style="position:absolute; top:5px; right:5px; background:var(--accent); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="fas fa-times"></i></div>
+                    </div>
+                    <div style="font-size: 0.7rem; color: var(--text-mut); margin-top: 4px;">Leave empty to keep the original photo.</div>
+                </div>
+
+                <button onclick="saveRecEdit()" id="btn-save-rec-edit" style="width:100%; background:var(--brand); color:white; border:none; padding:14px; border-radius:6px; font-weight:800; font-size:1.05rem; cursor:pointer;">Save Changes</button>
+            </div>
+        </div>
+        <input type="file" id="rec-edit-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="handleRecEditPhoto(event)">
+    </div>
 
     <!-- SHARED MODALS -->
     <div id="add-item-modal" class="modal-overlay hidden">
@@ -868,6 +901,11 @@
                 <div onclick="openAdminDashboardApp('accounts')" style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;">
                     <div style="font-size: 2.5rem; color: #6366F1; margin-bottom: 10px;"><i class="fas fa-calculator"></i></div>
                     <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Accounts</div>
+                </div>
+                <!-- WAREHOUSE BUTTON ADDED SAFELY -->
+                <div onclick="openAdminDashboardApp('warehouse')" style="background: white; border: 1px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.05); cursor: pointer;">
+                    <div style="font-size: 2.5rem; color: #14B8A6; margin-bottom: 10px;"><i class="fas fa-warehouse"></i></div>
+                    <div style="font-weight: 700; color: var(--text); font-size: 1.1rem;">Warehouse</div>
                 </div>
             </div>
         </div>
@@ -1255,6 +1293,130 @@
             </div>
         </div>
 
+        <!-- DELIVERY HISTORY: BATCH DETAIL VIEW -->
+        <div id="del-hist-batch-view" class="order-view hidden" style="z-index: 2100; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="exitDelHistBatch()" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center">
+                    <div class="ov-title" id="dhb-title">BATXXXX</div>
+                    <div class="ov-sub">Batch Overview</div>
+                </div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            <div style="background: white; padding: 16px; border-bottom: 1px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,0.05); z-index:10; flex-shrink: 0;">
+                <div style="display:flex; justify-content:space-between; margin-bottom: 12px;">
+                    <div style="text-align:center; flex:1;">
+                        <div style="font-size: 1.2rem; font-weight: 800; color: var(--brand);" id="dhb-del-amt">₹ 0</div>
+                        <div style="font-size: 0.65rem; font-weight: 700; color: var(--text-mut); text-transform: uppercase;">Total Billed</div>
+                    </div>
+                </div>
+                
+                <div onclick="openBatchCollectionReport()" style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02); cursor: pointer;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <div style="display: flex; flex-direction: column; justify-content: center;">
+                            <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-mut); text-transform: uppercase; line-height: 1; margin-bottom: 3px;">Collected <i class="fas fa-chevron-right" style="margin-left:4px; font-size:0.6rem;"></i></div>
+                            <div style="font-size: 1.1rem; font-weight: 800; color: var(--success); line-height: 1;" id="dhb-col-total">₹ 0</div>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 10px; text-align: right; align-items: center;">
+                        <div style="display: flex; flex-direction: column; justify-content: center;">
+                            <div style="font-size: 0.55rem; font-weight: 800; color: var(--text-mut); text-transform: uppercase; line-height: 1; margin-bottom: 3px;">Cash</div>
+                            <div style="font-size: 0.8rem; font-weight: 800; color: var(--text); line-height: 1;" id="dhb-col-cash">₹ 0</div>
+                        </div>
+                        <div style="width: 1px; height: 16px; background: var(--border);"></div>
+                        <div style="display: flex; flex-direction: column; justify-content: center;">
+                            <div style="font-size: 0.55rem; font-weight: 800; color: var(--text-mut); text-transform: uppercase; line-height: 1; margin-bottom: 3px;">UPI</div>
+                            <div style="font-size: 0.8rem; font-weight: 800; color: var(--text); line-height: 1;" id="dhb-col-upi">₹ 0</div>
+                        </div>
+                        <div style="width: 1px; height: 16px; background: var(--border);"></div>
+                        <div style="display: flex; flex-direction: column; justify-content: center;">
+                            <div style="font-size: 0.55rem; font-weight: 800; color: var(--accent); text-transform: uppercase; line-height: 1; margin-bottom: 3px;">Unpaid</div>
+                            <div style="font-size: 0.8rem; font-weight: 800; color: var(--accent); line-height: 1;" id="dhb-col-unpaid">₹ 0</div>
+                        </div>
+                    </div>
+                </div>
+                <div style="text-align:center; font-size: 0.75rem; font-weight: 700; color: var(--text-mut); margin-top: 10px;" id="dhb-stops-text">0 Stops Delivered</div>
+            </div>
+            <div class="scroll-area" style="padding: 12px; background: var(--bg);" id="del-hist-batch-list"></div>
+        </div>
+
+        <!-- SHARED: BATCH COLLECTION REPORT VIEW -->
+        <div id="batch-col-report-view" class="order-view hidden" style="z-index: 2200; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="closeBatchCollectionReport()" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center">
+                    <div class="ov-title">Collection Report</div>
+                    <div class="ov-sub" id="bcr-title">BATXXXX</div>
+                </div>
+                <i class="fas fa-share-nodes" onclick="shareBatchCollectionPDF()" style="cursor:pointer; padding:4px; color:#ffeb3b;"></i>
+            </div>
+            <div style="background: white; padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink:0;">
+                <div style="font-size: 0.75rem; color:var(--text-mut); font-weight:700; margin-bottom:8px;">Date: <span id="bcr-date" style="color:var(--text);"></span></div>
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div style="text-align:center;">
+                        <div style="font-size:0.6rem; color:var(--text-mut); font-weight:800; text-transform:uppercase;">Cash</div>
+                        <div style="font-weight:800; color:var(--text); font-size:0.9rem;" id="bcr-t-cash">₹ 0</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-size:0.6rem; color:var(--text-mut); font-weight:800; text-transform:uppercase;">UPI</div>
+                        <div style="font-weight:800; color:var(--text); font-size:0.9rem;" id="bcr-t-upi">₹ 0</div>
+                    </div>
+                    <div style="text-align:center;">
+                        <div style="font-size:0.6rem; color:var(--accent); font-weight:800; text-transform:uppercase;">Unpaid</div>
+                        <div style="font-weight:800; color:var(--accent); font-size:0.9rem;" id="bcr-t-unpaid">₹ 0</div>
+                    </div>
+                    <div style="text-align:right;">
+                        <div style="font-size:0.6rem; color:var(--success); font-weight:800; text-transform:uppercase;">Total Col.</div>
+                        <div style="font-weight:800; color:var(--success); font-size:1.1rem;" id="bcr-t-col">₹ 0</div>
+                    </div>
+                </div>
+            </div>
+            <div class="scroll-area" style="padding: 12px; background: var(--bg);" id="bcr-list"></div>
+        </div>
+        <!-- ADMIN: WAREHOUSE OVERLAY -->
+        <div id="admin-warehouse-app" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
+            <div class="ov-head">
+                <i class="fas fa-arrow-left" onclick="closeAdminDashboardApp('warehouse')" style="cursor:pointer; padding:4px;"></i>
+                <div class="ov-center"><div class="ov-title">Warehouse Management</div></div>
+                <i class="fas fa-check" style="color: transparent;"></i>
+            </div>
+            
+            <!-- TAB 1: STOCK VERIFICATION -->
+            <div id="wh-tab-stock" style="display:flex; flex-direction:column; flex:1; overflow:hidden; padding-bottom:55px;">
+                <div style="background: white; padding: 12px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; display: flex; flex-direction: column; gap: 10px;">
+                    <div style="display:flex; justify-content:space-between; align-items:center; gap: 8px;">
+                        <select id="wh-vendor-filter" onchange="renderWarehouseDash()" style="flex: 1; min-width: 0; padding: 8px; border: 1px solid var(--border-dark); border-radius: 4px; outline: none; font-size: 0.85rem; font-weight: 700; color: var(--text); background: #F9FAFB;">
+                        </select>
+                        <select id="wh-sort-filter" onchange="renderWarehouseDash()" style="flex: 0 0 140px; padding: 8px; border: 1px solid var(--brand); border-radius: 4px; outline: none; font-size: 0.8rem; font-weight: 700; color: var(--brand); background: var(--brand-light);">
+                            <option value="exp_asc">Expiring Soon</option>
+                            <option value="exp_desc">Expiry Furthest</option>
+                            <option value="alpha">A-Z Name</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="search-bar" style="border-bottom: 1px solid var(--border); flex-shrink: 0;">
+                    <i class="fas fa-search" style="color:var(--text-mut);"></i>
+                    <input type="text" placeholder="Search item name or code..." id="wh-search" oninput="renderWarehouseDash()">
+                </div>
+                <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="wh-feed"></div>
+            </div>
+
+            <!-- TAB 2: VENDOR RECEIPTS HISTORY -->
+            <div id="wh-tab-receipts" class="hidden" style="display:flex; flex-direction:column; flex:1; overflow:hidden; padding-bottom:55px;">
+                <div class="pack-top-bar" style="background: white; border-bottom: 1px solid var(--border); padding: 12px 16px; flex-shrink:0; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight: 800; color: var(--text); font-size: 0.95rem;">Vendor Receipts</span>
+                    <input type="date" id="wh-receipts-date" onchange="renderAdminReceipts()" style="border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-weight:700; outline:none; font-family: inherit; font-size: 0.8rem;">
+                </div>
+                <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="wh-receipts-feed"></div>
+            </div>
+
+            <!-- Bottom Sub-Nav -->
+            <div class="hr-sub-nav">
+                <div class="hr-sub-nav-item active" id="wh-nav-stock" onclick="switchWarehouseTab('stock')"><i class="fas fa-boxes"></i>Inventory</div>
+                <div class="hr-sub-nav-item" id="wh-nav-receipts" onclick="switchWarehouseTab('receipts')"><i class="fas fa-file-invoice"></i>Receipts</div>
+            </div>
+        </div>
+
         <!-- ADMIN: SALES DRILL-DOWN VIEW -->
         <div id="admin-sales-detail-view" class="order-view hidden" style="z-index: 2000; background: var(--bg);">
             <div class="ov-head">
@@ -1438,12 +1600,11 @@
                 </div>
                 
                 <!-- COLLECTIONS & UNPAID SUMMARY ROW -->
-                <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                <div onclick="openBatchCollectionReport()" style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02); cursor: pointer;">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <i class="fas fa-wallet" style="color: var(--text-mut); font-size: 1.1rem;"></i>
                         <div style="display: flex; flex-direction: column; justify-content: center;">
-                            <div style="font-size: 0.6rem; font-weight: 800; color: var(--text-mut); text-transform: uppercase; line-height: 1; margin-bottom: 3px;">Collected</div>
-                            <div style="font-size: 1.05rem; font-weight: 800; color: var(--success); line-height: 1;" id="adb-col-total">₹ 0</div>
+                            <div style="font-size: 0.65rem; font-weight: 800; color: var(--text-mut); text-transform: uppercase; line-height: 1; margin-bottom: 3px;">Collected <i class="fas fa-chevron-right" style="margin-left:4px; font-size:0.6rem;"></i></div>
+                            <div style="font-size: 1.1rem; font-weight: 800; color: var(--success); line-height: 1;" id="adb-col-total">₹ 0</div>
                         </div>
                     </div>
                     <div style="display: flex; gap: 10px; text-align: right; align-items: center;">
@@ -1660,6 +1821,14 @@
             <div class="scroll-area" style="padding: 16px; background:var(--bg);" id="rec-stock-feed"></div>
         </div>
 
+        <div id="view-rec-hist" class="tab-content hidden receiving-view">
+            <div class="pack-top-bar" style="background: white; border-bottom: 1px solid var(--border); padding: 12px 16px; flex-shrink:0; display:flex; justify-content:space-between; align-items:center;">
+                <span style="font-weight: 800; color: var(--text); font-size: 0.95rem;">Bill History</span>
+                <input type="date" id="rec-hist-date" onchange="renderRecHistory()" style="border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-weight:700; outline:none; font-family: inherit; font-size: 0.8rem;">
+            </div>
+            <div class="scroll-area" style="padding: 16px; background:var(--bg);" id="rec-hist-feed"></div>
+        </div>
+
        <!-- ========================================== -->
         <!-- MODERN PROFILE & ATTENDANCE                -->
         <!-- ========================================== -->
@@ -1797,8 +1966,9 @@
         </div>
 
         <div class="bottom-nav receiving-nav hidden">
-            <div class="nav-item active" onclick="switchTab('rec-bills')" data-target="rec-bills"><i class="fas fa-file-invoice-dollar"></i>Receive Bill</div>
-            <div class="nav-item" onclick="switchTab('rec-stock')" data-target="rec-stock"><i class="fas fa-boxes"></i>Verify Stock</div>
+            <div class="nav-item active" onclick="switchTab('rec-bills')" data-target="rec-bills"><i class="fas fa-file-invoice-dollar"></i>Receive</div>
+            <div class="nav-item" onclick="switchTab('rec-stock')" data-target="rec-stock"><i class="fas fa-boxes"></i>Stock</div>
+            <div class="nav-item" onclick="switchTab('rec-hist')" data-target="rec-hist"><i class="fas fa-history"></i>History</div>
             <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
         </div>
     </div> <!-- END OF MAIN APP -->
@@ -2512,6 +2682,7 @@
             if (tabId === 'delivery' && (currentUserRole === 'Delivery' || currentUserRole === 'Driver')) renderDelivery();
             if (tabId === 'del-hist' && currentUserRole === 'Delivery') renderDelHistory();
             if (tabId === 'acc-calendar' && currentUserRole === 'Accountant') initAccCalendar();
+            if (tabId === 'rec-hist' && currentUserRole === 'Receiving') renderRecHistory();
         }
 
         /* --- ADMIN DASHBOARD ROUTING --- */
@@ -2557,8 +2728,12 @@
                 document.getElementById('hr-shop-lng').value = window.SHOP_LOCATION.lng || '';
                 switchHRTab('today');
                 document.getElementById('admin-hr-app').classList.remove('hidden');
-            }
-        }
+            } else if (app === 'warehouse') {
+                populateWarehouseVendors();
+                switchWarehouseTab('stock'); // Reset tab state
+                document.getElementById('wh-receipts-date').value = new Date().toISOString().split('T')[0];
+                document.getElementById('admin-warehouse-app').classList.remove('hidden');
+            }}
 
         function closeAdminDashboardApp(app) {
             if (app === 'live') document.getElementById('admin-live-app').classList.add('hidden');
@@ -2569,6 +2744,7 @@
             else if (app === 'hr') document.getElementById('admin-hr-app').classList.add('hidden');
             else if (app === 'offers') document.getElementById('admin-offers-app').classList.add('hidden');
             else if (app === 'accounts') document.getElementById('admin-accounts-app').classList.add('hidden');
+            else if (app === 'warehouse') document.getElementById('admin-warehouse-app').classList.add('hidden');
         }
 
         /* --- ADMIN DELIVERY DASHBOARD --- */
@@ -2672,6 +2848,7 @@
         }
 
         function openAdminDeliveryBatch(batchId) {
+            currentActiveBatchId = batchId; // <-- ADD THIS LINE
             const filterDate = document.getElementById('admin-del-date').value;
             const stops = ERP_DELIVERIES.filter(o => o.batch_id === batchId && o.batch_date === filterDate);
 
@@ -2847,6 +3024,7 @@
         }
 
         function exitAdminDeliveryBatch() {
+            currentActiveBatchId = null;
             document.getElementById('admin-delivery-batch-view').classList.add('hidden');
         }
 
@@ -6389,18 +6567,11 @@
                 feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
             }
 
-            // Lazy load BOTH collections and deliveries for this date from the cloud
             if (filterDate && navigator.onLine) {
                 try {
                     const [colRes, delRes] = await Promise.all([
-                        sbClient.from('collections').select('*')
-                            .eq('salesman_id', userSession ? userSession.user.id : "local_dev")
-                            .gte('created_at', filterDate)
-                            .lte('created_at', filterDate + 'T23:59:59.999Z'),
-                        sbClient.from('erp_deliveries').select('id, batch_id, customer_name, document_numbers, amount, status, batch_date, created_at, delivered_at, pay_later, is_next_stop, verified_items')
-                            .eq('status', 'Delivered')
-                            .gte('delivered_at', filterDate)
-                            .lte('delivered_at', filterDate + 'T23:59:59.999Z')
+                        sbClient.from('collections').select('*').eq('salesman_id', userSession ? userSession.user.id : "local_dev").gte('created_at', filterDate).lte('created_at', filterDate + 'T23:59:59.999Z'),
+                        sbClient.from('erp_deliveries').select('id, batch_id, customer_name, document_numbers, amount, status, batch_date, created_at, delivered_at, pay_later, is_next_stop, verified_items').eq('status', 'Delivered').gte('delivered_at', filterDate).lte('delivered_at', filterDate + 'T23:59:59.999Z')
                     ]);
                     
                     if (colRes.data) {
@@ -6414,9 +6585,7 @@
                 } catch(e) {}
             }
 
-            // Only show the actual physical ERP deliveries in history
             let filtered = (ERP_DELIVERIES || []).filter(o => o.status === 'Delivered');
-            
             if (filterDate) {
                 filtered = filtered.filter(o => {
                     const d = new Date(o.delivered_at || o.created_at);
@@ -6425,10 +6594,15 @@
                 });
             }
 
-            // Sort by delivery time, newest at the top
-            filtered.sort((a, b) => new Date(b.delivered_at || b.created_at) - new Date(a.delivered_at || a.created_at));
+            // Group by batch_id
+            const batches = {};
+            filtered.forEach(o => {
+                const bId = o.batch_id || 'UNKNOWN';
+                if (!batches[bId]) batches[bId] = { id: bId, count: 0, amount: 0 };
+                batches[bId].count++;
+                batches[bId].amount += (o.amount || 0);
+            });
 
-            // Calculate Collections for the filtered date
             let tCash = 0, tUpi = 0, tTotal = 0;
             if (filterDate) {
                 MY_COLLECTIONS.forEach(c => {
@@ -6439,87 +6613,30 @@
                     }
                 });
             }
-            document.getElementById('dh-cash').innerText = `₹   ${fmt(tCash)}`;
-            document.getElementById('dh-upi').innerText = `₹   ${fmt(tUpi)}`;
-            document.getElementById('dh-total').innerText = `₹   ${fmt(tTotal)}`;
+            document.getElementById('dh-cash').innerText = `₹ ${fmt(tCash)}`;
+            document.getElementById('dh-upi').innerText = `₹ ${fmt(tUpi)}`;
+            document.getElementById('dh-total').innerText = `₹ ${fmt(tTotal)}`;
 
-            if (filtered.length === 0) {
+            const batchList = Object.values(batches).sort((a,b) => b.id.localeCompare(a.id));
+
+            if (batchList.length === 0) {
                 feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No deliveries found for this date.</div>`;
                 return;
             }
 
-            feed.innerHTML = filtered.map((order, idx) => {
-                const custName = order.customer_name || CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
-                
-                // Process Verified Checklist if it exists
-                let checklistHTML = '';
-                if (order.verified_items && order.document_numbers) {
-                    const totalItems = currentDeliveryItems.filter(i => order.document_numbers.includes(i.document_number)).length;
-                    const tickedItems = order.verified_items.length;
-                    
-                    let tickColor = tickedItems === 0 ? "var(--accent)" : (tickedItems === totalItems ? "var(--success)" : "#B45309");
-                    if (totalItems > 0) {
-                        checklistHTML = `<div style="font-size:0.7rem; font-weight:700; color:${tickColor}; background:${tickColor}20; padding:2px 6px; border-radius:4px; margin-top:6px; display:inline-block;">Verified: ${tickedItems} items</div>`;
-                    }
-                }
-
-                // Check for associated Collection on this specific date
-                let collectionAmt = 0;
-                let colBreakdown = '';
-                
-                if (filterDate) {
-                    const myCol = MY_COLLECTIONS.find(c => {
-                        const d = new Date(c.created_at);
-                        const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
-                        
-                        // Strict check to make sure the collection belongs to this customer AND this date
-                        const isMatch = (c.customer_code === order.customer_code || c.customer_code === order.customer_name || c.customer_code === order.id);
-                        return isMatch && localDate === filterDate;
-                    });
-
-                    if (myCol) {
-                        collectionAmt = myCol.total_amount;
-                        let tags = [];
-                        if (myCol.amount_cash > 0) tags.push(`C: ₹   ${fmt(myCol.amount_cash)}`);
-                        if (myCol.amount_gpay > 0) tags.push(`U: ₹   ${fmt(myCol.amount_gpay)}`);
-                        colBreakdown = tags.join(' | ');
-                    }
-                }
-
-                let paymentBadge = collectionAmt > 0 
-                    ? `<div style="text-align: right; flex-shrink: 0; display:flex; flex-direction:column; align-items:flex-end;">
-                           <span style="font-size: 1.05rem; font-weight: 800; color: var(--success);">₹   ${fmt(collectionAmt)}</span>
-                           <span style="font-size: 0.6rem; color: var(--text-mut); font-weight: 700; background: var(--success-bg); padding: 2px 4px; border-radius: 4px; margin-top: 2px;">${colBreakdown}</span>
-                       </div>`
-                    : `<div style="text-align: right; flex-shrink: 0;">
-                           <span style="font-size: 0.7rem; font-weight: 800; color: var(--accent); background: #FEF2F2; padding: 4px 8px; border-radius: 4px; border: 1px solid #FCA5A5;">UNPAID</span>
-                       </div>`;
-                
-                // Ensure quotes are escaped for the onclick event
-                const safeName = custName.replace(/'/g, "\\'");
-
+            feed.innerHTML = batchList.map(b => {
                 return `
-                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                    
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px;">
-                        <div style="flex:1; min-width: 0;">
-                            <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
-                            <div style="font-size:0.75rem; color:var(--text-mut); font-weight:700; margin-top:4px;">Total Bill: ₹   ${fmt(order.amount)}</div>
-                            ${checklistHTML}
-                        </div>
-                        ${paymentBadge}
+                <div class="order-card" style="border-left: 4px solid var(--success); cursor:pointer;" onclick="openDelHistBatch('${b.id}')">
+                    <div style="flex:1; min-width:0;">
+                        <b style="font-size: 1.1rem; color:var(--text);">${b.id}</b><br>
+                        <div class="ov-title" style="color:var(--text-mut); margin-top:4px;">${b.count} Stops Delivered</div>
                     </div>
-
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:10px; border-top: 1px dashed var(--border); padding-top: 10px;">
-                        <div style="display:flex; align-items:center; flex-wrap:wrap; gap:6px;">
-                            <span style="font-size:0.7rem; font-weight:700; color:var(--brand);"><i class="fas fa-receipt" style="margin-right:2px;"></i>${order.id.replace(order.batch_id+'_C', 'STOP ')}</span>
-                        </div>
-                        <div style="display:flex; gap: 6px;">
-                            <button onclick="openDeliveryPaymentEdit('${order.id}', '${safeName}', ${order.amount}, '${filterDate}')" style="background:var(--brand-light); color:var(--brand); border:1px solid var(--brand); padding:4px 10px; border-radius:4px; font-size:0.7rem; font-weight:800; cursor:pointer;"><i class="fas fa-edit"></i> Edit Pay</button>
-                            <button onclick="showPhotoModal('${order.id}')" style="background:#F3F4F6; color:var(--text-mut); border:1px solid var(--border-dark); padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:800; cursor:pointer;"><i class="fas fa-camera"></i> Proof</button>
-                        </div>
+                    <div style="text-align:right;">
+                        <b style="font-size: 1.1rem; color:var(--text);">₹ ${fmt(b.amount)}</b><br>
+                        <span style="color:var(--success); font-size:0.75rem; font-weight:700;">View Details <i class="fas fa-chevron-right"></i></span>
                     </div>
-                </div>`;
+                </div>
+                `;
             }).join('');
         }
 
@@ -11151,68 +11268,608 @@
 
             feed.innerHTML = items.map(i => {
                 const expDate = i.expiry_date || '';
+                
+                // Logic: If caseQty exists (>0), show it as text. If missing, show an input field.
+                const cQtyStr = i.caseQty && i.caseQty > 0 
+                    ? `<div style="font-size: 1.1rem; font-weight: 800; color: var(--text); background: #F3F4F6; padding: 6px; border-radius: 4px; text-align: center;">${i.caseQty} NOS</div>`
+                    : `<input type="number" id="rec-case-input-${i.code}" placeholder="Enter Qty" onfocus="this.select()" style="width:100%; padding: 6px; border: 1px dashed var(--warning); background:#FFFBEB; border-radius: 4px; font-weight: 800; font-size: 0.9rem; text-align: center; color: var(--warning); outline: none;">`;
+
                 return `
                 <div style="background: white; padding: 14px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                     <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3;">${i.name}</div>
-                    <div style="font-size: 0.75rem; color:var(--text-mut); font-weight:700; margin-bottom: 10px;">Code: <span style="color:var(--text);">${i.code}</span></div>
+                    <div style="font-size: 0.75rem; color:var(--text-mut); font-weight:700; margin-bottom: 10px;">Code: <span style="color:var(--text);">${i.code}</span> | ERP Stock: <span style="color:var(--text);">${i.stock}</span></div>
                     
                     <div style="display:flex; gap:10px; margin-bottom: 10px;">
                         <div style="flex:1;">
-                            <div style="font-size: 0.65rem; color: var(--text-mut); font-weight: 700; margin-bottom: 4px;">ERP Stock</div>
-                            <div style="font-size: 1.1rem; font-weight: 800; color: var(--text); background: #F3F4F6; padding: 6px; border-radius: 4px; text-align: center;">${i.stock}</div>
+                            <div style="font-size: 0.65rem; color: var(--brand); font-weight: 700; margin-bottom: 4px;">Case Quantity</div>
+                            ${cQtyStr}
                         </div>
                         <div style="flex:1;">
-                            <div style="font-size: 0.65rem; color: var(--brand); font-weight: 700; margin-bottom: 4px;">Physical Stock</div>
-                            <input type="number" id="rec-stock-input-${i.code}" value="${i.stock}" onfocus="this.select()" style="width:100%; padding: 6px; border: 1px solid var(--brand); border-radius: 4px; font-weight: 800; font-size: 1.1rem; text-align: center; color: var(--brand); outline: none;">
+                            <div style="font-size: 0.65rem; color: var(--accent); font-weight: 700; margin-bottom: 4px;">Expiry Date</div>
+                            <input type="date" id="rec-exp-input-${i.code}" value="${expDate}" style="width:100%; padding: 6px; border: 1px solid var(--border-dark); border-radius: 4px; font-weight: 700; font-size: 0.8rem; outline: none; font-family: inherit;">
                         </div>
                     </div>
                     
-                    <div style="display:flex; gap:10px; align-items:flex-end;">
-                        <div style="flex:1;">
-                            <div style="font-size: 0.65rem; color: var(--accent); font-weight: 700; margin-bottom: 4px;">Expiry Date</div>
-                            <input type="date" id="rec-exp-input-${i.code}" value="${expDate}" style="width:100%; padding: 8px; border: 1px solid var(--border-dark); border-radius: 4px; font-weight: 700; font-size: 0.8rem; outline: none; font-family: inherit;">
-                        </div>
-                        <button onclick="saveRecItem('${i.code}')" id="btn-rec-save-${i.code}" style="background:var(--success); color:white; border:none; padding:8px 16px; border-radius:4px; font-weight:800; cursor:pointer; height: 36px; box-shadow: 0 1px 2px rgba(16,185,129,0.2);">Save</button>
+                    <div style="text-align: right;">
+                        <button onclick="saveRecItem('${i.code}')" id="btn-rec-save-${i.code}" style="background:var(--success); color:white; border:none; padding:8px 24px; border-radius:4px; font-weight:800; cursor:pointer; height: 36px; box-shadow: 0 1px 2px rgba(16,185,129,0.2);">Save Details</button>
                     </div>
                 </div>`;
             }).join('');
         }
 
         async function saveRecItem(code) {
-            const stockVal = parseInt(document.getElementById(`rec-stock-input-${code}`).value);
             const expDate = document.getElementById(`rec-exp-input-${code}`).value;
+            const caseInput = document.getElementById(`rec-case-input-${code}`);
+            
+            let payload = { expiry_date: expDate ? expDate : null };
+            let newCaseQty = null;
 
-            if (isNaN(stockVal)) { showWarning("Invalid", "Please enter a valid physical stock number."); return; }
+            if (caseInput && caseInput.value !== "") {
+                newCaseQty = parseInt(caseInput.value);
+                if (!isNaN(newCaseQty) && newCaseQty > 0) {
+                    payload.caseQty = newCaseQty;
+                }
+            }
 
             const btn = document.getElementById(`btn-rec-save-${code}`);
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
             btn.disabled = true;
 
             try {
-                // Update Supabase Cloud directly
-                const payload = { stock: stockVal, expiry_date: expDate ? expDate : null };
+                // Update Supabase Cloud
                 const { error } = await sbClient.from('items').update(payload).eq('code', code);
                 if (error) throw error;
 
-                // Update Local Memory
+                // Update Local Memory Instantly
                 const item = INVENTORY.find(i => i.code === code);
                 if (item) {
-                    item.stock = stockVal;
                     item.expiry_date = payload.expiry_date;
+                    if (payload.caseQty) item.caseQty = payload.caseQty;
                 }
 
-                btn.innerHTML = '<i class="fas fa-check"></i>';
-                btn.style.background = '#059669'; // Darker green
+                btn.innerHTML = '<i class="fas fa-check"></i> Saved';
+                btn.style.background = '#059669'; 
+                
+                // Give it a second to show success, then re-render to lock the Case Qty input into text
                 setTimeout(() => {
-                    btn.innerHTML = 'Save';
-                    btn.style.background = 'var(--success)';
-                    btn.disabled = false;
-                }, 1500);
+                    renderRecStock(); 
+                }, 1000);
 
             } catch (e) {
                 showWarning("Network Error", "Could not save updates to the cloud.");
-                btn.innerHTML = 'Save';
+                btn.innerHTML = 'Save Details';
                 btn.disabled = false;
+            }
+        }
+        /* --- ADMIN WAREHOUSE LOGIC --- */
+        function populateWarehouseVendors() {
+            const vDrop = document.getElementById('wh-vendor-filter');
+            const erpVendors = INVENTORY.map(i => i.vendor);
+            const manualVendors = (window.VENDORS || []).map(v => v.name);
+            const combinedVendors = Array.from(new Set([...erpVendors, ...manualVendors])).filter(v => v && v !== 'UNASSIGNED').sort();
+            
+            vDrop.innerHTML = '<option value="All">All Vendors</option>' + 
+                              combinedVendors.map(v => `<option value="${v.replace(/"/g, '&quot;')}">${v}</option>`).join('');
+        }
+
+        function renderWarehouseDash() {
+            const feed = document.getElementById('wh-feed');
+            const vDrop = document.getElementById('wh-vendor-filter').value;
+            const sortMode = document.getElementById('wh-sort-filter').value;
+            const searchQ = (document.getElementById('wh-search').value || "").toLowerCase();
+
+            let items = [...INVENTORY];
+            
+            // Filter
+            if (vDrop !== 'All') items = items.filter(i => i.vendor === vDrop);
+            if (searchQ) items = items.filter(i => i.name.toLowerCase().includes(searchQ) || i.code.toLowerCase().includes(searchQ));
+
+            // Sort
+            items.sort((a, b) => {
+                if (sortMode === 'alpha') return a.name.localeCompare(b.name);
+                
+                // Expiry Logic: Treat items with NO expiry as very far in the future
+                const expA = a.expiry_date ? new Date(a.expiry_date).getTime() : 9999999999999;
+                const expB = b.expiry_date ? new Date(b.expiry_date).getTime() : 9999999999999;
+                
+                if (sortMode === 'exp_asc') return expA - expB; // Expiring soonest at top
+                if (sortMode === 'exp_desc') {
+                    // Put valid dates at top, nulls at bottom
+                    if (!a.expiry_date && b.expiry_date) return 1;
+                    if (a.expiry_date && !b.expiry_date) return -1;
+                    return expB - expA; 
+                }
+                return 0;
+            });
+
+            if (items.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No items found.</div>`;
+                return;
+            }
+
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
+            feed.innerHTML = items.map(i => {
+                let expBadge = `<span style="color:var(--text-mut); font-size:0.75rem; font-weight:700;">No Expiry Set</span>`;
+                if (i.expiry_date) {
+                    const expDate = new Date(i.expiry_date);
+                    const daysLeft = Math.ceil((expDate - today) / (1000 * 60 * 60 * 24));
+                    
+                    let bg = '#DCFCE7', col = '#166534', txt = '';
+                    if (daysLeft < 0) { bg = '#FEE2E2'; col = '#991B1B'; txt = 'EXPIRED'; }
+                    else if (daysLeft <= 30) { bg = '#FEF3C7'; col = '#B45309'; txt = `Exp in ${daysLeft} days`; }
+                    else { txt = `Exp in ${daysLeft} days`; }
+
+                    expBadge = `<span style="background:${bg}; color:${col}; padding:3px 8px; border-radius:4px; font-size:0.7rem; font-weight:800;">${txt} (${i.expiry_date})</span>`;
+                }
+
+                return `
+                <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                    <div style="flex:1; padding-right:10px;">
+                        <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3;">${i.name}</div>
+                        <div style="font-size: 0.7rem; color:var(--text-mut); font-weight: 700; margin-bottom:6px;">Code: <span style="color:var(--text);">${i.code}</span> | Vendor: <span style="color:var(--brand);">${i.vendor || 'UNASSIGNED'}</span></div>
+                        ${expBadge}
+                    </div>
+                    <div style="text-align: right; flex-shrink:0;">
+                        <span style="font-size: 0.65rem; color:var(--text-mut); text-transform:uppercase; font-weight:700;">ERP Stock</span><br>
+                        <b style="color:var(--text); font-size: 1.2rem;">${i.stock}</b>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+        /* --- RECEIVING & WAREHOUSE HISTORY LOGIC --- */
+        let VENDOR_RECEIPTS_CACHE = [];
+
+        async function fetchVendorReceipts(dateStr) {
+            // ONLY fetches text data. Does NOT fetch the heavy 'photo' column.
+            const { data, error } = await sbClient.from('vendor_receipts')
+                .select('id, vendor_name, bill_no, amount, created_at, created_by')
+                .gte('created_at', dateStr)
+                .lte('created_at', dateStr + 'T23:59:59.999Z')
+                .order('created_at', { ascending: false });
+            
+            if (data) VENDOR_RECEIPTS_CACHE = data;
+            return data;
+        }
+
+        async function renderRecHistory() {
+            const feed = document.getElementById('rec-hist-feed');
+            let dateStr = document.getElementById('rec-hist-date').value;
+            if (!dateStr) {
+                dateStr = new Date().toISOString().split('T')[0];
+                document.getElementById('rec-hist-date').value = dateStr;
+            }
+
+            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+            await fetchVendorReceipts(dateStr);
+            renderReceiptList(feed, VENDOR_RECEIPTS_CACHE);
+        }
+
+        async function renderAdminReceipts() {
+            const feed = document.getElementById('wh-receipts-feed');
+            const dateStr = document.getElementById('wh-receipts-date').value;
+            if (!dateStr) return;
+
+            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+            await fetchVendorReceipts(dateStr);
+            renderReceiptList(feed, VENDOR_RECEIPTS_CACHE);
+        }
+
+        function switchWarehouseTab(tab) {
+            document.querySelectorAll('#admin-warehouse-app .hr-sub-nav-item').forEach(el => el.classList.remove('active'));
+            document.getElementById(`wh-nav-${tab}`).classList.add('active');
+            
+            document.getElementById('wh-tab-stock').classList.add('hidden');
+            document.getElementById('wh-tab-receipts').classList.add('hidden');
+            
+            document.getElementById(`wh-tab-${tab}`).classList.remove('hidden');
+
+            if (tab === 'stock') renderWarehouseDash();
+            if (tab === 'receipts') renderAdminReceipts();
+        }
+
+        function renderReceiptList(feedElement, data) {
+            if (!data || data.length === 0) {
+                feedElement.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No vendor bills received on this date.</div>`;
+                return;
+            }
+
+            let totalAmt = 0;
+            data.forEach(r => totalAmt += r.amount);
+
+            let html = `<div style="background:var(--brand-light); border:1px solid var(--brand); padding:10px 14px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <span style="font-weight:700; color:var(--brand); font-size:0.85rem;">Total Value Received</span>
+                <span style="font-weight:800; color:var(--brand); font-size:1.1rem;">₹ ${fmt(totalAmt)}</span>
+            </div>`;
+
+            html += data.map(r => {
+                const timeStr = new Date(r.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                // Only show Edit button if it's the Receiver or Admin looking at it
+                const canEdit = (currentUserRole === 'Receiving' || currentUserRole === 'Admin');
+                const editBtnHtml = canEdit ? `<button onclick="openRecEditModal('${r.id}')" style="background:var(--brand-light); color:var(--brand); border:1px solid var(--brand); padding:4px 10px; border-radius:4px; font-size:0.7rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; margin-right: 6px;"><i class="fas fa-edit"></i> Edit</button>` : '';
+
+                return `
+                <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; padding: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div style="flex:1; padding-right:10px;">
+                            <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 4px; line-height: 1.3;">${r.vendor_name}</div>
+                            <div style="font-size: 0.75rem; color:var(--text-mut); font-weight:700;">Bill No: <span style="color:var(--brand);">${r.bill_no}</span></div>
+                            <div style="font-size: 0.65rem; color:var(--text-mut); margin-top: 6px;"><i class="fas fa-clock"></i> ${timeStr} | By: ${r.created_by}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-weight: 800; color:var(--text); font-size: 1.1rem; margin-bottom: 8px;">₹ ${fmt(r.amount)}</div>
+                            <div style="display: flex; justify-content: flex-end;">
+                                ${editBtnHtml}
+                                <button onclick="showReceiptPhotoModal('${r.id}')" style="background:#F3F4F6; color:var(--text-mut); border:1px solid var(--border-dark); padding:4px 10px; border-radius:4px; font-size:0.7rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px;"><i class="fas fa-image"></i> View</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            feedElement.innerHTML = html;
+        }
+
+        async function showReceiptPhotoModal(id) {
+            const container = document.getElementById('photo-modal-container');
+            container.innerHTML = `<div style="color:white; margin-top:50px; text-align:center;"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Downloading Bill Photo...</div>`;
+            document.getElementById('photo-modal').classList.remove('hidden');
+
+            try {
+                // EXCLUSIVELY fetch the heavy photo data exactly when clicked
+                const { data, error } = await sbClient.from('vendor_receipts').select('photo').eq('id', id).single();
+                if (data && data.photo) {
+                    container.innerHTML = `<img src="${data.photo}" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">`;
+                } else {
+                    closeModal('photo-modal');
+                    showWarning("No Photo", "Photo not found for this bill.");
+                }
+            } catch (e) {
+                closeModal('photo-modal');
+                showWarning("Network Error", "Could not load the photo from the cloud.");
+            }
+        }
+        /* --- EDIT RECEIPT LOGIC --- */
+        let recEditPhotoData = null;
+
+        function openRecEditModal(id) {
+            const receipt = VENDOR_RECEIPTS_CACHE.find(r => r.id === id);
+            if (!receipt) return;
+
+            document.getElementById('rec-edit-id').value = receipt.id;
+            
+            // Re-populate Dropdown so it includes new vendors added recently
+            const erpVendors = INVENTORY.map(i => i.vendor);
+            const manualVendors = (window.VENDORS || []).map(v => v.name);
+            const combinedVendors = Array.from(new Set([...erpVendors, ...manualVendors])).filter(v => v && v !== 'UNASSIGNED').sort();
+            
+            const vDrop = document.getElementById('rec-edit-vendor');
+            vDrop.innerHTML = '<option value="">-- Select Vendor --</option>' + 
+                              combinedVendors.map(v => `<option value="${v.replace(/"/g, '&quot;')}" ${v === receipt.vendor_name ? 'selected' : ''}>${v}</option>`).join('');
+
+            document.getElementById('rec-edit-no').value = receipt.bill_no;
+            document.getElementById('rec-edit-amt').value = receipt.amount;
+            
+            // Reset photo
+            clearRecEditPhoto();
+
+            document.getElementById('rec-edit-modal').classList.remove('hidden');
+        }
+
+        function handleRecEditPhoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = e => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const MAX_WIDTH = 800; 
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    recEditPhotoData = canvas.toDataURL('image/jpeg', 0.6); 
+                    document.getElementById('rec-edit-img').src = recEditPhotoData;
+                    document.getElementById('rec-edit-photo-preview').style.display = 'block';
+                    event.target.value = ''; // Reset input
+                };
+            };
+        }
+
+        function clearRecEditPhoto() {
+            recEditPhotoData = null;
+            document.getElementById('rec-edit-photo-preview').style.display = 'none';
+            document.getElementById('rec-edit-img').src = '';
+        }
+
+        async function saveRecEdit() {
+            const id = document.getElementById('rec-edit-id').value;
+            const vendor = document.getElementById('rec-edit-vendor').value;
+            const billNo = document.getElementById('rec-edit-no').value.trim().toUpperCase();
+            const amt = parseFloat(document.getElementById('rec-edit-amt').value);
+
+            if (!vendor || !billNo || isNaN(amt) || amt <= 0) { 
+                showWarning("Required", "Please fill in all details correctly."); 
+                return; 
+            }
+
+            const btn = document.getElementById('btn-save-rec-edit');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+            btn.disabled = true;
+
+            const payload = { vendor_name: vendor, bill_no: billNo, amount: amt };
+
+            // Only update the photo in the cloud if they actually took a new one!
+            if (recEditPhotoData) {
+                payload.photo = recEditPhotoData;
+            }
+
+            try {
+                const { error } = await sbClient.from('vendor_receipts').update(payload).eq('id', id);
+                if (error) throw error;
+
+                // Update Local Cache instantly
+                const idx = VENDOR_RECEIPTS_CACHE.findIndex(r => r.id === id);
+                if (idx > -1) {
+                    VENDOR_RECEIPTS_CACHE[idx].vendor_name = vendor;
+                    VENDOR_RECEIPTS_CACHE[idx].bill_no = billNo;
+                    VENDOR_RECEIPTS_CACHE[idx].amount = amt;
+                }
+
+                showSuccess(`Bill ${billNo} updated successfully!`);
+                closeModal('rec-edit-modal');
+                
+                // Refresh the active view seamlessly
+                if (currentUserRole === 'Receiving') renderRecHistory();
+                else renderAdminReceipts();
+
+            } catch (e) {
+                showWarning("Network Error", "Could not update the bill. Try again.");
+            } finally {
+                btn.innerHTML = 'Save Changes';
+                btn.disabled = false;
+            }
+        }
+        /* --- DRIVER HISTORY BATCH DETAIL & COLLECTION REPORT --- */
+        function openDelHistBatch(batchId) {
+            currentActiveBatchId = batchId;
+            const filterDate = document.getElementById('del-hist-date-filter').value;
+            const stops = ERP_DELIVERIES.filter(o => o.batch_id === batchId && o.status === 'Delivered' && 
+                          new Date(new Date(o.delivered_at || o.created_at).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0] === filterDate);
+
+            document.getElementById('dhb-title').innerText = batchId;
+
+            const totalStops = stops.length;
+            const delivAmt = stops.reduce((sum, s) => sum + (s.amount || 0), 0);
+
+            let totalCash = 0; let totalGpay = 0; let totalCollected = 0;
+            stops.forEach(s => {
+                if (!s.pay_later) {
+                    const myCol = (MY_COLLECTIONS || []).find(c => {
+                        const d = new Date(c.created_at);
+                        const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                        const isMatch = (c.customer_code === s.customer_code || c.customer_code === s.customer_name || c.customer_code === s.id);
+                        return isMatch && localDate === filterDate;
+                    });
+                    if (myCol) {
+                        totalCash += myCol.amount_cash || 0;
+                        totalGpay += myCol.amount_gpay || 0;
+                        totalCollected += myCol.total_amount || 0;
+                        s._myCol = myCol;
+                    }
+                }
+            });
+
+            let unpaidDeliveredAmt = delivAmt - totalCollected;
+
+            document.getElementById('dhb-del-amt').innerText = `₹ ${fmt(delivAmt)}`;
+            document.getElementById('dhb-col-total').innerText = `₹ ${fmt(totalCollected)}`;
+            document.getElementById('dhb-col-cash').innerText = `₹ ${fmt(totalCash)}`;
+            document.getElementById('dhb-col-upi').innerText = `₹ ${fmt(totalGpay)}`;
+            document.getElementById('dhb-col-unpaid').innerText = `₹ ${fmt(unpaidDeliveredAmt > 0 ? unpaidDeliveredAmt : 0)}`;
+            document.getElementById('dhb-stops-text').innerText = `${totalStops} Stops Delivered`;
+
+            const list = document.getElementById('del-hist-batch-list');
+            stops.sort((a, b) => new Date(b.delivered_at || 0) - new Date(a.delivered_at || 0));
+
+            list.innerHTML = stops.map(s => {
+                const isPayLater = s.pay_later;
+                const timeStr = s.delivered_at ? new Date(s.delivered_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : '';
+                const custName = s.customer_name || CUSTOMERS.find(c => c.code === s.customer_code)?.name || s.customer_code;
+                const billsStr = s.document_numbers ? s.document_numbers.join(', ') : '';
+                
+                let rightColumnHTML = `<div style="font-weight:800; color:var(--text); font-size:1.1rem; margin-bottom:4px;">₹ ${fmt(s.amount)}</div>`;
+                if (isPayLater) {
+                    rightColumnHTML += `<div style="font-size:0.7rem; color:#991B1B; font-weight:800; background:#FEE2E2; padding:2px 6px; border-radius:4px; border:1px solid #FCA5A5; display:inline-block; margin-top:2px;">UNPAID</div>`;
+                } else if (s._myCol) {
+                    let tags = [];
+                    if (s._myCol.amount_cash > 0) tags.push(`<span style="color:#166534;">C: ₹${fmt(s._myCol.amount_cash)}</span>`);
+                    if (s._myCol.amount_gpay > 0) tags.push(`<span style="color:#1E3A8A;">U: ₹${fmt(s._myCol.amount_gpay)}</span>`);
+                    rightColumnHTML += `<div style="margin-top:2px; display:flex; flex-direction:column; align-items:flex-end;">
+                        <span style="font-size:0.75rem; font-weight:800; background:var(--success-bg); padding:3px 6px; border-radius:4px; border:1px solid #BBF7D0;">${tags.join(' <span style="color:#A7F3D0; margin:0 2px;">|</span> ')}</span>
+                    </div>`;
+                }
+
+                const safeName = custName.replace(/'/g, "\\'");
+
+                return `
+                <div style="background: white; padding: 14px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap: 10px;">
+                        <div style="color:var(--text); font-weight:800; font-size:0.95rem; flex:1; min-width: 0;">
+                            <div style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${custName}</div>
+                            <div style="font-size:0.75rem; color:var(--text-mut); margin-top:6px;"><i class="fas fa-file-invoice" style="margin-right:2px;"></i> ${billsStr}</div>
+                            <div style="margin-top:8px; display:flex; align-items:center; gap:8px;">
+                                <span style="color:var(--success); font-weight:700; font-size:0.7rem; display:inline-block; background:#DCFCE7; padding:4px 8px; border-radius:4px;">
+                                    <i class="fas fa-check-circle"></i> ${isPayLater ? 'PAY LATER' : timeStr}
+                                </span>
+                            </div>
+                        </div>
+                        <div style="text-align:right; flex-shrink:0;">${rightColumnHTML}</div>
+                    </div>
+                    <div style="display:flex; justify-content:flex-end; gap:6px; margin-top:10px; border-top:1px dashed var(--border); padding-top:10px;">
+                        <button onclick="openDeliveryPaymentEdit('${s.id}', '${safeName}', ${s.amount}, '${filterDate}')" style="background:var(--brand-light); color:var(--brand); border:1px solid var(--brand); padding:4px 10px; border-radius:4px; font-size:0.7rem; font-weight:800; cursor:pointer;"><i class="fas fa-edit"></i> Edit Pay</button>
+                        <button onclick="showPhotoModal('${s.id}')" style="background:#F3F4F6; color:var(--text-mut); border:1px solid var(--border-dark); padding:4px 10px; border-radius:4px; font-size:0.7rem; font-weight:800; cursor:pointer;"><i class="fas fa-camera"></i> Proof</button>
+                    </div>
+                </div>`;
+            }).join('');
+
+            document.getElementById('del-hist-batch-view').classList.remove('hidden');
+        }
+
+        function exitDelHistBatch() {
+            currentActiveBatchId = null;
+            document.getElementById('del-hist-batch-view').classList.add('hidden');
+            renderDelHistory();
+        }
+
+        let currentBatchReportData = [];
+        let currentBatchReportMeta = {};
+
+        function openBatchCollectionReport() {
+            if(!currentActiveBatchId) return;
+            const batchId = currentActiveBatchId;
+            
+            // Re-fetch data based on active view to ensure accuracy.
+            let filterDate = document.getElementById('admin-del-date').value;
+            if (document.getElementById('admin-delivery-batch-view').classList.contains('hidden')) {
+                filterDate = document.getElementById('del-hist-date-filter').value;
+            }
+
+            const stops = ERP_DELIVERIES.filter(o => o.batch_id === batchId && o.status === 'Delivered' &&
+                new Date(new Date(o.delivered_at || o.created_at).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0] === filterDate);
+            
+            let reportData = [];
+            let rCash = 0, rGpay = 0, rAmt = 0, rUnpaid = 0;
+
+            stops.forEach(s => {
+                const custName = s.customer_name || CUSTOMERS.find(c => c.code === s.customer_code)?.name || s.customer_code;
+                let cAmt = 0, gAmt = 0, tCol = 0;
+                
+                if (!s.pay_later) {
+                    const myCol = (ALL_COLLECTIONS.length ? ALL_COLLECTIONS : MY_COLLECTIONS).find(c => {
+                        const d = new Date(c.created_at);
+                        const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+                        const isMatch = (c.customer_code === s.customer_code || c.customer_code === s.customer_name || c.customer_code === s.id);
+                        return isMatch && localDate === filterDate;
+                    });
+                    if (myCol) {
+                        cAmt = myCol.amount_cash || 0;
+                        gAmt = myCol.amount_gpay || 0;
+                        tCol = myCol.total_amount || 0;
+                    }
+                }
+                
+                const unpaid = s.amount - tCol;
+                rCash += cAmt; rGpay += gAmt; rAmt += s.amount; 
+                if(unpaid > 0) rUnpaid += unpaid;
+
+                reportData.push({
+                    name: custName,
+                    bills: s.document_numbers ? s.document_numbers.join(', ') : '',
+                    amount: s.amount,
+                    cash: cAmt,
+                    upi: gAmt,
+                    collected: tCol,
+                    unpaid: unpaid > 0 ? unpaid : 0
+                });
+            });
+
+            currentBatchReportData = reportData;
+            currentBatchReportMeta = { id: batchId, cash: rCash, upi: rGpay, totalAmt: rAmt, totalCol: rCash+rGpay, unpaid: rUnpaid, date: filterDate };
+
+            document.getElementById('bcr-title').innerText = batchId;
+            document.getElementById('bcr-date').innerText = filterDate;
+            document.getElementById('bcr-t-cash').innerText = `₹ ${fmt(rCash)}`;
+            document.getElementById('bcr-t-upi').innerText = `₹ ${fmt(rGpay)}`;
+            document.getElementById('bcr-t-unpaid').innerText = `₹ ${fmt(rUnpaid)}`;
+            document.getElementById('bcr-t-col').innerText = `₹ ${fmt(rCash+rGpay)}`;
+
+            const list = document.getElementById('bcr-list');
+            list.innerHTML = reportData.map(r => {
+                let badge = '';
+                if (r.unpaid > 0) {
+                    badge = `<span style="background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:800;">UNPAID: ₹${fmt(r.unpaid)}</span>`;
+                } else {
+                    badge = `<span style="background:#DCFCE7; color:#166534; border:1px solid #BBF7D0; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:800;">PAID: ₹${fmt(r.collected)}</span>`;
+                }
+
+                return `
+                <div style="background:white; border-radius:6px; padding:12px; margin-bottom:8px; border:1px solid var(--border);">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div style="flex:1; padding-right:10px;">
+                            <div style="font-weight:800; font-size:0.85rem; color:var(--text); line-height:1.2; margin-bottom:4px;">${r.name}</div>
+                            <div style="font-size:0.7rem; color:var(--text-mut);">${r.bills}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-weight:800; font-size:0.95rem; color:var(--text); margin-bottom:4px;">₹ ${fmt(r.amount)}</div>
+                            ${badge}
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            document.getElementById('batch-col-report-view').classList.remove('hidden');
+        }
+
+        function closeBatchCollectionReport() {
+            document.getElementById('batch-col-report-view').classList.add('hidden');
+        }
+
+        async function shareBatchCollectionPDF() {
+            if(!window.jspdf) { alert("PDF Engine Loading, please wait."); return; }
+            if(currentBatchReportData.length === 0) return;
+
+            const doc = new window.jspdf.jsPDF();
+            const m = currentBatchReportMeta;
+            
+            doc.setFontSize(16);
+            doc.text(`Batch Collection Report`, 14, 20);
+            
+            doc.setFontSize(10);
+            doc.text(`Batch: ${m.id}`, 14, 28);
+            doc.text(`Date: ${m.date}`, 14, 34);
+
+            const tableBody = currentBatchReportData.map((r, i) => {
+                return [
+                    i + 1,
+                    r.name.substring(0, 30),
+                    `Rs ${fmt(r.amount)}`,
+                    `Rs ${fmt(r.collected)}`,
+                    `Rs ${fmt(r.unpaid)}`
+                ];
+            });
+
+            tableBody.push([{ content: 'GRAND TOTAL', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold' } }, `Rs ${fmt(m.totalAmt)}`, `Rs ${fmt(m.totalCol)}`, `Rs ${fmt(m.unpaid)}`]);
+
+            doc.autoTable({
+                startY: 42,
+                head: [['#', 'Customer', 'Bill Amt', 'Collected', 'Unpaid']],
+                body: tableBody,
+                theme: 'striped',
+                headStyles: { fillColor: [10, 74, 156] }, 
+                styles: { fontSize: 8 }
+            });
+
+            const pdfBlob = doc.output('blob');
+            const file = new File([pdfBlob], `Batch_${m.id}_Report.pdf`, { type: 'application/pdf' });
+
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        title: `Batch ${m.id} Report`,
+                        text: `Collection Report for Batch ${m.id}. Total Collected: Rs ${fmt(m.totalCol)}, Unpaid: Rs ${fmt(m.unpaid)}`,
+                        files: [file]
+                    });
+                } catch (err) {}
+            } else {
+                doc.save(`Batch_${m.id}_Report.pdf`);
             }
         }
 
