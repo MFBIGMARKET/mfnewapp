@@ -559,6 +559,22 @@
         </div>
     </div>
 
+    <!-- ACCOUNTANT SECURE DELETE MODAL -->
+    <div id="acc-delete-modal" class="modal-overlay hidden" style="z-index: 5000;">
+        <div class="modal-content" style="max-width: 320px;">
+            <div class="modal-header">
+                <span style="color: var(--accent); font-weight: 800;"><i class="fas fa-trash"></i> Delete Record</span>
+                <i class="fas fa-times" onclick="closeModal('acc-delete-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:0.85rem; color:var(--text-mut); margin-bottom:15px; text-align: center;">Enter the accountant pin to permanently delete this transaction.</p>
+                <input type="password" id="acc-del-pass" placeholder="Enter PIN" style="width:100%; padding:12px; border:1px solid var(--border-dark); border-radius:6px; outline:none; margin-bottom:15px; text-align:center; font-size: 1.2rem; font-weight: 800; letter-spacing: 4px;">
+                <input type="hidden" id="acc-del-id">
+                <button onclick="confirmAccDelete()" id="btn-confirm-acc-del" style="width:100%; background:var(--accent); color:white; border:none; padding:12px; border-radius:6px; font-weight:800; cursor:pointer; font-size: 1rem;">Delete</button>
+            </div>
+        </div>
+    </div>
+
     <!-- SHARED MODALS -->
     <div id="add-item-modal" class="modal-overlay hidden">
         <div class="modal-content" style="max-width: 500px; height: 90vh;">
@@ -9901,8 +9917,9 @@
                     const effDate = (txn.type === 'OUT' && txn.status === 'Cleared') ? txn.cleared_date : txn.trans_date;
                     
                     if (effDate === dateStr) {
-                        if (txn.type === 'OUT') dayOut += txn.amount;
-                        else if (txn.type === 'IN') dayIn += txn.amount;
+                        // FIX: Include Expenses (OTHER_OUT) and Income (OTHER_IN)
+                        if (txn.type === 'OUT' || txn.type === 'OTHER_OUT') dayOut += txn.amount;
+                        else if (txn.type === 'IN' || txn.type === 'OTHER_IN') dayIn += txn.amount;
                     }
                 });
 
@@ -9957,13 +9974,14 @@
             }
 
             list.innerHTML = txns.map(t => {
-                const isOut = t.type === 'OUT';
-                const isPending = t.status === 'Pending';
+                const isOut = (t.type === 'OUT' || t.type === 'OTHER_OUT');
+                const isPending = (t.status === 'Pending');
                 
                 let actionHtml = '';
                 let statusBadge = '';
+                let label = t.vendor_name || ''; 
 
-                if (isOut && isPending) {
+                if (t.type === 'OUT' && isPending) {
                     statusBadge = `<div style="font-size:0.65rem; font-weight:800; color:#B45309; background:#FEF3C7; padding:2px 6px; border-radius:4px; display:inline-block;">ISSUED (PENDING)</div>`;
                     actionHtml = `
                     <div style="margin-top:6px; padding-top:6px; border-top:1px dashed var(--border-dark);">
@@ -9971,17 +9989,26 @@
                         <input type="date" id="clear-date-${t.id}" style="width:100%; font-size:0.65rem; padding:4px; margin-bottom:4px; border:1px solid var(--border); border-radius:4px;">
                         <button onclick="markTxnCleared('${t.id}', 'calendar')" style="width:100%; background:var(--success); color:white; border:none; padding:4px; border-radius:4px; font-weight:700; font-size:0.65rem; cursor:pointer;">Mark Cleared</button>
                     </div>`;
-                } else if (isOut && !isPending) {
+                } else if (t.type === 'OUT' && !isPending) {
                     statusBadge = `<div style="font-size:0.65rem; font-weight:800; color:#166534; background:#DCFCE7; padding:2px 6px; border-radius:4px; display:inline-block;">CLEARED TODAY</div>`;
                     actionHtml = `<div style="font-size:0.55rem; color:var(--text-mut); margin-top:4px;">(Originally issued on ${t.trans_date})</div>`;
-                } else {
+                } else if (t.type === 'IN') {
                     statusBadge = `<div style="font-size:0.65rem; font-weight:800; color:#166534; background:#DCFCE7; padding:2px 6px; border-radius:4px; display:inline-block;">CASH INJECTED</div>`;
+                    label = 'CASH INJECT';
+                } else if (t.type === 'OTHER_IN') {
+                    statusBadge = `<div style="font-size:0.65rem; font-weight:800; color:#1E3A8A; background:#DBEAFE; padding:2px 6px; border-radius:4px; display:inline-block;">OTHER INCOME</div>`;
+                    label = 'OTHER INCOME';
+                } else if (t.type === 'OTHER_OUT') {
+                    statusBadge = `<div style="font-size:0.65rem; font-weight:800; color:#991B1B; background:#FEE2E2; padding:2px 6px; border-radius:4px; display:inline-block;">EXPENSE</div>`;
                 }
 
                 return `
                 <div style="background:white; padding:8px; border-radius:6px; border:1px solid var(--border); margin-bottom:6px; box-shadow:0 1px 2px rgba(0,0,0,0.05);">
-                    <div style="font-weight:800; font-size:0.75rem; color:${isOut?'var(--accent)':'var(--success)'};">${isOut?'-':'+'}₹   ${fmt(t.amount)}</div>
-                    <div style="font-weight:700; font-size:0.65rem; color:var(--text); margin:4px 0;">${isOut ? t.vendor_name : 'CASH INJECT'}</div>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div style="font-weight:800; font-size:0.75rem; color:${isOut?'var(--accent)':'var(--success)'};">${isOut?'-':'+'}₹${fmt(t.amount)}</div>
+                        <button onclick="promptAccDelete('${t.id}')" style="background:transparent; border:none; color:var(--text-mut); cursor:pointer; padding:2px;"><i class="fas fa-trash"></i></button>
+                    </div>
+                    <div style="font-weight:700; font-size:0.65rem; color:var(--text); margin:4px 0;">${label}</div>
                     ${statusBadge}
                     <div style="font-size:0.6rem; color:var(--text-mut); line-height:1.2; margin-top:4px;">${t.particulars}</div>
                     ${actionHtml}
@@ -10844,6 +10871,48 @@
             const netEl = document.getElementById('abt-net-total');
             netEl.innerText = `${netTotal > 0 ? '+' : ''}₹   ${fmt(netTotal)}`;
             netEl.style.color = netTotal > 0 ? 'var(--success)' : (netTotal < 0 ? 'var(--accent)' : 'var(--text)');
+        }
+        /* --- ACCOUNTANT SECURE DELETE LOGIC --- */
+        function promptAccDelete(id) {
+            document.getElementById('acc-del-id').value = id;
+            document.getElementById('acc-del-pass').value = '';
+            document.getElementById('acc-delete-modal').classList.remove('hidden');
+        }
+
+        async function confirmAccDelete() {
+            const pass = document.getElementById('acc-del-pass').value;
+            if (pass !== 'acc000') {
+                showWarning("Access Denied", "Incorrect PIN.");
+                return;
+            }
+
+            const id = document.getElementById('acc-del-id').value;
+            const btn = document.getElementById('btn-confirm-acc-del');
+            
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+            btn.disabled = true;
+
+            try {
+                // Delete from Supabase Cloud
+                const { error } = await sbClient.from('bank_transactions').delete().eq('id', id);
+                if (error) throw error;
+
+                // Delete from Local Memory instantly
+                window.BANK_TXNS = window.BANK_TXNS.filter(t => t.id !== id);
+
+                closeModal('acc-delete-modal');
+                showSuccess("Transaction deleted successfully!");
+                
+                // Refresh the calendar UI dynamically
+                renderAccCalendar(currAccMonth, currAccYear); 
+                selectAccDay(selectedAccDate);
+
+            } catch (e) {
+                showWarning("Network Error", "Could not delete from cloud. Try again.");
+            } finally {
+                btn.innerHTML = 'Delete';
+                btn.disabled = false;
+            }
         }
 
     </script>
