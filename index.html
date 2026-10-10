@@ -471,7 +471,7 @@
                 <i class="fas fa-times" onclick="closeModal('del-confirm-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
             </div>
             <div class="modal-body">
-                <p style="font-size: 0.85rem; color:var(--text-mut); margin-bottom: 10px;">Record payment or mark as Pay Later.</p>
+                <p style="font-size: 0.85rem; color:var(--text-mut); margin-bottom: 10px;">Record payment and attach photos.</p>
                 
                 <div id="del-payment-inputs">
                     <span class="step-lbl" style="display:block;">Cash Amount (₹)</span>
@@ -486,7 +486,18 @@
                     Mark as Pay Later
                 </label>
                 
-                <button onclick="proceedToPhoto()" style="width: 100%; background: var(--brand); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: 700; cursor: pointer;"><i class="fas fa-camera"></i> Take Photo & Complete</button>
+                <!-- MULTIPLE PHOTO SECTION -->
+                <div style="background: #F9FAFB; border: 1px dashed var(--border-dark); border-radius: 6px; padding: 10px; margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-mut);">Delivery Proof</span>
+                        <button onclick="document.getElementById('camera-input').click()" style="background: var(--brand-light); color: var(--brand); border: 1px solid var(--brand); padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; cursor: pointer;"><i class="fas fa-camera"></i> Add Photo</button>
+                    </div>
+                    <div id="del-photo-thumbs" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;">
+                        <span style="font-size: 0.7rem; color: var(--text-mut);">No photos attached.</span>
+                    </div>
+                </div>
+                
+                <button onclick="proceedToSaveDelivery()" id="btn-del-save-final" style="width: 100%; background: var(--brand); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: 700; cursor: pointer;"><i class="fas fa-check-circle"></i> Complete Delivery</button>
             </div>
         </div>
     </div>
@@ -517,11 +528,13 @@
 
     <!-- PHOTO VIEWER MODAL -->
     <div id="photo-modal" class="modal-overlay hidden" style="z-index: 5000; background: rgba(0,0,0,0.9);">
-        <div style="width: 100%; max-width: 500px; display:flex; flex-direction:column; align-items:center;">
-            <div style="width: 100%; text-align: right; padding: 10px;">
+        <div style="width: 100%; max-width: 500px; display:flex; flex-direction:column; align-items:center; height: 100%;">
+            <div style="width: 100%; text-align: right; padding: 16px; flex-shrink: 0;">
                 <i class="fas fa-times" onclick="closeModal('photo-modal')" style="color: white; font-size: 2rem; cursor: pointer;"></i>
             </div>
-            <img id="photo-modal-img" src="" style="width: 100%; border-radius: 8px;">
+            <div id="photo-modal-container" style="flex: 1; width: 100%; overflow-y: auto; padding: 0 10px 20px 10px; display: flex; flex-direction: column; gap: 15px; align-items: center;">
+                <!-- Multiple Images injected here -->
+            </div>
         </div>
     </div>
 
@@ -1424,24 +1437,29 @@
                     <div id="adb-progress" style="background: var(--success); height: 100%; width: 0%; transition: width 0.5s ease;"></div>
                 </div>
                 
-                <!-- NEW COLLECTIONS SUMMARY ROW (COMPACT) -->
-                <div style="background: var(--success-bg); border: 1px solid #BBF7D0; border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center;">
+                <!-- COLLECTIONS & UNPAID SUMMARY ROW -->
+                <div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                     <div style="display: flex; align-items: center; gap: 8px;">
-                        <i class="fas fa-wallet" style="color: var(--success); font-size: 1.2rem;"></i>
+                        <i class="fas fa-wallet" style="color: var(--text-mut); font-size: 1.1rem;"></i>
                         <div style="display: flex; flex-direction: column; justify-content: center;">
-                            <div style="font-size: 0.6rem; font-weight: 800; color: #166534; text-transform: uppercase; line-height: 1; margin-bottom: 2px;">Collected</div>
+                            <div style="font-size: 0.6rem; font-weight: 800; color: var(--text-mut); text-transform: uppercase; line-height: 1; margin-bottom: 3px;">Collected</div>
                             <div style="font-size: 1.05rem; font-weight: 800; color: var(--success); line-height: 1;" id="adb-col-total">₹ 0</div>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 12px; text-align: right; align-items: center;">
+                    <div style="display: flex; gap: 10px; text-align: right; align-items: center;">
                         <div style="display: flex; flex-direction: column; justify-content: center;">
-                            <div style="font-size: 0.55rem; font-weight: 800; color: #166534; text-transform: uppercase; line-height: 1; margin-bottom: 2px;">Cash</div>
+                            <div style="font-size: 0.55rem; font-weight: 800; color: var(--text-mut); text-transform: uppercase; line-height: 1; margin-bottom: 3px;">Cash</div>
                             <div style="font-size: 0.8rem; font-weight: 800; color: var(--text); line-height: 1;" id="adb-col-cash">₹ 0</div>
                         </div>
-                        <div style="width: 1px; height: 20px; background: #86EFAC;"></div>
+                        <div style="width: 1px; height: 16px; background: var(--border);"></div>
                         <div style="display: flex; flex-direction: column; justify-content: center;">
-                            <div style="font-size: 0.55rem; font-weight: 800; color: #166534; text-transform: uppercase; line-height: 1; margin-bottom: 2px;">UPI</div>
+                            <div style="font-size: 0.55rem; font-weight: 800; color: var(--text-mut); text-transform: uppercase; line-height: 1; margin-bottom: 3px;">UPI</div>
                             <div style="font-size: 0.8rem; font-weight: 800; color: var(--text); line-height: 1;" id="adb-col-upi">₹ 0</div>
+                        </div>
+                        <div style="width: 1px; height: 16px; background: var(--border);"></div>
+                        <div style="display: flex; flex-direction: column; justify-content: center;">
+                            <div style="font-size: 0.55rem; font-weight: 800; color: var(--accent); text-transform: uppercase; line-height: 1; margin-bottom: 3px;">Unpaid</div>
+                            <div style="font-size: 0.8rem; font-weight: 800; color: var(--accent); line-height: 1;" id="adb-col-unpaid">₹ 0</div>
                         </div>
                     </div>
                 </div>
@@ -1597,6 +1615,51 @@
             </div>
         </div>
 
+        <!-- ========================================== -->
+        <!-- RECEIVING VIEWS                            -->
+        <!-- ========================================== -->
+        <div id="view-rec-bills" class="tab-content hidden receiving-view">
+            <div class="pack-top-bar" style="background: white; border-bottom: 1px solid var(--border); padding: 16px;">
+                <span style="font-size: 0.95rem; font-weight: 800; color: var(--text);">Receive Vendor Bill</span>
+            </div>
+            <div class="scroll-area" style="padding: 16px;">
+                <div style="background:white; padding:16px; border-radius:8px; border:1px solid var(--border); box-shadow:0 2px 4px rgba(0,0,0,0.05);">
+                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Select Vendor *</span>
+                    <select id="rec-bill-vendor" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:700; margin-bottom:16px; outline:none; background:#F9FAFB;"></select>
+
+                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Bill / Invoice Number *</span>
+                    <input type="text" id="rec-bill-no" placeholder="e.g. INV-12345" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:700; margin-bottom:16px; outline:none; text-transform:uppercase;">
+
+                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Total Bill Amount (₹) *</span>
+                    <input type="number" id="rec-bill-amt" placeholder="0.00" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:12px; font-weight:800; margin-bottom:16px; outline:none; font-size:1.2rem; color:var(--brand);">
+
+                    <div style="background: #F9FAFB; border: 1px dashed var(--border-dark); border-radius: 6px; padding: 10px; margin-bottom: 20px; text-align:center;">
+                        <button onclick="document.getElementById('rec-photo-input').click()" style="background: white; color: var(--text); border: 1px solid var(--border-dark); padding: 8px 16px; border-radius: 4px; font-size: 0.8rem; font-weight: 800; cursor: pointer; margin-bottom:10px;"><i class="fas fa-camera"></i> Capture Bill Photo</button>
+                        <div id="rec-bill-photo-preview" style="display:none; width:100%; height:200px; border-radius:4px; overflow:hidden; border:1px solid var(--border); position:relative;">
+                            <img id="rec-bill-img" src="" style="width:100%; height:100%; object-fit:contain; background:#E5E7EB;">
+                            <div onclick="clearRecBillPhoto()" style="position:absolute; top:5px; right:5px; background:var(--accent); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="fas fa-times"></i></div>
+                        </div>
+                        <span id="rec-bill-photo-text" style="display:block; font-size: 0.75rem; color: var(--accent); font-weight:700;">* Photo Required</span>
+                    </div>
+
+                    <button onclick="submitRecBill()" id="btn-submit-rec-bill" style="width:100%; background:var(--brand); color:white; border:none; padding:14px; border-radius:6px; font-weight:800; font-size:1.05rem; cursor:pointer;">Submit Bill</button>
+                </div>
+            </div>
+            <input type="file" id="rec-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="handleRecBillPhoto(event)">
+        </div>
+
+        <div id="view-rec-stock" class="tab-content hidden receiving-view">
+            <div class="pack-top-bar" style="background: white; border-bottom: 1px solid var(--border); padding: 12px 16px; flex-shrink:0;">
+                <span class="step-lbl" style="display:block; margin-bottom:4px;">Filter by Vendor</span>
+                <select id="rec-stock-vendor" onchange="renderRecStock()" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:8px; font-weight:700; outline:none; background:#F9FAFB;"></select>
+            </div>
+            <div class="search-bar" style="border-bottom: 1px solid var(--border); flex-shrink: 0;">
+                <i class="fas fa-search" style="color:var(--text-mut);"></i>
+                <input type="text" placeholder="Search item..." id="rec-stock-search" oninput="renderRecStock()">
+            </div>
+            <div class="scroll-area" style="padding: 16px; background:var(--bg);" id="rec-stock-feed"></div>
+        </div>
+
        <!-- ========================================== -->
         <!-- MODERN PROFILE & ATTENDANCE                -->
         <!-- ========================================== -->
@@ -1730,6 +1793,12 @@
 
         <div class="bottom-nav driver-nav hidden">
             <div class="nav-item active" onclick="switchTab('delivery')" data-target="delivery"><i class="fas fa-truck"></i>Deliveries</div>
+            <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
+        </div>
+
+        <div class="bottom-nav receiving-nav hidden">
+            <div class="nav-item active" onclick="switchTab('rec-bills')" data-target="rec-bills"><i class="fas fa-file-invoice-dollar"></i>Receive Bill</div>
+            <div class="nav-item" onclick="switchTab('rec-stock')" data-target="rec-stock"><i class="fas fa-boxes"></i>Verify Stock</div>
             <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
         </div>
     </div> <!-- END OF MAIN APP -->
@@ -2181,7 +2250,7 @@
                 else {
                     // ERP updated! Download fresh data and save to phone memory
                     console.log("Downloading fresh Master Data...");
-                    const itemCols = 'code, name, category, cost, mrp, price2, stock, caseQty, has_slabs, slabs, is_scheme, scheme_slabs, scheme_start, scheme_end, vendor';
+                    const itemCols = 'code, name, category, cost, mrp, price2, stock, caseQty, has_slabs, slabs, is_scheme, scheme_slabs, scheme_start, scheme_end, vendor, expiry_date';
 
                     fetchTasks.push((async () => {
                         let itemsData = []; let iMore = true; let iPage = 0;
@@ -2327,8 +2396,17 @@
             const dNav = document.querySelector('.delivery-nav');
             const accNav = document.querySelector('.accountant-nav');
             const drvNav = document.querySelector('.driver-nav');
+            const recNav = document.querySelector('.receiving-nav');
 
             if(sNav) sNav.classList.add('hidden');
+            if(mNav) mNav.classList.add('hidden');
+            if(aNav) aNav.classList.add('hidden');
+            if(pNav) pNav.classList.add('hidden');
+            if(bNav) bNav.classList.add('hidden');
+            if(dNav) dNav.classList.add('hidden');
+            if(accNav) accNav.classList.add('hidden');
+            if(drvNav) drvNav.classList.add('hidden');
+            if(recNav) recNav.classList.add('hidden');
             if(mNav) mNav.classList.add('hidden');
             if(aNav) aNav.classList.add('hidden');
             if(pNav) pNav.classList.add('hidden');
@@ -2390,6 +2468,10 @@
             } else if (currentUserRole === 'Driver') {
                 if(drvNav) drvNav.classList.remove('hidden');
                 switchTab('delivery');
+            } else if (currentUserRole === 'Receiving') {
+                if(recNav) recNav.classList.remove('hidden');
+                populateRecVendors();
+                switchTab('rec-bills');
             }
         }
 
@@ -2408,6 +2490,7 @@
             if (currentUserRole === 'Billing') activeNav = document.querySelector('.billing-nav');
             if (currentUserRole === 'Accountant') activeNav = document.querySelector('.accountant-nav');
             if (currentUserRole === 'Driver') activeNav = document.querySelector('.driver-nav');
+            if (currentUserRole === 'Receiving') activeNav = document.querySelector('.receiving-nav');
             
             if (activeNav) {
                 const navBtn = activeNav.querySelector(`[data-target="${tabId}"]`);
@@ -2623,6 +2706,9 @@
                 }
             });
 
+            // Calculate Unpaid specifically for Delivered orders
+            let unpaidDeliveredAmt = delivAmt - totalCollected;
+
             document.getElementById('adb-del-amt').innerText = `₹ ${fmt(delivAmt)}`;
             document.getElementById('adb-pend-amt').innerText = `₹ ${fmt(pendAmt)}`;
             document.getElementById('adb-progress').style.width = `${progress}%`;
@@ -2630,6 +2716,7 @@
             document.getElementById('adb-col-total').innerText = `₹ ${fmt(totalCollected)}`;
             document.getElementById('adb-col-cash').innerText = `₹ ${fmt(totalCash)}`;
             document.getElementById('adb-col-upi').innerText = `₹ ${fmt(totalGpay)}`;
+            document.getElementById('adb-col-unpaid').innerText = `₹ ${fmt(unpaidDeliveredAmt > 0 ? unpaidDeliveredAmt : 0)}`;
             
             document.getElementById('adb-stops-text').innerText = `${deliveredStops} / ${totalStops} Stops Delivered`;
 
@@ -5973,20 +6060,46 @@
             document.getElementById('delivery-stop-view').classList.add('hidden');
         }
 
+        let tempPhotos = []; // Now an array!
+
         function triggerPhotoCaptureFromStop() {
-            triggerPhotoCapture(currentDeliveryStopId);
+            // Bypass camera and open the Payment/Photo Modal directly
+            currentPhotoOrderId = currentDeliveryStopId;
+            tempPhotos = []; 
+            document.getElementById('del-cash').value = '';
+            document.getElementById('del-gpay').value = '';
+            document.getElementById('del-pay-later').checked = false;
+            document.getElementById('del-payment-inputs').style.opacity = '1';
+            document.getElementById('del-payment-inputs').style.pointerEvents = 'auto';
+            renderPhotoThumbs();
+            document.getElementById('del-confirm-modal').classList.remove('hidden');
         }
 
-        let tempBase64Photo = null;
+        function renderPhotoThumbs() {
+            const container = document.getElementById('del-photo-thumbs');
+            if (tempPhotos.length === 0) {
+                container.innerHTML = `<span style="font-size: 0.7rem; color: var(--text-mut);">No photos attached.</span>`;
+                return;
+            }
+            container.innerHTML = tempPhotos.map((imgStr, idx) => `
+                <div style="position:relative; width: 60px; height: 60px; flex-shrink:0;">
+                    <img src="${imgStr}" style="width:100%; height:100%; object-fit:cover; border-radius:4px; border:1px solid var(--border);">
+                    <div onclick="removeTempPhoto(${idx})" style="position:absolute; top:-5px; right:-5px; background:var(--accent); color:white; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:0.6rem; cursor:pointer;"><i class="fas fa-times"></i></div>
+                </div>
+            `).join('');
+        }
 
-        function triggerPhotoCapture(orderId) {
-            currentPhotoOrderId = orderId;
-            document.getElementById('camera-input').click();
+        function removeTempPhoto(idx) {
+            tempPhotos.splice(idx, 1);
+            renderPhotoThumbs();
         }
 
         async function handlePhotoCapture(event) {
             const file = event.target.files[0];
             if (!file || !currentPhotoOrderId) return;
+
+            // Reset input instantly so they can quickly attach another one
+            event.target.value = '';
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -5996,24 +6109,16 @@
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    // Stronger compression to safely bypass Supabase 1MB payload limits
                     const MAX_WIDTH = 600; 
                     const scaleSize = MAX_WIDTH / img.width;
                     canvas.width = MAX_WIDTH;
                     canvas.height = img.height * scaleSize;
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     
-                    tempBase64Photo = canvas.toDataURL('image/jpeg', 0.5); 
-                    
-                    document.getElementById('del-cash').value = '';
-                    document.getElementById('del-gpay').value = '';
-                    document.getElementById('del-confirm-modal').classList.remove('hidden');
+                    tempPhotos.push(canvas.toDataURL('image/jpeg', 0.5)); 
+                    renderPhotoThumbs(); // Update UI
                 };
             };
-        }
-
-        function proceedToPhoto() {
-            proceedToSaveDelivery();
         }
 
        async function proceedToSaveDelivery() {
@@ -6061,7 +6166,7 @@
                 const deliveryPayload = {
                     status: 'Delivered',
                     pay_later: isPayLater,
-                    delivery_photo: tempBase64Photo,
+                    delivery_photo: tempPhotos.length > 0 ? JSON.stringify(tempPhotos) : null,
                     delivered_at: now
                 };
                 if (isErp) deliveryPayload.verified_items = verifiedItems;
@@ -6238,26 +6343,35 @@
         setTimeout(syncOfflineNextStops, 3000);
 
         async function showPhotoModal(orderId) {
-            const imgEl = document.getElementById('photo-modal-img');
-            imgEl.src = ''; // Clear old photo
+            const container = document.getElementById('photo-modal-container');
+            container.innerHTML = `<div style="color:white; margin-top:50px; text-align:center;"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Downloading Proof...</div>`;
             document.getElementById('photo-modal').classList.remove('hidden');
-            
-            // Show a temporary loading text inside the modal
-            imgEl.alt = "Loading securely from Cloud...";
 
             try {
-                let photoData = null;
                 const isErp = orderId.startsWith('ERP') || orderId.startsWith('BAT') || orderId.startsWith('STOP');
                 const tableName = isErp ? 'erp_deliveries' : 'orders';
 
-                // We ask Supabase for JUST the image of this specific order, ONLY when requested!
+                // ONLY downloads the image data exactly when requested
                 const { data, error } = await sbClient.from(tableName).select('delivery_photo').eq('id', orderId).single();
                 if (data && data.delivery_photo) {
-                    imgEl.src = data.delivery_photo;
-                    imgEl.alt = "Delivery Proof";
+                    let photos = [];
+                    
+                    // Safe parsing: Supports the new Array format OR the old Single Photo format
+                    if (data.delivery_photo.startsWith('[')) {
+                        photos = JSON.parse(data.delivery_photo);
+                    } else {
+                        photos = [data.delivery_photo];
+                    }
+                    
+                    if (photos.length > 0) {
+                        container.innerHTML = photos.map(imgStr => `<img src="${imgStr}" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">`).join('');
+                    } else {
+                        closeModal('photo-modal');
+                        showWarning("No Photo", "No photos found for this delivery.");
+                    }
                 } else {
                     closeModal('photo-modal');
-                    showWarning("No Photo", "This delivery photo was not uploaded, or it was automatically deleted by the 30-day cleanup system.");
+                    showWarning("No Photo", "This delivery photo was not uploaded, or it was automatically deleted.");
                 }
             } catch (e) {
                 closeModal('photo-modal');
@@ -10911,6 +11025,193 @@
                 showWarning("Network Error", "Could not delete from cloud. Try again.");
             } finally {
                 btn.innerHTML = 'Delete';
+                btn.disabled = false;
+            }
+        }
+        /* ========================================== */
+        /* RECEIVING LOGIC                            */
+        /* ========================================== */
+        let recBillPhotoData = null;
+
+        function populateRecVendors() {
+            // Safely extract ALL vendors directly from the Inventory list
+            const erpVendors = INVENTORY.map(i => i.vendor);
+            const manualVendors = (window.VENDORS || []).map(v => v.name);
+            
+            const combinedVendors = Array.from(new Set([...erpVendors, ...manualVendors]))
+                                         .filter(v => v && v !== 'UNASSIGNED')
+                                         .sort();
+
+            const optionsHtml = '<option value="">-- Select Vendor --</option>' + 
+                                combinedVendors.map(v => `<option value="${v.replace(/"/g, '&quot;')}">${v}</option>`).join('');
+            
+            const bSel = document.getElementById('rec-bill-vendor');
+            const sSel = document.getElementById('rec-stock-vendor');
+            if (bSel) bSel.innerHTML = optionsHtml;
+            if (sSel) sSel.innerHTML = optionsHtml;
+        }
+
+        async function handleRecBillPhoto(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = e => {
+                const img = new Image();
+                img.src = e.target.result;
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const MAX_WIDTH = 800; // Good resolution for reading text on an invoice
+                    const scaleSize = MAX_WIDTH / img.width;
+                    canvas.width = MAX_WIDTH;
+                    canvas.height = img.height * scaleSize;
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    recBillPhotoData = canvas.toDataURL('image/jpeg', 0.6); 
+                    
+                    document.getElementById('rec-bill-img').src = recBillPhotoData;
+                    document.getElementById('rec-bill-photo-preview').style.display = 'block';
+                    document.getElementById('rec-bill-photo-text').style.display = 'none';
+                    event.target.value = ''; // Reset input
+                };
+            };
+        }
+
+        function clearRecBillPhoto() {
+            recBillPhotoData = null;
+            document.getElementById('rec-bill-photo-preview').style.display = 'none';
+            document.getElementById('rec-bill-photo-text').style.display = 'block';
+            document.getElementById('rec-bill-img').src = '';
+        }
+
+        async function submitRecBill() {
+            const vendor = document.getElementById('rec-bill-vendor').value;
+            const billNo = document.getElementById('rec-bill-no').value.trim().toUpperCase();
+            const amt = parseFloat(document.getElementById('rec-bill-amt').value);
+
+            if (!vendor) { showWarning("Required", "Please select a vendor."); return; }
+            if (!billNo) { showWarning("Required", "Please enter the Bill/Invoice Number."); return; }
+            if (isNaN(amt) || amt <= 0) { showWarning("Required", "Please enter a valid bill amount."); return; }
+            if (!recBillPhotoData) { showWarning("Required", "You must capture a photo of the bill to submit."); return; }
+
+            const btn = document.getElementById('btn-submit-rec-bill');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+            btn.disabled = true;
+
+            const payload = {
+                id: `REC_BILL_${Date.now()}`,
+                vendor_name: vendor,
+                bill_no: billNo,
+                amount: amt,
+                photo: recBillPhotoData,
+                created_by: currentUserFullName,
+                created_at: new Date().toISOString()
+            };
+
+            try {
+                const { error } = await sbClient.from('vendor_receipts').insert([payload]);
+                if (error) throw error;
+
+                showSuccess(`Bill ${billNo} submitted successfully!`);
+                
+                // Clear Form
+                document.getElementById('rec-bill-vendor').value = '';
+                document.getElementById('rec-bill-no').value = '';
+                document.getElementById('rec-bill-amt').value = '';
+                clearRecBillPhoto();
+
+            } catch (e) {
+                showWarning("Network Error", "Could not submit bill to the cloud. Try again.");
+            } finally {
+                btn.innerHTML = 'Submit Bill';
+                btn.disabled = false;
+            }
+        }
+
+        // --- VERIFY STOCK TAB ---
+        function renderRecStock() {
+            const vendor = document.getElementById('rec-stock-vendor').value;
+            const searchQ = (document.getElementById('rec-stock-search').value || "").toLowerCase();
+            const feed = document.getElementById('rec-stock-feed');
+
+            if (!vendor) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">Select a vendor to verify stock.</div>`;
+                return;
+            }
+
+            let items = INVENTORY.filter(i => i.vendor === vendor);
+            if (searchQ) items = items.filter(i => i.name.toLowerCase().includes(searchQ) || i.code.toLowerCase().includes(searchQ));
+
+            if (items.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No items found.</div>`;
+                return;
+            }
+
+            feed.innerHTML = items.map(i => {
+                const expDate = i.expiry_date || '';
+                return `
+                <div style="background: white; padding: 14px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                    <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3;">${i.name}</div>
+                    <div style="font-size: 0.75rem; color:var(--text-mut); font-weight:700; margin-bottom: 10px;">Code: <span style="color:var(--text);">${i.code}</span></div>
+                    
+                    <div style="display:flex; gap:10px; margin-bottom: 10px;">
+                        <div style="flex:1;">
+                            <div style="font-size: 0.65rem; color: var(--text-mut); font-weight: 700; margin-bottom: 4px;">ERP Stock</div>
+                            <div style="font-size: 1.1rem; font-weight: 800; color: var(--text); background: #F3F4F6; padding: 6px; border-radius: 4px; text-align: center;">${i.stock}</div>
+                        </div>
+                        <div style="flex:1;">
+                            <div style="font-size: 0.65rem; color: var(--brand); font-weight: 700; margin-bottom: 4px;">Physical Stock</div>
+                            <input type="number" id="rec-stock-input-${i.code}" value="${i.stock}" onfocus="this.select()" style="width:100%; padding: 6px; border: 1px solid var(--brand); border-radius: 4px; font-weight: 800; font-size: 1.1rem; text-align: center; color: var(--brand); outline: none;">
+                        </div>
+                    </div>
+                    
+                    <div style="display:flex; gap:10px; align-items:flex-end;">
+                        <div style="flex:1;">
+                            <div style="font-size: 0.65rem; color: var(--accent); font-weight: 700; margin-bottom: 4px;">Expiry Date</div>
+                            <input type="date" id="rec-exp-input-${i.code}" value="${expDate}" style="width:100%; padding: 8px; border: 1px solid var(--border-dark); border-radius: 4px; font-weight: 700; font-size: 0.8rem; outline: none; font-family: inherit;">
+                        </div>
+                        <button onclick="saveRecItem('${i.code}')" id="btn-rec-save-${i.code}" style="background:var(--success); color:white; border:none; padding:8px 16px; border-radius:4px; font-weight:800; cursor:pointer; height: 36px; box-shadow: 0 1px 2px rgba(16,185,129,0.2);">Save</button>
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function saveRecItem(code) {
+            const stockVal = parseInt(document.getElementById(`rec-stock-input-${code}`).value);
+            const expDate = document.getElementById(`rec-exp-input-${code}`).value;
+
+            if (isNaN(stockVal)) { showWarning("Invalid", "Please enter a valid physical stock number."); return; }
+
+            const btn = document.getElementById(`btn-rec-save-${code}`);
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+            btn.disabled = true;
+
+            try {
+                // Update Supabase Cloud directly
+                const payload = { stock: stockVal, expiry_date: expDate ? expDate : null };
+                const { error } = await sbClient.from('items').update(payload).eq('code', code);
+                if (error) throw error;
+
+                // Update Local Memory
+                const item = INVENTORY.find(i => i.code === code);
+                if (item) {
+                    item.stock = stockVal;
+                    item.expiry_date = payload.expiry_date;
+                }
+
+                btn.innerHTML = '<i class="fas fa-check"></i>';
+                btn.style.background = '#059669'; // Darker green
+                setTimeout(() => {
+                    btn.innerHTML = 'Save';
+                    btn.style.background = 'var(--success)';
+                    btn.disabled = false;
+                }, 1500);
+
+            } catch (e) {
+                showWarning("Network Error", "Could not save updates to the cloud.");
+                btn.innerHTML = 'Save';
                 btn.disabled = false;
             }
         }
