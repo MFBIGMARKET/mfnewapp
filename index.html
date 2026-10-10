@@ -11837,16 +11837,26 @@
             doc.text(`Date: ${m.date}`, 14, 34);
 
             const tableBody = currentBatchReportData.map((r, i) => {
+                // If there is an unpaid amount, we inject an object to tell jsPDF to color it Red
+                const unpaidCell = r.unpaid > 0 
+                    ? { content: `Rs ${fmt(r.unpaid)}`, styles: { textColor: [220, 38, 38], fontStyle: 'bold' } }
+                    : `Rs 0`;
+
                 return [
                     i + 1,
                     r.name.substring(0, 30),
                     `Rs ${fmt(r.amount)}`,
                     `Rs ${fmt(r.collected)}`,
-                    `Rs ${fmt(r.unpaid)}`
+                    unpaidCell
                 ];
             });
 
-            tableBody.push([{ content: 'GRAND TOTAL', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold' } }, `Rs ${fmt(m.totalAmt)}`, `Rs ${fmt(m.totalCol)}`, `Rs ${fmt(m.unpaid)}`]);
+            tableBody.push([
+                { content: 'GRAND TOTAL', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold' } }, 
+                `Rs ${fmt(m.totalAmt)}`, 
+                `Rs ${fmt(m.totalCol)}`, 
+                { content: `Rs ${fmt(m.unpaid)}`, styles: { textColor: [220, 38, 38], fontStyle: 'bold' } }
+            ]);
 
             doc.autoTable({
                 startY: 42,
