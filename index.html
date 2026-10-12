@@ -467,11 +467,11 @@
     <div id="del-confirm-modal" class="modal-overlay hidden" style="z-index: 4000;">
         <div class="modal-content" style="max-width: 320px;">
             <div class="modal-header">
-                <span>Confirm Delivery</span>
+                <span>Payment Details</span>
                 <i class="fas fa-times" onclick="closeModal('del-confirm-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
             </div>
             <div class="modal-body">
-                <p style="font-size: 0.85rem; color:var(--text-mut); margin-bottom: 10px;">Record payment and attach photos.</p>
+                <p style="font-size: 0.85rem; color:var(--text-mut); margin-bottom: 10px;">Enter the amount collected.</p>
                 
                 <div id="del-payment-inputs">
                     <span class="step-lbl" style="display:block;">Cash Amount (₹)</span>
@@ -481,23 +481,12 @@
                     <input type="number" id="del-gpay" style="width: 100%; border: 1px solid var(--border); border-radius: 4px; padding: 10px; font-weight:700; margin-bottom:15px; outline:none;" placeholder="0">
                 </div>
 
-                <label style="display:flex; align-items:center; gap:8px; margin-bottom:15px; cursor:pointer; background:#FEF2F2; padding:10px; border-radius:6px; border:1px solid #FCA5A5; color:#991B1B; font-weight:700;">
+                <label style="display:flex; align-items:center; gap:8px; margin-bottom:20px; cursor:pointer; background:#FEF2F2; padding:10px; border-radius:6px; border:1px solid #FCA5A5; color:#991B1B; font-weight:700;">
                     <input type="checkbox" id="del-pay-later" style="width:18px; height:18px; accent-color:#DC2626;" onchange="document.getElementById('del-payment-inputs').style.opacity = this.checked ? '0.3' : '1'; document.getElementById('del-payment-inputs').style.pointerEvents = this.checked ? 'none' : 'auto'; document.getElementById('del-cash').value=''; document.getElementById('del-gpay').value='';">
                     Mark as Pay Later
                 </label>
                 
-                <!-- MULTIPLE PHOTO SECTION -->
-                <div style="background: #F9FAFB; border: 1px dashed var(--border-dark); border-radius: 6px; padding: 10px; margin-bottom: 15px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-mut);">Delivery Proof</span>
-                        <button onclick="document.getElementById('camera-input').click()" style="background: var(--brand-light); color: var(--brand); border: 1px solid var(--brand); padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; cursor: pointer;"><i class="fas fa-camera"></i> Add Photo</button>
-                    </div>
-                    <div id="del-photo-thumbs" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;">
-                        <span style="font-size: 0.7rem; color: var(--text-mut);">No photos attached.</span>
-                    </div>
-                </div>
-                
-                <button onclick="proceedToSaveDelivery()" id="btn-del-save-final" style="width: 100%; background: var(--brand); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: 700; cursor: pointer;"><i class="fas fa-check-circle"></i> Complete Delivery</button>
+                <button onclick="proceedToSaveDelivery()" id="btn-del-save-final" style="width: 100%; background: var(--success); color: white; border: none; padding: 12px; border-radius: 4px; font-weight: 800; cursor: pointer;"><i class="fas fa-check-circle"></i> Complete Delivery</button>
             </div>
         </div>
     </div>
@@ -1568,9 +1557,24 @@
                 <span style="font-size: 0.9rem; font-weight: 800; color: var(--brand);">Total: <span id="ds-amt">₹0</span></span>
                 <span style="font-size: 0.75rem; color: var(--text-mut); font-weight: 600;">Verify Items (Optional)</span>
             </div>
-            <div class="scroll-area" style="background: var(--bg); padding: 12px;" id="delivery-stop-list"></div>
+            
+            <div class="scroll-area" style="background: var(--bg); padding: 12px; display: flex; flex-direction: column;">
+                <div id="delivery-stop-list" style="margin-bottom: 15px;"></div>
+                
+                <!-- MULTIPLE PHOTO SECTION MOVED HERE -->
+                <div style="background: white; border: 1px solid var(--border-dark); border-radius: 6px; padding: 14px; margin-top: auto; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <span style="font-size: 0.85rem; font-weight: 800; color: var(--text);">Delivery Proof *</span>
+                        <button onclick="document.getElementById('camera-input').click()" style="background: var(--brand-light); color: var(--brand); border: 1px solid var(--brand); padding: 6px 12px; border-radius: 4px; font-size: 0.75rem; font-weight: 800; cursor: pointer; box-shadow:0 1px 2px rgba(10,74,156,0.1);"><i class="fas fa-camera"></i> Capture</button>
+                    </div>
+                    <div id="del-photo-thumbs" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;">
+                        <span style="font-size: 0.75rem; color: var(--accent); font-weight:600;">* At least 1 photo required.</span>
+                    </div>
+                </div>
+            </div>
+
             <div style="padding: 14px; background: white; border-top: 1px solid var(--border); box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05);">
-                <button onclick="triggerPhotoCaptureFromStop()" id="btn-del-stop" style="width:100%; background:var(--brand); color:white; border:none; padding:12px; border-radius:6px; font-weight:700; font-size:1rem; cursor:pointer;"><i class="fas fa-camera"></i> Verify & Deliver</button>
+                <button onclick="openDeliveryPaymentModal()" id="btn-del-stop" style="width:100%; background:var(--brand); color:white; border:none; padding:12px; border-radius:6px; font-weight:700; font-size:1rem; cursor:pointer;">Proceed to Payment <i class="fas fa-arrow-right" style="margin-left:6px;"></i></button>
             </div>
         </div>
 
@@ -6201,12 +6205,15 @@
 
         function openDeliveryStop(orderId) {
             currentDeliveryStopId = orderId;
+            currentPhotoOrderId = orderId; // Locks it in for the camera
+            tempPhotos = []; // Reset photos for the new stop
+            
             const order = ERP_DELIVERIES.find(o => o.id === orderId);
             if(!order) return;
 
             document.getElementById('ds-cust-name').innerText = order.customer_name || CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
             document.getElementById('ds-bills').innerText = order.document_numbers ? order.document_numbers.join(', ') : '';
-            document.getElementById('ds-amt').innerText = `₹   ${fmt(order.amount)}`;
+            document.getElementById('ds-amt').innerText = `₹ ${fmt(order.amount)}`;
 
             let myItems = [];
             if (order.document_numbers && Array.isArray(order.document_numbers)) {
@@ -6230,6 +6237,8 @@
                     </label>`;
                 }).join('');
             }
+            
+            renderPhotoThumbs(); // Reset the photo UI box
             document.getElementById('delivery-stop-view').classList.remove('hidden');
         }
 
@@ -6238,30 +6247,32 @@
             document.getElementById('delivery-stop-view').classList.add('hidden');
         }
 
-        let tempPhotos = []; // Now an array!
+        let tempPhotos = []; 
 
-        function triggerPhotoCaptureFromStop() {
-            // Bypass camera and open the Payment/Photo Modal directly
-            currentPhotoOrderId = currentDeliveryStopId;
-            tempPhotos = []; 
+        function openDeliveryPaymentModal() {
+            if (tempPhotos.length === 0) {
+                showWarning("Photo Required", "Please capture at least one photo of the delivery/invoice before proceeding to payment.");
+                return;
+            }
+            
+            // Clean up the modal inputs before showing it
             document.getElementById('del-cash').value = '';
             document.getElementById('del-gpay').value = '';
             document.getElementById('del-pay-later').checked = false;
             document.getElementById('del-payment-inputs').style.opacity = '1';
             document.getElementById('del-payment-inputs').style.pointerEvents = 'auto';
-            renderPhotoThumbs();
             document.getElementById('del-confirm-modal').classList.remove('hidden');
         }
 
         function renderPhotoThumbs() {
             const container = document.getElementById('del-photo-thumbs');
             if (tempPhotos.length === 0) {
-                container.innerHTML = `<span style="font-size: 0.7rem; color: var(--text-mut);">No photos attached.</span>`;
+                container.innerHTML = `<span style="font-size: 0.75rem; color: var(--accent); font-weight:600;">* At least 1 photo required to proceed.</span>`;
                 return;
             }
             container.innerHTML = tempPhotos.map((imgStr, idx) => `
                 <div style="position:relative; width: 60px; height: 60px; flex-shrink:0;">
-                    <img src="${imgStr}" style="width:100%; height:100%; object-fit:cover; border-radius:4px; border:1px solid var(--border);">
+                    <img src="${imgStr}" style="width:100%; height:100%; object-fit:cover; border-radius:4px; border:1px solid var(--border-dark);">
                     <div onclick="removeTempPhoto(${idx})" style="position:absolute; top:-5px; right:-5px; background:var(--accent); color:white; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:0.6rem; cursor:pointer;"><i class="fas fa-times"></i></div>
                 </div>
             `).join('');
@@ -6276,8 +6287,7 @@
             const file = event.target.files[0];
             if (!file || !currentPhotoOrderId) return;
 
-            // Reset input instantly so they can quickly attach another one
-            event.target.value = '';
+            event.target.value = ''; // Reset input instantly
 
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -6294,12 +6304,12 @@
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     
                     tempPhotos.push(canvas.toDataURL('image/jpeg', 0.5)); 
-                    renderPhotoThumbs(); // Update UI
+                    renderPhotoThumbs(); // Update UI immediately
                 };
             };
         }
 
-       async function proceedToSaveDelivery() {
+        async function proceedToSaveDelivery() {
             if (!navigator.onLine) {
                 showWarning("No Internet Connection", "You must be online to confirm deliveries and securely sync payments. Please find a connection.");
                 return;
@@ -6311,13 +6321,14 @@
             const totalCol = cashAmt + gpayAmt;
             const orderId = currentPhotoOrderId;
             
+            // Hide payment modal
             closeModal('del-confirm-modal');
             
-            const btn = document.getElementById(`btn-del-stop`);
-            if (btn) {
-                btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Securely Syncing to Cloud...`;
-                btn.disabled = true;
-            }
+            // Show loading state on the Checklist proceed button
+            const btn = document.getElementById('btn-del-stop');
+            const btnModal = document.getElementById('btn-del-save-final');
+            if (btn) { btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Securely Syncing...`; btn.disabled = true; }
+            if (btnModal) { btnModal.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Processing...`; btnModal.disabled = true; }
 
             const now = new Date().toISOString();
             const isErp = orderId.startsWith('ERP') || orderId.startsWith('BAT');
@@ -6360,12 +6371,12 @@
                     );
                     if (appOrdersToClose.length > 0) {
                         const idsToUpdate = appOrdersToClose.map(o => o.id);
-                        await sbClient.from('orders').update({ status: 'Delivered', pay_later: isPayLater, delivery_photo: tempBase64Photo, delivered_at: now }).in('id', idsToUpdate);
+                        await sbClient.from('orders').update({ status: 'Delivered', pay_later: isPayLater, delivery_photo: deliveryPayload.delivery_photo, delivered_at: now }).in('id', idsToUpdate);
                         appOrdersToClose.forEach(o => { o.status = 'Delivered'; o.pay_later = isPayLater; });
                     }
                 }
                 
-                // 3. PUSH COLLECTION DIRECTLY TO CLOUD (GUARANTEED NO DUPLICATES)
+                // 3. PUSH COLLECTION DIRECTLY TO CLOUD 
                 if (totalCol > 0 && !isPayLater) {
                     let nextRecNum = 1;
                     const { data: latestCol } = await sbClient.from('collections').select('id').order('created_at', { ascending: false }).limit(10);
@@ -6406,27 +6417,20 @@
                     const batchId = targetArray[orderIndex].batch_id;
                     const remainingStops = targetArray.filter(o => o.batch_id === batchId && o.status === 'Loaded');
                     if (remainingStops.length > 0) promptNextStop(batchId, remainingStops);
-                    else showSuccess(totalCol > 0 ? `Delivered and ₹   ${totalCol} Collected! Batch Complete!` : `Batch Complete!`);
+                    else showSuccess(totalCol > 0 ? `Delivered and ₹${totalCol} Collected! Batch Complete!` : `Batch Complete!`);
                 } else {
-                    showSuccess(totalCol > 0 ? `Delivered and ₹   ${totalCol} Collected!` : `Order marked as Delivered.`);
+                    showSuccess(totalCol > 0 ? `Delivered and ₹${totalCol} Collected!` : `Order marked as Delivered.`);
                 }
                 
                 renderDeliveryDetailList();
                 renderDelivery(); 
-                
-                // Cleanup UI for next delivery
-                document.getElementById('del-pay-later').checked = false;
-                document.getElementById('del-payment-inputs').style.opacity = '1';
-                document.getElementById('del-payment-inputs').style.pointerEvents = 'auto';
                 exitDeliveryStop(); 
 
             } catch (e) {
                 showWarning("Sync Failed", `Could not connect to database. Please check your signal and try again.\n\nError: ${e.message}`);
             } finally {
-                if (btn) {
-                    btn.innerHTML = `<i class="fas fa-camera"></i> Verify & Deliver`;
-                    btn.disabled = false;
-                }
+                if (btn) { btn.innerHTML = `Proceed to Payment <i class="fas fa-arrow-right" style="margin-left:6px;"></i>`; btn.disabled = false; }
+                if (btnModal) { btnModal.innerHTML = `<i class="fas fa-check-circle"></i> Complete Delivery`; btnModal.disabled = false; }
             }
         }
 
