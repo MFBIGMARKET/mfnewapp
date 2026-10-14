@@ -5059,17 +5059,47 @@
             }).join(''); 
         }
 
-        function openPackingDetail(orderId) {
+        async function openPackingDetail(orderId) {
+            const targetOrder = allPacks[orderId] ? allPacks[orderId] : SUBMITTED_ORDERS.find(o => o.id === orderId);
+            if (!targetOrder) return;
+            
+            const cust = CUSTOMERS.find(c => c.code === targetOrder.customer_code || c.name === targetOrder.customer_code);
+            const custName = cust ? cust.name : targetOrder.customer_code;
+            
+            // --- SMART CREDIT WARNING CHECK ---
+            if (!CREDIT_CACHE_LOADED) {
+                // Dim the screen for 1 second while it fetches the master credit history into memory
+                document.getElementById('packing-feed').style.opacity = '0.5';
+                await loadCreditCache();
+                document.getElementById('packing-feed').style.opacity = '1';
+            }
+            
+            const cNameClean = custName.trim().toUpperCase();
+            const cData = CUSTOMER_CREDIT_MAP[cNameClean] || { pendingCount: 0, creditDays: 0 };
+            const bal = cust ? (cust.bal || 0) : 0;
+            
+            if (bal > 10000 || cData.pendingCount > 1 || cData.creditDays >= 15) {
+                const proceed = await showConfirm(
+                    "Credit Warning",
+                    `This customer has exceeded credit limits:<br><br>
+                    • Balance: <b style="color:var(--accent);">₹ ${fmt(bal)}</b><br>
+                    • Pending Bills: <b style="color:var(--accent);">${cData.pendingCount}</b><br>
+                    • Oldest Unpaid: <b style="color:var(--accent);">${cData.creditDays} Days</b><br><br>
+                    Do you still want to pack this order?`,
+                    "Yes, Pack Anyway"
+                );
+                if (!proceed) return; // Stop them from packing
+            }
+            // --- END WARNING CHECK ---
+
             // Save current pack progress before switching
             if (currentPackOrder) allPacks[currentPackOrder.id] = currentPackOrder;
 
-            // Restore saved progress OR clone fresh from cloud
+            // Restore saved progress OR clone fresh
             if (allPacks[orderId]) {
                 currentPackOrder = JSON.parse(JSON.stringify(allPacks[orderId]));
             } else {
-                currentPackOrder = JSON.parse(JSON.stringify(SUBMITTED_ORDERS.find(o => o.id === orderId)));
-                if(!currentPackOrder) return;
-                
+                currentPackOrder = JSON.parse(JSON.stringify(targetOrder));
                 for(let code in currentPackOrder.items) {
                     currentPackOrder.items[code].sort_marked = false;
                     currentPackOrder.items[code].packed = false;
@@ -5078,7 +5108,6 @@
             
             saveLocalState();
             
-            const custName = CUSTOMERS.find(c => c.code === currentPackOrder.customer_code)?.name || currentPackOrder.customer_code;
             document.getElementById('pack-cust-name').innerText = custName;
             document.getElementById('pack-order-id').innerText = currentPackOrder.id;
             
@@ -8660,6 +8689,9 @@
             try {
                 const { error } = await sbClient.from('items').update({ caseQty: item.caseQty, has_slabs: item.has_slabs, slabs: item.slabs }).eq('code', code);
                 if(error) throw error;
+                
+                // UPDATE CACHE: Force local memory to remember the new rates
+                localStorage.setItem('b2b_inv', JSON.stringify(INVENTORY));
             } catch(e) { 
                 alert("Could not reach cloud. Reverting.");
                 renderPricingTable();
@@ -8774,8 +8806,15 @@
             try {
                 const { error } = await sbClient.from('items').upsert(upsertData);
                 if(error) throw error;
+                
+                // UPDATE CACHE: Update memory array and force cache save
+                upsertData.forEach(updated => {
+                    const idx = INVENTORY.findIndex(i => i.code === updated.code);
+                    if (idx > -1) INVENTORY[idx] = updated;
+                });
+                localStorage.setItem('b2b_inv', JSON.stringify(INVENTORY));
+                
                 showSuccess(`Successfully saved ${upsertData.length} items!`);
-                await fetchDataFromSupabase(); 
             } catch(err) {
                 showConfirm("Save Failed", "Could not reach the cloud.", "OK");
             }
