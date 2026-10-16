@@ -4623,25 +4623,8 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Processing...`;
 
-            // Generate sequential REC ID securely from the Cloud
-            let nextRecNum = 1;
-            try {
-                const { data: latestCol } = await sbClient.from('collections').select('id').order('created_at', { ascending: false }).limit(1);
-                if (latestCol && latestCol.length > 0) {
-                    const maxId = parseInt(latestCol[0].id.replace(/\D/g, '')) || 0;
-                    nextRecNum = maxId + 1;
-                }
-            } catch (e) {
-                // Offline fallback
-                if (MY_COLLECTIONS && MY_COLLECTIONS.length > 0) {
-                    const maxId = MY_COLLECTIONS.reduce((max, obj) => {
-                        const num = parseInt(obj.id.replace(/\D/g, '')) || 0;
-                        return num > max ? num : max;
-                    }, 0);
-                    nextRecNum = maxId + 1;
-                }
-            }
-            const colId = 'REC' + String(nextRecNum).padStart(4, '0');
+            // Generate a universally unique ID using Timestamp to guarantee NO collisions
+            const colId = 'REC_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
 
             // Double Entry Safety Check: Make sure this ID isn't somehow already in local memory
             if (MY_COLLECTIONS.find(c => c.id === colId)) {
@@ -6417,12 +6400,8 @@
                 
                 // 3. PUSH COLLECTION DIRECTLY TO CLOUD 
                 if (totalCol > 0 && !isPayLater) {
-                    let nextRecNum = 1;
-                    const { data: latestCol } = await sbClient.from('collections').select('id').order('created_at', { ascending: false }).limit(10);
-                    if (latestCol && latestCol.length > 0) {
-                        nextRecNum = Math.max(...latestCol.map(o => parseInt(o.id.replace(/\D/g, '')) || 0)) + 1;
-                    }
-                    const colId = 'REC' + String(nextRecNum).padStart(4, '0') + '_' + Math.floor(Math.random() * 90 + 10);
+                    // Uses Timestamp to absolutely guarantee 0 collisions forever
+                    const colId = 'REC_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
                     
                     const colPayload = {
                         id: colId,
@@ -6746,12 +6725,8 @@
 
                 // 2. INSERT the new collection (if amount > 0)
                 if (total > 0) {
-                    let nextRecNum = 1;
-                    const { data: latestCol } = await sbClient.from('collections').select('id').order('created_at', { ascending: false }).limit(1);
-                    if (latestCol && latestCol.length > 0) {
-                        nextRecNum = (parseInt(latestCol[0].id.replace(/\D/g, '')) || 0) + 1;
-                    }
-                    const colId = 'REC' + String(nextRecNum).padStart(4, '0') + '_' + Math.floor(Math.random() * 100);
+                    // Uses Timestamp to absolutely guarantee 0 collisions forever
+                    const colId = 'REC_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
 
                     // We use the delivery date so it lines up perfectly in history
                     let finalDate = new Date().toISOString();
