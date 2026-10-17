@@ -5157,13 +5157,28 @@
             }).join(''); 
         }
 
-        function openPackerHistoryDetail(orderId) {
-            const order = SUBMITTED_ORDERS.find(o => o.id === orderId);
+        async function openPackerHistoryDetail(orderId) {
+            let order = SUBMITTED_ORDERS.find(o => o.id === orderId);
             if(!order) return;
             
             const custName = CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
             document.getElementById('ph-cust-name').innerText = custName;
             document.getElementById('ph-order-id').innerText = order.id;
+
+            document.getElementById('ph-item-list').innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+            document.getElementById('pack-history-detail-view').classList.remove('hidden');
+
+            // CRITICAL FIX: Fetch fresh from cloud so history is perfectly accurate
+            if (navigator.onLine) {
+                try {
+                    const { data, error } = await sbClient.from('orders').select('*').eq('id', orderId).single();
+                    if (data && !error) {
+                        order = data;
+                        const idx = SUBMITTED_ORDERS.findIndex(o => o.id === orderId);
+                        if (idx > -1) SUBMITTED_ORDERS[idx] = data;
+                    }
+                } catch(e) {}
+            }
 
             // Add Re-Open button if it hasn't been Billed yet
             const headBar = document.querySelector('#pack-history-detail-view .pack-top-bar');
@@ -5203,8 +5218,8 @@
                 const cQty = parseInt(item.caseQty) || 0;
                 const totalQty = (data.c * cQty) + data.p; 
                 
-                let mrpText = `₹   ${fmt(item.mrp)}`;
-                if (data.mrp_override) mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹   ${fmt(data.old_mrp)}</del> ₹   ${fmt(data.mrp_override)}`;
+                let mrpText = `₹ ${fmt(item.mrp)}`;
+                if (data.mrp_override) mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹ ${fmt(data.old_mrp)}</del> ₹ ${fmt(data.mrp_override)}`;
                 
                 const isRemoved = data.packed === false;
                 let badgeHTML = '';
@@ -5228,8 +5243,6 @@
                     </div>
                 </div>`;
             }).join('');
-
-            document.getElementById('pack-history-detail-view').classList.remove('hidden');
         }
 
         function exitPackerHistoryDetail() {
@@ -5427,6 +5440,9 @@
                 delete data.mrp_override; delete data.old_mrp;
             }
 
+            // CRITICAL FIX: Recalculate the locked rate so the Billing tab gets the correct pricing slab for the new edited quantity!
+            data.locked_rate = getApplicableRate(item, newTotalPcs, data.r, data.cr);
+
             saveLocalState();
             closeModal('pack-edit-modal');
             renderPackingDetailList();
@@ -5487,6 +5503,9 @@
             
             data.c = 0;
             data.p = currentTotal - splitQty;
+            
+            // CRITICAL FIX: Recalculate rate for original parent item since its quantity dropped
+            data.locked_rate = getApplicableRate(item, data.p, data.r, data.cr);
 
             const newKey = realCode + '__' + Date.now();
             currentPackOrder.items[newKey] = {
@@ -5495,9 +5514,14 @@
                 sort_marked: false,
                 packed: false,
                 is_new: true,
+                r: data.r,   // Inherit the rate mode
+                cr: data.cr, // Inherit the custom rate (if any)
                 mrp_override: newMrp !== item.mrp ? newMrp : undefined,
                 old_mrp: newMrp !== item.mrp ? item.mrp : undefined
             };
+
+            // CRITICAL FIX: Calculate rate for the newly split child item
+            currentPackOrder.items[newKey].locked_rate = getApplicableRate(item, splitQty, data.r, data.cr);
 
             saveLocalState();
             closeModal('pack-split-modal');
@@ -5576,6 +5600,25 @@
 
             if (!isConfirmed) return;
 
+            // RECALCULATE EXACT ORDER VALUE BASED ON EDITED QUANTITIES
+            let newTotalAmount = 0;
+            for(let key in currentPackOrder.items) {
+                const qty = currentPackOrder.items[key];
+                if (qty.packed === false) continue; // Skip removed items
+
+                const realCode = key.split('__')[0];
+                const item = INVENTORY.find(i => i.code === realCode);
+                if (item) {
+                    const totalPcs = (qty.c * (item.caseQty || 0)) + qty.p;
+                    const finalRate = qty.locked_rate || getApplicableRate(item, totalPcs, qty.r, qty.cr);
+                    newTotalAmount += totalPcs * finalRate;
+                    
+                    // Keep locked_rate updated inside the object so it stays accurate
+                    qty.locked_rate = finalRate;
+                }
+            }
+            currentPackOrder.total_amount = newTotalAmount; // Update the master total
+
             // Log exactly who packed it and when
             const now = new Date().toISOString();
             currentPackOrder.status = 'Packed'; 
@@ -5585,6 +5628,7 @@
             try {
                 const { error } = await sbClient.from('orders').update({
                     items: currentPackOrder.items,
+                    total_amount: currentPackOrder.total_amount,
                     status: 'Packed',
                     packer_id: currentPackOrder.packer_id,
                     packed_at: currentPackOrder.packed_at
@@ -6862,8 +6906,7 @@
             }).join(''); 
         }
 
-        // --- SHARED DETAIL VIEW ---
-        function openBillingDetail(orderId, isHistory) {
+        async function openBillingDetail(orderId, isHistory) {
             currentBillOrder = SUBMITTED_ORDERS.find(o => o.id === orderId);
             if(!currentBillOrder) return;
             
@@ -6879,8 +6922,24 @@
                 document.getElementById('bill-head-excel').classList.add('hidden');
             }
 
-            renderBillingDetailList();
+            // Show a temporary loading text so the user knows we are fetching exact edits
+            document.getElementById('billing-item-list').innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br><b>Fetching Packer Edits...</b></div>`;
             document.getElementById('billing-detail-view').classList.remove('hidden');
+
+            // CRITICAL FIX: Always fetch the absolute latest version from the cloud so we catch any edits the Packer made!
+            if (navigator.onLine) {
+                try {
+                    const { data, error } = await sbClient.from('orders').select('*').eq('id', orderId).single();
+                    if (data && !error) {
+                        currentBillOrder = data; // Overwrite with fresh cloud data
+                        // Update local memory instantly so the Excel downloader uses the exact fresh data!
+                        const idx = SUBMITTED_ORDERS.findIndex(o => o.id === orderId);
+                        if (idx > -1) SUBMITTED_ORDERS[idx] = data;
+                    }
+                } catch(e) { console.warn("Failed to fetch fresh order, using cache."); }
+            }
+
+            renderBillingDetailList();
         }
 
         function exitBilling() {
@@ -6891,7 +6950,9 @@
         function renderBillingDetailList() {
             const list = document.getElementById('billing-item-list');
             const itemsArr = Object.keys(currentBillOrder.items).map(code => ({ code: code, ...currentBillOrder.items[code] }));
-            document.getElementById('bill-total-count').innerText = itemsArr.length;
+            
+            // Add the EXACT edited Order Value here so Billing can audit changes
+            document.getElementById('bill-total-count').innerHTML = `${itemsArr.length}</span><span style="color:var(--border-dark); margin:0 8px;">|</span><span style="color:var(--text);">Order Value: <b style="color:var(--accent);">₹ ${fmt(currentBillOrder.total_amount)}</b>`;
 
             list.innerHTML = itemsArr.map((data, index) => {
                 const realCode = data.code.split('__')[0];
@@ -6913,11 +6974,15 @@
                     highlightTags += isSplit ? `<span class="pack-new-badge" style="background:#B45309;">SPLIT</span> ` : `<span class="pack-new-badge" style="background:var(--success);">ADDED</span> `; 
                 }
                 
-                let mrpText = `₹   ${fmt(item.mrp)}`;
+                // Show the final locked rate used and the math
+                let rateUsed = data.locked_rate || getApplicableRate(item, totalQty, data.r, data.cr);
+                let finalVal = isRemoved ? 0 : (totalQty * rateUsed);
+
+                let mrpText = `₹ ${fmt(item.mrp)}`;
                 if (data.mrp_override) {
                     if (!data.is_new && !isRemoved) rowClass += " highlight-mrp";
                     highlightTags += `<span class="pack-new-badge" style="background:var(--warning); color:#B45309;">MRP CHANGED</span> `;
-                    mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹   ${fmt(data.old_mrp)}</del><br>₹   ${fmt(data.mrp_override)}`;
+                    mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹ ${fmt(data.old_mrp)}</del><br>₹ ${fmt(data.mrp_override)}`;
                 }
 
                 return `
@@ -6932,7 +6997,8 @@
                         </div>
                     </div>
                     <div style="text-align: right; font-weight: 700; font-size: 0.85rem; color: var(--text);">
-                        MRP<br><span style="color: var(--brand); font-size:0.95rem;">${mrpText}</span>
+                        <span style="font-size:0.7rem; color:var(--text-mut);">₹${fmt(rateUsed)}/pc</span><br>
+                        <span style="color: var(--brand); font-size:1.05rem;">₹ ${fmt(finalVal)}</span>
                     </div>
                 </div>`;
             }).join('');
@@ -6970,6 +7036,8 @@
             const fileName = `${custName}_${dateStr}.xls`;
             
             let exportData = [];
+            let aggregatedItems = {};
+            
             for(const key in order.items) {
                 const orderData = order.items[key];
                 
@@ -6981,8 +7049,16 @@
                 const cQty = parseInt(item.caseQty) || 0;
                 const totalQty = (orderData.c * cQty) + orderData.p;
                 
-                // Push clean data: Only Code, Exact Name, and Qty
-                exportData.push([realCode, item.name, totalQty]);
+                // Group duplicates/splits together to prevent Excel errors
+                if (!aggregatedItems[realCode]) {
+                    aggregatedItems[realCode] = { name: item.name, qty: 0 };
+                }
+                aggregatedItems[realCode].qty += totalQty;
+            }
+            
+            // Push cleanly aggregated data: Only Code, Exact Name, and Exact Final Qty
+            for (const code in aggregatedItems) {
+                exportData.push([code, aggregatedItems[code].name, aggregatedItems[code].qty]);
             }
             
             const wb = XLSX.utils.book_new();
