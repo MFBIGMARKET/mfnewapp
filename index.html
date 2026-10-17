@@ -5171,7 +5171,8 @@
             // CRITICAL FIX: Fetch fresh from cloud so history is perfectly accurate
             if (navigator.onLine) {
                 try {
-                    const { data, error } = await sbClient.from('orders').select('*').eq('id', orderId).single();
+                    // Excludes the 'delivery_photo' column to guarantee 0 image bandwidth!
+                    const { data, error } = await sbClient.from('orders').select('id, customer_code, customer_name, salesman_id, total_amount, status, items, created_at, packed_at, packer_id, batch_id, batch_date, pay_later').eq('id', orderId).single();
                     if (data && !error) {
                         order = data;
                         const idx = SUBMITTED_ORDERS.findIndex(o => o.id === orderId);
@@ -6929,7 +6930,8 @@
             // CRITICAL FIX: Always fetch the absolute latest version from the cloud so we catch any edits the Packer made!
             if (navigator.onLine) {
                 try {
-                    const { data, error } = await sbClient.from('orders').select('*').eq('id', orderId).single();
+                    // Excludes the 'delivery_photo' column to guarantee 0 image bandwidth!
+                    const { data, error } = await sbClient.from('orders').select('id, customer_code, customer_name, salesman_id, total_amount, status, items, created_at, packed_at, packer_id, batch_id, batch_date, pay_later').eq('id', orderId).single();
                     if (data && !error) {
                         currentBillOrder = data; // Overwrite with fresh cloud data
                         // Update local memory instantly so the Excel downloader uses the exact fresh data!
