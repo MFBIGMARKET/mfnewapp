@@ -1403,10 +1403,20 @@
                 <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="wh-receipts-feed"></div>
             </div>
 
+            <!-- TAB 3: STOCK AUDITS -->
+            <div id="wh-tab-audits" class="hidden" style="display:flex; flex-direction:column; flex:1; overflow:hidden; padding-bottom:55px;">
+                <div class="pack-top-bar" style="background: white; border-bottom: 1px solid var(--border); padding: 12px 16px; flex-shrink:0; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight: 800; color: var(--text); font-size: 0.95rem;">Audit Reports</span>
+                    <input type="date" id="wh-audits-date" onchange="renderAdminAudits()" style="border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-weight:700; outline:none; font-family: inherit; font-size: 0.8rem;">
+                </div>
+                <div class="scroll-area" style="padding: 16px; background: var(--bg);" id="wh-audits-feed"></div>
+            </div>
+
             <!-- Bottom Sub-Nav -->
             <div class="hr-sub-nav">
                 <div class="hr-sub-nav-item active" id="wh-nav-stock" onclick="switchWarehouseTab('stock')"><i class="fas fa-boxes"></i>Inventory</div>
                 <div class="hr-sub-nav-item" id="wh-nav-receipts" onclick="switchWarehouseTab('receipts')"><i class="fas fa-file-invoice"></i>Receipts</div>
+                <div class="hr-sub-nav-item" id="wh-nav-audits" onclick="switchWarehouseTab('audits')"><i class="fas fa-clipboard-check"></i>Audits</div>
             </div>
         </div>
 
@@ -1795,38 +1805,58 @@
         <!-- ========================================== -->
         <div id="view-rec-bills" class="tab-content hidden receiving-view">
             <div class="pack-top-bar" style="background: white; border-bottom: 1px solid var(--border); padding: 16px;">
-                <span style="font-size: 0.95rem; font-weight: 800; color: var(--text);">Receive Vendor Bill</span>
+                <span style="font-size: 0.95rem; font-weight: 800; color: var(--text);">Receive Vendor Shipment</span>
             </div>
             <div class="scroll-area" style="padding: 16px;">
                 <div style="background:white; padding:16px; border-radius:8px; border:1px solid var(--border); box-shadow:0 2px 4px rgba(0,0,0,0.05);">
                     <span class="step-lbl" style="display:block; margin-bottom:6px;">Select Vendor *</span>
                     <select id="rec-bill-vendor" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:700; margin-bottom:16px; outline:none; background:#F9FAFB;"></select>
 
-                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Bill / Invoice Number *</span>
-                    <input type="text" id="rec-bill-no" placeholder="e.g. INV-12345" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:700; margin-bottom:16px; outline:none; text-transform:uppercase;">
+                    <label style="display:flex; align-items:center; gap:8px; margin-bottom:15px; cursor:pointer; background:#FEF2F2; padding:10px; border-radius:6px; border:1px solid #FCA5A5; color:#991B1B; font-weight:700;">
+                        <input type="checkbox" id="rec-no-bill" style="width:18px; height:18px; accent-color:#DC2626;" onchange="toggleRecNoBill(this.checked)">
+                        No Bill Received Yet
+                    </label>
 
-                    <span class="step-lbl" style="display:block; margin-bottom:6px;">Total Bill Amount (₹) *</span>
-                    <input type="number" id="rec-bill-amt" placeholder="0.00" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:12px; font-weight:800; margin-bottom:16px; outline:none; font-size:1.2rem; color:var(--brand);">
+                    <div id="rec-bill-inputs">
+                        <span class="step-lbl" style="display:block; margin-bottom:6px;">Bill / Invoice Number *</span>
+                        <input type="text" id="rec-bill-no" placeholder="e.g. INV-12345" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:10px; font-weight:700; margin-bottom:16px; outline:none; text-transform:uppercase;">
 
-                    <div style="background: #F9FAFB; border: 1px dashed var(--border-dark); border-radius: 6px; padding: 10px; margin-bottom: 20px; text-align:center;">
-                        <button onclick="document.getElementById('rec-photo-input').click()" style="background: white; color: var(--text); border: 1px solid var(--border-dark); padding: 8px 16px; border-radius: 4px; font-size: 0.8rem; font-weight: 800; cursor: pointer; margin-bottom:10px;"><i class="fas fa-camera"></i> Capture Bill Photo</button>
-                        <div id="rec-bill-photo-preview" style="display:none; width:100%; height:200px; border-radius:4px; overflow:hidden; border:1px solid var(--border); position:relative;">
-                            <img id="rec-bill-img" src="" style="width:100%; height:100%; object-fit:contain; background:#E5E7EB;">
-                            <div onclick="clearRecBillPhoto()" style="position:absolute; top:5px; right:5px; background:var(--accent); color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; cursor:pointer;"><i class="fas fa-times"></i></div>
-                        </div>
-                        <span id="rec-bill-photo-text" style="display:block; font-size: 0.75rem; color: var(--accent); font-weight:700;">* Photo Required</span>
+                        <span class="step-lbl" style="display:block; margin-bottom:6px;">Total Bill Amount (₹) *</span>
+                        <input type="number" id="rec-bill-amt" placeholder="0.00" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:12px; font-weight:800; margin-bottom:16px; outline:none; font-size:1.2rem; color:var(--brand);">
                     </div>
 
-                    <button onclick="submitRecBill()" id="btn-submit-rec-bill" style="width:100%; background:var(--brand); color:white; border:none; padding:14px; border-radius:6px; font-weight:800; font-size:1.05rem; cursor:pointer;">Submit Bill</button>
+                    <div style="background: #F9FAFB; border: 1px dashed var(--border-dark); border-radius: 6px; padding: 10px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span style="font-size: 0.75rem; font-weight: 700; color: var(--text-mut);">Receipt Proof</span>
+                            <button onclick="document.getElementById('rec-photo-input').click()" style="background: var(--brand-light); color: var(--brand); border: 1px solid var(--brand); padding: 4px 10px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; cursor: pointer;"><i class="fas fa-camera"></i> Add Photo</button>
+                        </div>
+                        <div id="rec-photo-thumbs" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px;">
+                            <span style="font-size: 0.7rem; color: var(--text-mut);">No photos attached.</span>
+                        </div>
+                    </div>
+
+                    <button onclick="submitRecBill()" id="btn-submit-rec-bill" style="width:100%; background:var(--brand); color:white; border:none; padding:14px; border-radius:6px; font-weight:800; font-size:1.05rem; cursor:pointer;">Submit Receipt</button>
                 </div>
             </div>
             <input type="file" id="rec-photo-input" accept="image/*" capture="environment" style="display:none;" onchange="handleRecBillPhoto(event)">
         </div>
 
         <div id="view-rec-stock" class="tab-content hidden receiving-view">
-            <div class="pack-top-bar" style="background: white; border-bottom: 1px solid var(--border); padding: 12px 16px; flex-shrink:0;">
-                <span class="step-lbl" style="display:block; margin-bottom:4px;">Filter by Vendor</span>
-                <select id="rec-stock-vendor" onchange="renderRecStock()" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:8px; font-weight:700; outline:none; background:#F9FAFB;"></select>
+            <div class="pack-top-bar" style="background: white; border-bottom: 1px solid var(--border); padding: 12px 16px; flex-shrink:0; display:flex; gap:10px; flex-direction:column;">
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                        <span class="step-lbl" style="display:block; margin-bottom:4px;">Vendor</span>
+                        <select id="rec-stock-vendor" onchange="renderRecStock()" style="width:100%; border:1px solid var(--border); border-radius:6px; padding:8px; font-weight:700; outline:none; background:#F9FAFB;"></select>
+                    </div>
+                    <div style="flex:1;">
+                        <span class="step-lbl" style="display:block; margin-bottom:4px;">Sort</span>
+                        <select id="rec-stock-sort" onchange="renderRecStock()" style="width:100%; border:1px solid var(--brand); color:var(--brand); border-radius:6px; padding:8px; font-weight:700; outline:none; background:var(--brand-light);">
+                            <option value="alpha">A-Z Name</option>
+                            <option value="exp_asc">Expiring Soon</option>
+                            <option value="exp_desc">Expiry Furthest</option>
+                        </select>
+                    </div>
+                </div>
             </div>
             <div class="search-bar" style="border-bottom: 1px solid var(--border); flex-shrink: 0;">
                 <i class="fas fa-search" style="color:var(--text-mut);"></i>
@@ -1835,12 +1865,44 @@
             <div class="scroll-area" style="padding: 16px; background:var(--bg);" id="rec-stock-feed"></div>
         </div>
 
-        <div id="view-rec-hist" class="tab-content hidden receiving-view">
+        <div id="view-rec-audit" class="tab-content hidden receiving-view">
             <div class="pack-top-bar" style="background: white; border-bottom: 1px solid var(--border); padding: 12px 16px; flex-shrink:0; display:flex; justify-content:space-between; align-items:center;">
-                <span style="font-weight: 800; color: var(--text); font-size: 0.95rem;">Bill History</span>
-                <input type="date" id="rec-hist-date" onchange="renderRecHistory()" style="border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-weight:700; outline:none; font-family: inherit; font-size: 0.8rem;">
+                <span style="font-weight: 800; color: var(--text); font-size: 0.95rem;">Stock Audit</span>
+                <button onclick="saveStockAudit()" id="btn-save-audit" style="background:var(--success); color:white; border:none; padding:6px 12px; border-radius:4px; font-weight:800; font-size:0.75rem; cursor:pointer;"><i class="fas fa-save"></i> Save Audit</button>
             </div>
-            <div class="scroll-area" style="padding: 16px; background:var(--bg);" id="rec-hist-feed"></div>
+            <div class="search-bar" style="border-bottom: 1px solid var(--border); flex-shrink: 0;">
+                <i class="fas fa-search" style="color:var(--text-mut);"></i>
+                <input type="text" placeholder="Search item to audit..." id="rec-audit-search" oninput="renderRecAudit()">
+            </div>
+            <div style="background:#FFFBEB; padding:8px 16px; font-size:0.75rem; font-weight:700; color:#B45309; border-bottom:1px solid #FDE68A;">
+                <i class="fas fa-info-circle"></i> Enter physical stock below. Blank items will be ignored.
+            </div>
+            <div class="scroll-area" style="padding: 16px; background:var(--bg);" id="rec-audit-feed"></div>
+        </div>
+
+        <div id="view-rec-hist" class="tab-content hidden receiving-view">
+            <div style="display: flex; background: white; border-bottom: 1px solid var(--border); padding: 8px 16px; justify-content: center; flex-shrink: 0;">
+                <div style="display: flex; background: var(--bg); border-radius: 6px; padding: 2px; width: 100%; max-width: 300px; border: 1px solid var(--border);">
+                    <button id="rec-hist-btn-bills" onclick="toggleRecHistView('bills')" style="flex:1; padding: 6px; border-radius: 4px; border:none; background: var(--brand); color: white; font-weight: 700; font-size: 0.8rem; cursor:pointer;">Receipts</button>
+                    <button id="rec-hist-btn-audits" onclick="toggleRecHistView('audits')" style="flex:1; padding: 6px; border-radius: 4px; border:none; background: transparent; color: var(--text-mut); font-weight: 700; font-size: 0.8rem; cursor:pointer;">Audits</button>
+                </div>
+            </div>
+            
+            <div id="rec-hist-view-bills" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+                <div class="pack-top-bar" style="background: #F9FAFB; border-bottom: 1px solid var(--border); padding: 12px 16px; flex-shrink:0; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight: 800; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
+                    <input type="date" id="rec-hist-date" onchange="renderRecHistory()" style="border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-weight:700; outline:none;">
+                </div>
+                <div class="scroll-area" style="padding: 16px; background:var(--bg);" id="rec-hist-feed"></div>
+            </div>
+
+            <div id="rec-hist-view-audits" class="hidden" style="display:flex; flex-direction:column; flex:1; overflow:hidden;">
+                <div class="pack-top-bar" style="background: #F9FAFB; border-bottom: 1px solid var(--border); padding: 12px 16px; flex-shrink:0; display:flex; justify-content:space-between; align-items:center;">
+                    <span style="font-weight: 800; color: var(--text-mut); font-size: 0.85rem;">Date:</span>
+                    <input type="date" id="rec-audit-date" onchange="renderRecAuditHistory()" style="border:1px solid var(--border); border-radius:4px; padding:4px 8px; font-weight:700; outline:none;">
+                </div>
+                <div class="scroll-area" style="padding: 16px; background:var(--bg);" id="rec-audit-hist-feed"></div>
+            </div>
         </div>
 
        <!-- ========================================== -->
@@ -1981,7 +2043,8 @@
 
         <div class="bottom-nav receiving-nav hidden">
             <div class="nav-item active" onclick="switchTab('rec-bills')" data-target="rec-bills"><i class="fas fa-file-invoice-dollar"></i>Receive</div>
-            <div class="nav-item" onclick="switchTab('rec-stock')" data-target="rec-stock"><i class="fas fa-boxes"></i>Stock</div>
+            <div class="nav-item" onclick="switchTab('rec-stock')" data-target="rec-stock"><i class="fas fa-boxes"></i>Items</div>
+            <div class="nav-item" onclick="switchTab('rec-audit')" data-target="rec-audit"><i class="fas fa-clipboard-check"></i>Audit</div>
             <div class="nav-item" onclick="switchTab('rec-hist')" data-target="rec-hist"><i class="fas fa-history"></i>History</div>
             <div class="nav-item" onclick="switchTab('profile')" data-target="profile"><i class="fas fa-user-circle"></i>Profile</div>
         </div>
@@ -2675,7 +2738,7 @@
             if (currentUserRole === 'Accountant') activeNav = document.querySelector('.accountant-nav');
             if (currentUserRole === 'Driver') activeNav = document.querySelector('.driver-nav');
             if (currentUserRole === 'Receiving') activeNav = document.querySelector('.receiving-nav');
-            
+            if (tabId === 'rec-audit' && currentUserRole === 'Receiving') renderRecAudit();
             if (activeNav) {
                 const navBtn = activeNav.querySelector(`[data-target="${tabId}"]`);
                 if (navBtn) navBtn.classList.add('active');
@@ -11274,32 +11337,61 @@
             }
         }
         /* ========================================== */
-        /* RECEIVING LOGIC                            */
+        /* RECEIVING & AUDIT LOGIC                    */
         /* ========================================== */
-        let recBillPhotoData = null;
+        let recTempPhotos = [];
 
         function populateRecVendors() {
-            // Safely extract ALL vendors directly from the Inventory list
             const erpVendors = INVENTORY.map(i => i.vendor);
             const manualVendors = (window.VENDORS || []).map(v => v.name);
-            
-            const combinedVendors = Array.from(new Set([...erpVendors, ...manualVendors]))
-                                         .filter(v => v && v !== 'UNASSIGNED')
-                                         .sort();
+            const combinedVendors = Array.from(new Set([...erpVendors, ...manualVendors])).filter(v => v && v !== 'UNASSIGNED').sort();
 
-            const optionsHtml = '<option value="">-- Select Vendor --</option>' + 
+            const optionsHtml = '<option value="All">All Vendors</option>' + 
                                 combinedVendors.map(v => `<option value="${v.replace(/"/g, '&quot;')}">${v}</option>`).join('');
             
             const bSel = document.getElementById('rec-bill-vendor');
             const sSel = document.getElementById('rec-stock-vendor');
-            if (bSel) bSel.innerHTML = optionsHtml;
+            if (bSel) bSel.innerHTML = '<option value="">-- Select Vendor --</option>' + combinedVendors.map(v => `<option value="${v.replace(/"/g, '&quot;')}">${v}</option>`).join('');
             if (sSel) sSel.innerHTML = optionsHtml;
+        }
+
+        function toggleRecNoBill(isChecked) {
+            const wrap = document.getElementById('rec-bill-inputs');
+            if (isChecked) {
+                wrap.style.opacity = '0.3'; wrap.style.pointerEvents = 'none';
+                document.getElementById('rec-bill-no').value = 'PENDING';
+                document.getElementById('rec-bill-amt').value = '0';
+            } else {
+                wrap.style.opacity = '1'; wrap.style.pointerEvents = 'auto';
+                document.getElementById('rec-bill-no').value = '';
+                document.getElementById('rec-bill-amt').value = '';
+            }
+        }
+
+        function renderRecPhotoThumbs() {
+            const container = document.getElementById('rec-photo-thumbs');
+            if (recTempPhotos.length === 0) {
+                container.innerHTML = `<span style="font-size: 0.7rem; color: var(--text-mut);">No photos attached.</span>`;
+                return;
+            }
+            container.innerHTML = recTempPhotos.map((imgStr, idx) => `
+                <div style="position:relative; width: 60px; height: 60px; flex-shrink:0;">
+                    <img src="${imgStr}" style="width:100%; height:100%; object-fit:cover; border-radius:4px; border:1px solid var(--border-dark);">
+                    <div onclick="removeRecTempPhoto(${idx})" style="position:absolute; top:-5px; right:-5px; background:var(--accent); color:white; border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; font-size:0.6rem; cursor:pointer;"><i class="fas fa-times"></i></div>
+                </div>
+            `).join('');
+        }
+
+        function removeRecTempPhoto(idx) {
+            recTempPhotos.splice(idx, 1);
+            renderRecPhotoThumbs();
         }
 
         async function handleRecBillPhoto(event) {
             const file = event.target.files[0];
             if (!file) return;
-            
+            event.target.value = ''; 
+
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = e => {
@@ -11308,38 +11400,27 @@
                 img.onload = () => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
-                    const MAX_WIDTH = 800; // Good resolution for reading text on an invoice
+                    const MAX_WIDTH = 800; 
                     const scaleSize = MAX_WIDTH / img.width;
                     canvas.width = MAX_WIDTH;
                     canvas.height = img.height * scaleSize;
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
                     
-                    recBillPhotoData = canvas.toDataURL('image/jpeg', 0.6); 
-                    
-                    document.getElementById('rec-bill-img').src = recBillPhotoData;
-                    document.getElementById('rec-bill-photo-preview').style.display = 'block';
-                    document.getElementById('rec-bill-photo-text').style.display = 'none';
-                    event.target.value = ''; // Reset input
+                    recTempPhotos.push(canvas.toDataURL('image/jpeg', 0.6)); 
+                    renderRecPhotoThumbs();
                 };
             };
         }
 
-        function clearRecBillPhoto() {
-            recBillPhotoData = null;
-            document.getElementById('rec-bill-photo-preview').style.display = 'none';
-            document.getElementById('rec-bill-photo-text').style.display = 'block';
-            document.getElementById('rec-bill-img').src = '';
-        }
-
         async function submitRecBill() {
             const vendor = document.getElementById('rec-bill-vendor').value;
-            const billNo = document.getElementById('rec-bill-no').value.trim().toUpperCase();
-            const amt = parseFloat(document.getElementById('rec-bill-amt').value);
+            const isNoBill = document.getElementById('rec-no-bill').checked;
+            const billNo = isNoBill ? 'PENDING' : document.getElementById('rec-bill-no').value.trim().toUpperCase();
+            const amt = isNoBill ? 0 : parseFloat(document.getElementById('rec-bill-amt').value);
 
             if (!vendor) { showWarning("Required", "Please select a vendor."); return; }
-            if (!billNo) { showWarning("Required", "Please enter the Bill/Invoice Number."); return; }
-            if (isNaN(amt) || amt <= 0) { showWarning("Required", "Please enter a valid bill amount."); return; }
-            if (!recBillPhotoData) { showWarning("Required", "You must capture a photo of the bill to submit."); return; }
+            if (!isNoBill && !billNo) { showWarning("Required", "Please enter the Bill/Invoice Number."); return; }
+            if (!isNoBill && (isNaN(amt) || amt <= 0)) { showWarning("Required", "Please enter a valid bill amount."); return; }
 
             const btn = document.getElementById('btn-submit-rec-bill');
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
@@ -11350,7 +11431,7 @@
                 vendor_name: vendor,
                 bill_no: billNo,
                 amount: amt,
-                photo: recBillPhotoData,
+                photo: recTempPhotos.length > 0 ? JSON.stringify(recTempPhotos) : null,
                 created_by: currentUserFullName,
                 created_at: new Date().toISOString()
             };
@@ -11359,18 +11440,19 @@
                 const { error } = await sbClient.from('vendor_receipts').insert([payload]);
                 if (error) throw error;
 
-                showSuccess(`Bill ${billNo} submitted successfully!`);
+                showSuccess(`Receipt submitted successfully!`);
                 
                 // Clear Form
                 document.getElementById('rec-bill-vendor').value = '';
-                document.getElementById('rec-bill-no').value = '';
-                document.getElementById('rec-bill-amt').value = '';
-                clearRecBillPhoto();
+                document.getElementById('rec-no-bill').checked = false;
+                toggleRecNoBill(false);
+                recTempPhotos = [];
+                renderRecPhotoThumbs();
 
             } catch (e) {
-                showWarning("Network Error", "Could not submit bill to the cloud. Try again.");
+                showWarning("Network Error", "Could not submit to the cloud. Try again.");
             } finally {
-                btn.innerHTML = 'Submit Bill';
+                btn.innerHTML = 'Submit Receipt';
                 btn.disabled = false;
             }
         }
@@ -11379,25 +11461,48 @@
         function renderRecStock() {
             const vendor = document.getElementById('rec-stock-vendor').value;
             const searchQ = (document.getElementById('rec-stock-search').value || "").toLowerCase();
+            const sortMode = document.getElementById('rec-stock-sort').value;
             const feed = document.getElementById('rec-stock-feed');
 
-            if (!vendor) {
-                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">Select a vendor to verify stock.</div>`;
-                return;
-            }
-
-            let items = INVENTORY.filter(i => i.vendor === vendor);
+            let items = [...INVENTORY];
+            if (vendor !== 'All') items = items.filter(i => i.vendor === vendor);
             if (searchQ) items = items.filter(i => i.name.toLowerCase().includes(searchQ) || i.code.toLowerCase().includes(searchQ));
+
+            items.sort((a, b) => {
+                if (sortMode === 'alpha') return a.name.localeCompare(b.name);
+                const expA = a.expiry_date ? new Date(a.expiry_date).getTime() : 9999999999999;
+                const expB = b.expiry_date ? new Date(b.expiry_date).getTime() : 9999999999999;
+                if (sortMode === 'exp_asc') return expA - expB; 
+                if (sortMode === 'exp_desc') {
+                    if (!a.expiry_date && b.expiry_date) return 1;
+                    if (a.expiry_date && !b.expiry_date) return -1;
+                    return expB - expA; 
+                }
+                return 0;
+            });
 
             if (items.length === 0) {
                 feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No items found.</div>`;
                 return;
             }
 
+            const today = new Date();
+            today.setHours(0,0,0,0);
+
             feed.innerHTML = items.map(i => {
                 const expDate = i.expiry_date || '';
                 
-                // Logic: If caseQty exists (>0), show it as text. If missing, show an input field.
+                let expBadge = `<span style="color:var(--text-mut); font-size:0.75rem; font-weight:700;">No Expiry Set</span>`;
+                if (i.expiry_date) {
+                    const dObj = new Date(i.expiry_date);
+                    const daysLeft = Math.ceil((dObj - today) / (1000 * 60 * 60 * 24));
+                    let bg = '#DCFCE7', col = '#166534', txt = '';
+                    if (daysLeft < 0) { bg = '#FEE2E2'; col = '#991B1B'; txt = 'EXPIRED'; }
+                    else if (daysLeft <= 30) { bg = '#FEF3C7'; col = '#B45309'; txt = `Exp in ${daysLeft} days`; }
+                    else { txt = `Exp in ${daysLeft} days`; }
+                    expBadge = `<span style="background:${bg}; color:${col}; padding:3px 8px; border-radius:4px; font-size:0.7rem; font-weight:800;">${txt}</span>`;
+                }
+                
                 const cQtyStr = i.caseQty && i.caseQty > 0 
                     ? `<div style="font-size: 1.1rem; font-weight: 800; color: var(--text); background: #F3F4F6; padding: 6px; border-radius: 4px; text-align: center;">${i.caseQty} NOS</div>`
                     : `<input type="number" id="rec-case-input-${i.code}" placeholder="Enter Qty" onfocus="this.select()" style="width:100%; padding: 6px; border: 1px dashed var(--warning); background:#FFFBEB; border-radius: 4px; font-weight: 800; font-size: 0.9rem; text-align: center; color: var(--warning); outline: none;">`;
@@ -11405,7 +11510,10 @@
                 return `
                 <div style="background: white; padding: 14px; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                     <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 6px; line-height: 1.3;">${i.name}</div>
-                    <div style="font-size: 0.75rem; color:var(--text-mut); font-weight:700; margin-bottom: 10px;">Code: <span style="color:var(--text);">${i.code}</span> | ERP Stock: <span style="color:var(--text);">${i.stock}</span></div>
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px;">
+                        <div style="font-size: 0.7rem; color:var(--text-mut); font-weight:700;">Code: <span style="color:var(--text);">${i.code}</span></div>
+                        <div style="font-size: 0.85rem; font-weight:800; color:var(--brand); background:var(--brand-light); padding:2px 6px; border-radius:4px;">P2: ₹ ${fmt(i.price2)}</div>
+                    </div>
                     
                     <div style="display:flex; gap:10px; margin-bottom: 10px;">
                         <div style="flex:1;">
@@ -11418,8 +11526,9 @@
                         </div>
                     </div>
                     
-                    <div style="text-align: right;">
-                        <button onclick="saveRecItem('${i.code}')" id="btn-rec-save-${i.code}" style="background:var(--success); color:white; border:none; padding:8px 24px; border-radius:4px; font-weight:800; cursor:pointer; height: 36px; box-shadow: 0 1px 2px rgba(16,185,129,0.2);">Save Details</button>
+                    <div style="display:flex; justify-content:space-between; align-items:flex-end;">
+                        ${expBadge}
+                        <button onclick="saveRecItem('${i.code}')" id="btn-rec-save-${i.code}" style="background:var(--success); color:white; border:none; padding:8px 24px; border-radius:4px; font-weight:800; cursor:pointer; height: 36px; box-shadow: 0 1px 2px rgba(16,185,129,0.2);">Save</button>
                     </div>
                 </div>`;
             }).join('');
@@ -11434,21 +11543,16 @@
 
             if (caseInput && caseInput.value !== "") {
                 newCaseQty = parseInt(caseInput.value);
-                if (!isNaN(newCaseQty) && newCaseQty > 0) {
-                    payload.caseQty = newCaseQty;
-                }
+                if (!isNaN(newCaseQty) && newCaseQty > 0) { payload.caseQty = newCaseQty; }
             }
 
             const btn = document.getElementById(`btn-rec-save-${code}`);
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
 
             try {
-                // Update Supabase Cloud
                 const { error } = await sbClient.from('items').update(payload).eq('code', code);
                 if (error) throw error;
 
-                // Update Local Memory Instantly
                 const item = INVENTORY.find(i => i.code === code);
                 if (item) {
                     item.expiry_date = payload.expiry_date;
@@ -11457,21 +11561,276 @@
 
                 btn.innerHTML = '<i class="fas fa-check"></i> Saved';
                 btn.style.background = '#059669'; 
-                
-                // Give it a second to show success, then re-render to lock the Case Qty input into text
-                setTimeout(() => {
-                    renderRecStock(); 
-                }, 1000);
-
+                setTimeout(() => { renderRecStock(); }, 1000);
             } catch (e) {
                 showWarning("Network Error", "Could not save updates to the cloud.");
-                btn.innerHTML = 'Save Details';
-                btn.disabled = false;
+                btn.innerHTML = 'Save'; btn.disabled = false;
             }
         }
-        /* --- ADMIN WAREHOUSE LOGIC --- */
+
+        // --- STOCK AUDIT TAB ---
+        let currentAuditDraft = {};
+
+        function renderRecAudit() {
+            const feed = document.getElementById('rec-audit-feed');
+            const searchQ = (document.getElementById('rec-audit-search').value || "").toLowerCase();
+
+            let items = [...INVENTORY];
+            if (searchQ) items = items.filter(i => i.name.toLowerCase().includes(searchQ) || i.code.toLowerCase().includes(searchQ));
+
+            if (items.length === 0) {
+                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No items found.</div>`;
+                return;
+            }
+
+            feed.innerHTML = items.map(i => {
+                const draftVal = currentAuditDraft[i.code] !== undefined ? currentAuditDraft[i.code] : '';
+                return `
+                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 8px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="flex:1; padding-right:10px;">
+                        <div style="font-weight: 700; font-size: 0.85rem; color:var(--text); line-height: 1.3;">${i.name}</div>
+                        <div style="font-size: 0.7rem; color:var(--text-mut); font-weight:700; margin-top:4px;">ERP Stock: <span style="color:var(--text);">${i.stock}</span></div>
+                    </div>
+                    <div style="width: 80px; flex-shrink:0;">
+                        <input type="number" placeholder="Physical" value="${draftVal}" onchange="updateAuditDraft('${i.code}', this.value)" style="width:100%; padding:8px 4px; border:1px solid var(--brand); border-radius:4px; font-weight:800; text-align:center; outline:none; color:var(--brand);">
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        function updateAuditDraft(code, val) {
+            if (val === '') delete currentAuditDraft[code];
+            else currentAuditDraft[code] = parseInt(val) || 0;
+        }
+
+        async function saveStockAudit() {
+            if (Object.keys(currentAuditDraft).length === 0) {
+                showWarning("Empty Audit", "You haven't entered any physical stock numbers.");
+                return;
+            }
+
+            const btn = document.getElementById('btn-save-audit');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
+
+            const auditId = `AUD_${Date.now()}`;
+            const todayStr = new Date(new Date().getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0];
+
+            let auditItems = {};
+            for (let code in currentAuditDraft) {
+                const item = INVENTORY.find(i => i.code === code);
+                if (item) {
+                    const phys = currentAuditDraft[code];
+                    const diff = phys - item.stock;
+                    auditItems[code] = {
+                        name: item.name,
+                        erp_stock: item.stock,
+                        physical_stock: phys,
+                        diff: diff,
+                        cost: item.cost,
+                        diff_value: diff * item.cost
+                    };
+                }
+            }
+
+            const payload = {
+                id: auditId,
+                audit_date: todayStr,
+                created_by: currentUserFullName,
+                created_at: new Date().toISOString(),
+                items: auditItems
+            };
+
+            try {
+                const { error } = await sbClient.from('stock_audits').insert([payload]);
+                if (error) throw error;
+                
+                showSuccess("Audit Report saved successfully!");
+                currentAuditDraft = {}; // Clear draft
+                document.getElementById('rec-audit-search').value = '';
+                renderRecAudit();
+
+            } catch (e) {
+                showWarning("Network Error", "Could not save audit to the cloud.");
+            } finally {
+                btn.innerHTML = '<i class="fas fa-save"></i> Save Audit'; btn.disabled = false;
+            }
+        }
+
+        // --- RECEIVING HISTORY ---
+        let VENDOR_RECEIPTS_CACHE = [];
+        let STOCK_AUDIT_CACHE = [];
+
+        function toggleRecHistView(mode) {
+            const btnBills = document.getElementById('rec-hist-btn-bills');
+            const btnAudits = document.getElementById('rec-hist-btn-audits');
+            
+            if (mode === 'bills') {
+                btnBills.style.background = 'var(--brand)'; btnBills.style.color = 'white';
+                btnAudits.style.background = 'transparent'; btnAudits.style.color = 'var(--text-mut)';
+                document.getElementById('rec-hist-view-bills').classList.remove('hidden');
+                document.getElementById('rec-hist-view-audits').classList.add('hidden');
+                renderRecHistory();
+            } else {
+                btnAudits.style.background = 'var(--brand)'; btnAudits.style.color = 'white';
+                btnBills.style.background = 'transparent'; btnBills.style.color = 'var(--text-mut)';
+                document.getElementById('rec-hist-view-audits').classList.remove('hidden');
+                document.getElementById('rec-hist-view-bills').classList.add('hidden');
+                renderRecAuditHistory();
+            }
+        }
+
+        async function fetchVendorReceipts(dateStr) {
+            // No photo requested = 0 bandwidth!
+            const { data, error } = await sbClient.from('vendor_receipts').select('id, vendor_name, bill_no, amount, created_at, created_by').gte('created_at', dateStr).lte('created_at', dateStr + 'T23:59:59.999Z').order('created_at', { ascending: false });
+            if (data) VENDOR_RECEIPTS_CACHE = data;
+        }
+
+        async function fetchStockAudits(dateStr) {
+            const { data, error } = await sbClient.from('stock_audits').select('*').eq('audit_date', dateStr).order('created_at', { ascending: false });
+            if (data) STOCK_AUDIT_CACHE = data;
+        }
+
+        async function renderRecHistory() {
+            const feed = document.getElementById('rec-hist-feed');
+            let dateStr = document.getElementById('rec-hist-date').value;
+            if (!dateStr) {
+                dateStr = new Date().toISOString().split('T')[0];
+                document.getElementById('rec-hist-date').value = dateStr;
+            }
+
+            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+            await fetchVendorReceipts(dateStr);
+            renderReceiptList(feed, VENDOR_RECEIPTS_CACHE);
+        }
+
+        async function renderRecAuditHistory() {
+            const feed = document.getElementById('rec-audit-hist-feed');
+            let dateStr = document.getElementById('rec-audit-date').value;
+            if (!dateStr) {
+                dateStr = new Date().toISOString().split('T')[0];
+                document.getElementById('rec-audit-date').value = dateStr;
+            }
+
+            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+            await fetchStockAudits(dateStr);
+            renderAuditList(feed, STOCK_AUDIT_CACHE);
+        }
+
+        function renderReceiptList(feedElement, data) {
+            if (!data || data.length === 0) {
+                feedElement.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No vendor bills received on this date.</div>`;
+                return;
+            }
+
+            let totalAmt = 0;
+            data.forEach(r => totalAmt += r.amount);
+
+            let html = `<div style="background:var(--brand-light); border:1px solid var(--brand); padding:10px 14px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                <span style="font-weight:700; color:var(--brand); font-size:0.85rem;">Total Value Received</span>
+                <span style="font-weight:800; color:var(--brand); font-size:1.1rem;">₹ ${fmt(totalAmt)}</span>
+            </div>`;
+
+            html += data.map(r => {
+                const timeStr = new Date(r.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const billBadge = r.bill_no === 'PENDING' ? `<span style="background:#FEE2E2; color:#991B1B; padding:2px 4px; border-radius:4px; font-size:0.6rem; font-weight:800;">NO BILL</span>` : `<span style="color:var(--brand);">${r.bill_no}</span>`;
+                
+                return `
+                <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; padding: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                        <div style="flex:1; padding-right:10px;">
+                            <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 4px; line-height: 1.3;">${r.vendor_name}</div>
+                            <div style="font-size: 0.75rem; color:var(--text-mut); font-weight:700;">Bill: ${billBadge}</div>
+                            <div style="font-size: 0.65rem; color:var(--text-mut); margin-top: 6px;"><i class="fas fa-clock"></i> ${timeStr} | By: ${r.created_by}</div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div style="font-weight: 800; color:var(--text); font-size: 1.1rem; margin-bottom: 8px;">₹ ${fmt(r.amount)}</div>
+                            <button onclick="showReceiptPhotoModal('${r.id}')" style="background:#F3F4F6; color:var(--text-mut); border:1px solid var(--border-dark); padding:4px 10px; border-radius:4px; font-size:0.7rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px;"><i class="fas fa-image"></i> View Photos</button>
+                        </div>
+                    </div>
+                </div>`;
+            }).join('');
+
+            feedElement.innerHTML = html;
+        }
+
+        function renderAuditList(feedElement, data) {
+            if (!data || data.length === 0) {
+                feedElement.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No audits performed on this date.</div>`;
+                return;
+            }
+
+            feedElement.innerHTML = data.map((a, idx) => {
+                const timeStr = new Date(a.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+                const itemCount = Object.keys(a.items).length;
+                
+                let tDiffVal = 0;
+                let detailsHTML = Object.keys(a.items).map(k => {
+                    const item = a.items[k];
+                    tDiffVal += item.diff_value;
+                    const diffColor = item.diff > 0 ? 'var(--success)' : (item.diff < 0 ? 'var(--accent)' : 'var(--text-mut)');
+                    const diffText = item.diff > 0 ? `+${item.diff}` : item.diff;
+                    return `
+                    <div style="display:flex; justify-content:space-between; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.75rem;">
+                        <div style="color:var(--text); font-weight:600; flex:1; padding-right:10px;">${item.name}</div>
+                        <div style="text-align:right; flex-shrink:0;">
+                            <div>ERP: ${item.erp_stock} | Phys: <b>${item.physical_stock}</b></div>
+                            <div style="color:${diffColor}; font-weight:800; margin-top:2px;">Diff: ${diffText} (₹${fmt(item.diff_value)})</div>
+                        </div>
+                    </div>`;
+                }).join('');
+
+                const netColor = tDiffVal > 0 ? 'var(--success)' : (tDiffVal < 0 ? 'var(--accent)' : 'var(--text-mut)');
+
+                return `
+                <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; overflow:hidden;">
+                    <div style="padding: 14px; display: flex; justify-content: space-between; align-items: center; cursor:pointer;" onclick="toggleAccordion('aud-acc-${idx}', null)">
+                        <div style="flex:1;">
+                            <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 4px;">Audit at ${timeStr}</div>
+                            <div style="font-size: 0.7rem; color:var(--text-mut); font-weight:700;">By: ${a.created_by} | ${itemCount} Items</div>
+                        </div>
+                        <div style="text-align:right; display:flex; flex-direction:column; align-items:flex-end;">
+                            <span style="font-size:0.65rem; font-weight:700; color:var(--text-mut); text-transform:uppercase;">Net Variance</span>
+                            <span style="font-size:1rem; font-weight:800; color:${netColor}; margin-bottom:6px;">₹ ${fmt(tDiffVal)}</span>
+                            <button onclick="event.stopPropagation(); downloadAuditPDF('${a.id}')" style="background:var(--brand-light); color:var(--brand); border:1px solid var(--brand); padding:2px 8px; border-radius:4px; font-size:0.65rem; font-weight:800; cursor:pointer;"><i class="fas fa-file-pdf"></i> Download</button>
+                        </div>
+                    </div>
+                    <div id="aud-acc-${idx}" class="hidden" style="padding: 0 14px 14px 14px; background: #F9FAFB; border-top: 1px solid var(--border);">
+                        ${detailsHTML}
+                    </div>
+                </div>`;
+            }).join('');
+        }
+
+        async function showReceiptPhotoModal(id) {
+            const container = document.getElementById('photo-modal-container');
+            container.innerHTML = `<div style="color:white; margin-top:50px; text-align:center;"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Downloading Proof...</div>`;
+            document.getElementById('photo-modal').classList.remove('hidden');
+
+            try {
+                // EXCLUSIVELY fetch the heavy photo data exactly when clicked
+                const { data, error } = await sbClient.from('vendor_receipts').select('photo').eq('id', id).single();
+                if (data && data.photo) {
+                    let photos = [];
+                    if (data.photo.startsWith('[')) photos = JSON.parse(data.photo);
+                    else photos = [data.photo];
+                    
+                    if (photos.length > 0) {
+                        container.innerHTML = photos.map(imgStr => `<img src="${imgStr}" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">`).join('');
+                    } else {
+                        closeModal('photo-modal'); showWarning("No Photo", "No photos found for this receipt.");
+                    }
+                } else {
+                    closeModal('photo-modal'); showWarning("No Photo", "This receipt photo was not uploaded.");
+                }
+            } catch (e) {
+                closeModal('photo-modal'); showWarning("Network Error", "Could not load the photo from the cloud.");
+            }
+        }
+
+        /* --- ADMIN WAREHOUSE DASHBOARD LOGIC --- */
         function populateWarehouseVendors() {
             const vDrop = document.getElementById('wh-vendor-filter');
+            if(!vDrop) return;
             const erpVendors = INVENTORY.map(i => i.vendor);
             const manualVendors = (window.VENDORS || []).map(v => v.name);
             const combinedVendors = Array.from(new Set([...erpVendors, ...manualVendors])).filter(v => v && v !== 'UNASSIGNED').sort();
@@ -11482,6 +11841,7 @@
 
         function renderWarehouseDash() {
             const feed = document.getElementById('wh-feed');
+            if(!feed) return;
             const vDrop = document.getElementById('wh-vendor-filter').value;
             const sortMode = document.getElementById('wh-sort-filter').value;
             const searchQ = (document.getElementById('wh-search').value || "").toLowerCase();
@@ -11546,224 +11906,73 @@
                 </div>`;
             }).join('');
         }
-        /* --- RECEIVING & WAREHOUSE HISTORY LOGIC --- */
-        let VENDOR_RECEIPTS_CACHE = [];
-
-        async function fetchVendorReceipts(dateStr) {
-            // ONLY fetches text data. Does NOT fetch the heavy 'photo' column.
-            const { data, error } = await sbClient.from('vendor_receipts')
-                .select('id, vendor_name, bill_no, amount, created_at, created_by')
-                .gte('created_at', dateStr)
-                .lte('created_at', dateStr + 'T23:59:59.999Z')
-                .order('created_at', { ascending: false });
-            
-            if (data) VENDOR_RECEIPTS_CACHE = data;
-            return data;
-        }
-
-        async function renderRecHistory() {
-            const feed = document.getElementById('rec-hist-feed');
-            let dateStr = document.getElementById('rec-hist-date').value;
-            if (!dateStr) {
-                dateStr = new Date().toISOString().split('T')[0];
-                document.getElementById('rec-hist-date').value = dateStr;
-            }
-
-            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
-            await fetchVendorReceipts(dateStr);
-            renderReceiptList(feed, VENDOR_RECEIPTS_CACHE);
-        }
-
-        async function renderAdminReceipts() {
-            const feed = document.getElementById('wh-receipts-feed');
-            const dateStr = document.getElementById('wh-receipts-date').value;
-            if (!dateStr) return;
-
-            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
-            await fetchVendorReceipts(dateStr);
-            renderReceiptList(feed, VENDOR_RECEIPTS_CACHE);
-        }
-
         function switchWarehouseTab(tab) {
             document.querySelectorAll('#admin-warehouse-app .hr-sub-nav-item').forEach(el => el.classList.remove('active'));
             document.getElementById(`wh-nav-${tab}`).classList.add('active');
             
             document.getElementById('wh-tab-stock').classList.add('hidden');
             document.getElementById('wh-tab-receipts').classList.add('hidden');
+            document.getElementById('wh-tab-audits').classList.add('hidden');
             
             document.getElementById(`wh-tab-${tab}`).classList.remove('hidden');
 
             if (tab === 'stock') renderWarehouseDash();
             if (tab === 'receipts') renderAdminReceipts();
+            if (tab === 'audits') renderAdminAudits();
         }
 
-        function renderReceiptList(feedElement, data) {
-            if (!data || data.length === 0) {
-                feedElement.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No vendor bills received on this date.</div>`;
-                return;
-            }
+        async function renderAdminAudits() {
+            const feed = document.getElementById('wh-audits-feed');
+            const dateStr = document.getElementById('wh-audits-date').value;
+            if (!dateStr) return;
 
-            let totalAmt = 0;
-            data.forEach(r => totalAmt += r.amount);
-
-            let html = `<div style="background:var(--brand-light); border:1px solid var(--brand); padding:10px 14px; border-radius:6px; display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
-                <span style="font-weight:700; color:var(--brand); font-size:0.85rem;">Total Value Received</span>
-                <span style="font-weight:800; color:var(--brand); font-size:1.1rem;">₹ ${fmt(totalAmt)}</span>
-            </div>`;
-
-            html += data.map(r => {
-                const timeStr = new Date(r.created_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                // Only show Edit button if it's the Receiver or Admin looking at it
-                const canEdit = (currentUserRole === 'Receiving' || currentUserRole === 'Admin');
-                const editBtnHtml = canEdit ? `<button onclick="openRecEditModal('${r.id}')" style="background:var(--brand-light); color:var(--brand); border:1px solid var(--brand); padding:4px 10px; border-radius:4px; font-size:0.7rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px; margin-right: 6px;"><i class="fas fa-edit"></i> Edit</button>` : '';
-
-                return `
-                <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 12px; padding: 14px; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                        <div style="flex:1; padding-right:10px;">
-                            <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 4px; line-height: 1.3;">${r.vendor_name}</div>
-                            <div style="font-size: 0.75rem; color:var(--text-mut); font-weight:700;">Bill No: <span style="color:var(--brand);">${r.bill_no}</span></div>
-                            <div style="font-size: 0.65rem; color:var(--text-mut); margin-top: 6px;"><i class="fas fa-clock"></i> ${timeStr} | By: ${r.created_by}</div>
-                        </div>
-                        <div style="text-align:right;">
-                            <div style="font-weight: 800; color:var(--text); font-size: 1.1rem; margin-bottom: 8px;">₹ ${fmt(r.amount)}</div>
-                            <div style="display: flex; justify-content: flex-end;">
-                                ${editBtnHtml}
-                                <button onclick="showReceiptPhotoModal('${r.id}')" style="background:#F3F4F6; color:var(--text-mut); border:1px solid var(--border-dark); padding:4px 10px; border-radius:4px; font-size:0.7rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:4px;"><i class="fas fa-image"></i> View</button>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-
-            feedElement.innerHTML = html;
+            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+            await fetchStockAudits(dateStr);
+            renderAuditList(feed, STOCK_AUDIT_CACHE);
         }
 
-        async function showReceiptPhotoModal(id) {
-            const container = document.getElementById('photo-modal-container');
-            container.innerHTML = `<div style="color:white; margin-top:50px; text-align:center;"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Downloading Bill Photo...</div>`;
-            document.getElementById('photo-modal').classList.remove('hidden');
-
-            try {
-                // EXCLUSIVELY fetch the heavy photo data exactly when clicked
-                const { data, error } = await sbClient.from('vendor_receipts').select('photo').eq('id', id).single();
-                if (data && data.photo) {
-                    container.innerHTML = `<img src="${data.photo}" style="width: 100%; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.3);">`;
-                } else {
-                    closeModal('photo-modal');
-                    showWarning("No Photo", "Photo not found for this bill.");
-                }
-            } catch (e) {
-                closeModal('photo-modal');
-                showWarning("Network Error", "Could not load the photo from the cloud.");
-            }
-        }
-        /* --- EDIT RECEIPT LOGIC --- */
-        let recEditPhotoData = null;
-
-        function openRecEditModal(id) {
-            const receipt = VENDOR_RECEIPTS_CACHE.find(r => r.id === id);
-            if (!receipt) return;
-
-            document.getElementById('rec-edit-id').value = receipt.id;
+        function downloadAuditPDF(auditId) {
+            if(!window.jspdf) { alert("PDF Engine Loading, please wait."); return; }
             
-            // Re-populate Dropdown so it includes new vendors added recently
-            const erpVendors = INVENTORY.map(i => i.vendor);
-            const manualVendors = (window.VENDORS || []).map(v => v.name);
-            const combinedVendors = Array.from(new Set([...erpVendors, ...manualVendors])).filter(v => v && v !== 'UNASSIGNED').sort();
+            const audit = STOCK_AUDIT_CACHE.find(a => a.id === auditId);
+            if(!audit) return;
+
+            const doc = new window.jspdf.jsPDF();
             
-            const vDrop = document.getElementById('rec-edit-vendor');
-            vDrop.innerHTML = '<option value="">-- Select Vendor --</option>' + 
-                              combinedVendors.map(v => `<option value="${v.replace(/"/g, '&quot;')}" ${v === receipt.vendor_name ? 'selected' : ''}>${v}</option>`).join('');
-
-            document.getElementById('rec-edit-no').value = receipt.bill_no;
-            document.getElementById('rec-edit-amt').value = receipt.amount;
+            doc.setFontSize(16);
+            doc.text(`Stock Audit Report`, 14, 20);
             
-            // Reset photo
-            clearRecEditPhoto();
+            doc.setFontSize(10);
+            doc.text(`Date: ${audit.audit_date}`, 14, 28);
+            doc.text(`Audited By: ${audit.created_by}`, 14, 34);
 
-            document.getElementById('rec-edit-modal').classList.remove('hidden');
-        }
+            let tDiffVal = 0;
+            const tableBody = Object.keys(audit.items).map((k, i) => {
+                const itm = audit.items[k];
+                tDiffVal += itm.diff_value;
+                const diffTxt = itm.diff > 0 ? `+${itm.diff}` : `${itm.diff}`;
+                return [
+                    i + 1,
+                    itm.name.substring(0, 30),
+                    itm.erp_stock,
+                    itm.physical_stock,
+                    diffTxt,
+                    `Rs ${fmt(itm.diff_value)}`
+                ];
+            });
 
-        function handleRecEditPhoto(event) {
-            const file = event.target.files[0];
-            if (!file) return;
-            
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = e => {
-                const img = new Image();
-                img.src = e.target.result;
-                img.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    const MAX_WIDTH = 800; 
-                    const scaleSize = MAX_WIDTH / img.width;
-                    canvas.width = MAX_WIDTH;
-                    canvas.height = img.height * scaleSize;
-                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    
-                    recEditPhotoData = canvas.toDataURL('image/jpeg', 0.6); 
-                    document.getElementById('rec-edit-img').src = recEditPhotoData;
-                    document.getElementById('rec-edit-photo-preview').style.display = 'block';
-                    event.target.value = ''; // Reset input
-                };
-            };
-        }
+            tableBody.push([{ content: 'NET VARIANCE VALUE', colSpan: 5, styles: { halign: 'right', fontStyle: 'bold' } }, `Rs ${fmt(tDiffVal)}`]);
 
-        function clearRecEditPhoto() {
-            recEditPhotoData = null;
-            document.getElementById('rec-edit-photo-preview').style.display = 'none';
-            document.getElementById('rec-edit-img').src = '';
-        }
+            doc.autoTable({
+                startY: 42,
+                head: [['#', 'Item', 'ERP', 'Phys', 'Diff', 'Val Diff']],
+                body: tableBody,
+                theme: 'striped',
+                headStyles: { fillColor: [15, 157, 88] }, 
+                styles: { fontSize: 8 }
+            });
 
-        async function saveRecEdit() {
-            const id = document.getElementById('rec-edit-id').value;
-            const vendor = document.getElementById('rec-edit-vendor').value;
-            const billNo = document.getElementById('rec-edit-no').value.trim().toUpperCase();
-            const amt = parseFloat(document.getElementById('rec-edit-amt').value);
-
-            if (!vendor || !billNo || isNaN(amt) || amt <= 0) { 
-                showWarning("Required", "Please fill in all details correctly."); 
-                return; 
-            }
-
-            const btn = document.getElementById('btn-save-rec-edit');
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
-            btn.disabled = true;
-
-            const payload = { vendor_name: vendor, bill_no: billNo, amount: amt };
-
-            // Only update the photo in the cloud if they actually took a new one!
-            if (recEditPhotoData) {
-                payload.photo = recEditPhotoData;
-            }
-
-            try {
-                const { error } = await sbClient.from('vendor_receipts').update(payload).eq('id', id);
-                if (error) throw error;
-
-                // Update Local Cache instantly
-                const idx = VENDOR_RECEIPTS_CACHE.findIndex(r => r.id === id);
-                if (idx > -1) {
-                    VENDOR_RECEIPTS_CACHE[idx].vendor_name = vendor;
-                    VENDOR_RECEIPTS_CACHE[idx].bill_no = billNo;
-                    VENDOR_RECEIPTS_CACHE[idx].amount = amt;
-                }
-
-                showSuccess(`Bill ${billNo} updated successfully!`);
-                closeModal('rec-edit-modal');
-                
-                // Refresh the active view seamlessly
-                if (currentUserRole === 'Receiving') renderRecHistory();
-                else renderAdminReceipts();
-
-            } catch (e) {
-                showWarning("Network Error", "Could not update the bill. Try again.");
-            } finally {
-                btn.innerHTML = 'Save Changes';
-                btn.disabled = false;
-            }
+            doc.save(`Audit_${audit.audit_date}_${audit.created_by}.pdf`);
         }
         /* --- DRIVER HISTORY BATCH DETAIL & COLLECTION REPORT --- */
         function openDelHistBatch(batchId) {
