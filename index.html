@@ -12173,7 +12173,17 @@
             doc.text(`Batch: ${m.id}`, 14, 28);
             doc.text(`Date: ${m.date}`, 14, 34);
 
-            const tableBody = currentBatchReportData.map((r, i) => {
+            // SORT LOGIC: Bring Unpaid items to the top, then sort alphabetically
+            const sortedData = [...currentBatchReportData].sort((a, b) => {
+                const aIsUnpaid = a.unpaid > 0 ? 1 : 0;
+                const bIsUnpaid = b.unpaid > 0 ? 1 : 0;
+                if (bIsUnpaid !== aIsUnpaid) {
+                    return bIsUnpaid - aIsUnpaid; // 1 (Unpaid) comes before 0 (Paid)
+                }
+                return a.name.localeCompare(b.name); // Alphabetical fallback if both are paid/unpaid
+            });
+
+            const tableBody = sortedData.map((r, i) => {
                 // Check if unpaid is 20 or more. If so, highlight red. Otherwise, normal text.
                 const unpaidCell = r.unpaid >= 20 
                     ? { content: `Rs ${fmt(r.unpaid)}`, styles: { textColor: [220, 38, 38], fontStyle: 'bold' } }
