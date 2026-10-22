@@ -12238,40 +12238,44 @@
             doc.text(`Batch: ${m.id}`, 14, 28);
             doc.text(`Date: ${m.date}`, 14, 34);
 
-            // SORT LOGIC: Bring Unpaid items to the top, then sort alphabetically
+            // SORT LOGIC: Bring Unpaid items to the top (largest unpaid first), then sort alphabetically
             const sortedData = [...currentBatchReportData].sort((a, b) => {
-                const aIsUnpaid = a.unpaid > 0 ? 1 : 0;
-                const bIsUnpaid = b.unpaid > 0 ? 1 : 0;
-                if (bIsUnpaid !== aIsUnpaid) {
-                    return bIsUnpaid - aIsUnpaid; // 1 (Unpaid) comes before 0 (Paid)
+                if (a.unpaid !== b.unpaid) {
+                    return b.unpaid - a.unpaid; // Largest unpaid at the absolute top
                 }
-                return a.name.localeCompare(b.name); // Alphabetical fallback if both are paid/unpaid
+                return a.name.localeCompare(b.name); // Alphabetical fallback if unpaid amounts are equal (or both 0)
             });
 
             const tableBody = sortedData.map((r, i) => {
-                // Check if unpaid is 20 or more. If so, highlight red. Otherwise, normal text.
-                const unpaidCell = r.unpaid >= 20 
-                    ? { content: `Rs ${fmt(r.unpaid)}`, styles: { textColor: [220, 38, 38], fontStyle: 'bold' } }
-                    : `Rs ${fmt(r.unpaid)}`;
+                // Check if unpaid is 20 or more. If so, highlight red.
+                // Apply Math.round() to completely remove decimals for a cleaner look
+                const roundedUnpaid = Math.round(r.unpaid);
+                const unpaidCell = roundedUnpaid >= 20 
+                    ? { content: `Rs ${roundedUnpaid}`, styles: { textColor: [220, 38, 38], fontStyle: 'bold' } }
+                    : `Rs ${roundedUnpaid}`;
 
                 return [
                     i + 1,
                     r.name.substring(0, 30),
-                    `Rs ${fmt(r.amount)}`,
-                    `Rs ${fmt(r.collected)}`,
+                    `Rs ${Math.round(r.amount)}`,
+                    `Rs ${Math.round(r.collected)}`,
                     unpaidCell
                 ];
             });
 
-            // Apply the same >= 20 logic to the Grand Total unpaid cell
-            const grandUnpaidCell = m.unpaid >= 20
-                ? { content: `Rs ${fmt(m.unpaid)}`, styles: { textColor: [220, 38, 38], fontStyle: 'bold' } }
-                : `Rs ${fmt(m.unpaid)}`;
+            // Apply rounding and logic to the Grand Total row
+            const roundedTotalAmt = Math.round(m.totalAmt);
+            const roundedTotalCol = Math.round(m.totalCol);
+            const roundedTotalUnpaid = Math.round(m.unpaid);
+
+            const grandUnpaidCell = roundedTotalUnpaid >= 20
+                ? { content: `Rs ${roundedTotalUnpaid}`, styles: { textColor: [220, 38, 38], fontStyle: 'bold' } }
+                : `Rs ${roundedTotalUnpaid}`;
 
             tableBody.push([
                 { content: 'GRAND TOTAL', colSpan: 2, styles: { halign: 'right', fontStyle: 'bold' } }, 
-                `Rs ${fmt(m.totalAmt)}`, 
-                `Rs ${fmt(m.totalCol)}`, 
+                `Rs ${roundedTotalAmt}`, 
+                `Rs ${roundedTotalCol}`, 
                 grandUnpaidCell
             ]);
 
@@ -12291,7 +12295,7 @@
                 try {
                     await navigator.share({
                         title: `Batch ${m.id} Report`,
-                        text: `Collection Report for Batch ${m.id}. Total Collected: Rs ${fmt(m.totalCol)}, Unpaid: Rs ${fmt(m.unpaid)}`,
+                        text: `Collection Report for Batch ${m.id}. Total Collected: Rs ${roundedTotalCol}, Unpaid: Rs ${roundedTotalUnpaid}`,
                         files: [file]
                     });
                 } catch (err) {}
