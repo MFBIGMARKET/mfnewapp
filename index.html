@@ -1587,8 +1587,9 @@
                 </div>
             </div>
 
-            <div style="padding: 14px; background: white; border-top: 1px solid var(--border); box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05);">
-                <button onclick="openDeliveryPaymentModal()" id="btn-del-stop" style="width:100%; background:var(--brand); color:white; border:none; padding:12px; border-radius:6px; font-weight:700; font-size:1rem; cursor:pointer;">Proceed to Payment <i class="fas fa-arrow-right" style="margin-left:6px;"></i></button>
+            <div style="padding: 14px; background: white; border-top: 1px solid var(--border); box-shadow: 0 -4px 6px -1px rgba(0,0,0,0.05); display: flex; gap: 10px;">
+                <button onclick="markStopAsReturn()" id="btn-del-return" style="flex:1; background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; padding:12px; border-radius:6px; font-weight:800; font-size:0.9rem; cursor:pointer;"><i class="fas fa-undo"></i> Return</button>
+                <button onclick="openDeliveryPaymentModal()" id="btn-del-stop" style="flex:2; background:var(--brand); color:white; border:none; padding:12px; border-radius:6px; font-weight:800; font-size:1rem; cursor:pointer;">Payment <i class="fas fa-arrow-right" style="margin-left:6px;"></i></button>
             </div>
         </div>
 
@@ -2860,7 +2861,7 @@
 
             feed.innerHTML = batchList.map(b => {
                 const totalStops = b.stops.length;
-                const deliveredStops = b.stops.filter(s => s.status === 'Delivered').length;
+                const deliveredStops = b.stops.filter(s => s.status === 'Delivered' || status === 'Returned').length;
                 const totalAmt = b.stops.reduce((sum, s) => sum + (s.amount || 0), 0);
                 const isComplete = totalStops > 0 && deliveredStops === totalStops;
 
@@ -2991,15 +2992,20 @@
 
             list.innerHTML = stops.map(s => {
                 const isDelivered = s.status === 'Delivered';
-                const isPayLater = s.pay_later;
+                const isReturned = s.status === 'Returned';
+                const isCompleted = isDelivered || isReturned;
+                const isPayLater = s.pay_later && !isReturned;
                 
-                const timeStr = isDelivered && s.delivered_at ? new Date(s.delivered_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Pending';
+                const timeStr = isCompleted && s.delivered_at ? new Date(s.delivered_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Pending';
                 
-                let statusColor = isDelivered ? (isPayLater ? '#991B1B' : 'var(--success)') : '#B45309';
-                let icon = isDelivered ? (isPayLater ? 'fa-clock' : 'fa-check-circle') : 'fa-clock';
-                let bg = isDelivered ? (isPayLater ? '#FEF2F2' : '#F0FDF4') : 'white';
-                let border = isDelivered ? (isPayLater ? '#FCA5A5' : '#BBF7D0') : 'var(--border)';
-                let statusBadgeText = isDelivered ? (isPayLater ? 'PAY LATER' : timeStr) : 'Pending';
+                let statusColor = isReturned ? '#991B1B' : (isDelivered ? (isPayLater ? '#991B1B' : 'var(--success)') : '#B45309');
+                let icon = isReturned ? 'fa-undo' : (isDelivered ? (isPayLater ? 'fa-clock' : 'fa-check-circle') : 'fa-clock');
+                let bg = isReturned ? '#FEF2F2' : (isDelivered ? (isPayLater ? '#FEF2F2' : '#F0FDF4') : 'white');
+                let border = isReturned ? '#FCA5A5' : (isDelivered ? (isPayLater ? '#FCA5A5' : '#BBF7D0') : 'var(--border)');
+                
+                let statusBadgeText = 'Pending';
+                if (isReturned) statusBadgeText = 'RETURNED';
+                else if (isDelivered) statusBadgeText = isPayLater ? 'PAY LATER' : timeStr;
 
                 // Extract Salesman Name
                 let smName = 'COUNTER'; 
@@ -3033,13 +3039,13 @@
                 }
 
                 let nextStopBadge = '';
-                if (s.is_next_stop && !isDelivered) {
+                if (s.is_next_stop && !isCompleted) {
                     nextStopBadge = `<div style="margin-bottom: 4px;"><span style="background: #FEF08A; color: #854D0E; padding: 2px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 800; display: inline-flex; align-items: center; gap: 4px;"><i class="fas fa-location-dot"></i> DRIVER HEADING HERE</span></div>`;
                 }
 
                 // Layout for Right Column (Bill vs Collected)
                 let rightColumnHTML = `
-                    <div style="font-weight:800; color:var(--text); font-size:1.1rem; margin-bottom:4px;">₹ ${fmt(s.amount)}</div>
+                    <div style="font-weight:800; color:${isReturned ? 'var(--text-mut)' : 'var(--text)'}; font-size:1.1rem; margin-bottom:4px; ${isReturned ? 'text-decoration:line-through;' : ''}">₹ ${fmt(s.amount)}</div>
                 `;
 
                 if (isDelivered) {
@@ -3058,9 +3064,9 @@
                     }
                 }
 
-                // Layout for Status Row (Adding Photo Button cleanly next to the time badge)
+                // Layout for Status Row
                 let statusRowHTML = `
-                    <span style="color:${statusColor}; font-weight:700; font-size:0.7rem; display:inline-block; background:${isDelivered?(isPayLater?'#FEF2F2':'#DCFCE7'):'#FEF3C7'}; padding:4px 8px; border-radius:4px;">
+                    <span style="color:${statusColor}; font-weight:700; font-size:0.7rem; display:inline-block; background:${isCompleted?(isReturned||isPayLater?'#FEF2F2':'#DCFCE7'):'#FEF3C7'}; padding:4px 8px; border-radius:4px;">
                         <i class="fas ${icon}"></i> ${statusBadgeText}
                     </span>
                 `;
@@ -3074,11 +3080,11 @@
                 }
 
                 return `
-                <div style="background: ${bg}; padding: 14px; border-radius: 6px; border: 1px solid ${s.is_next_stop && !isDelivered ? '#FDE047' : border}; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
+                <div style="background: ${bg}; padding: 14px; border-radius: 6px; border: 1px solid ${s.is_next_stop && !isCompleted ? '#FDE047' : border}; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.02);">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start; gap: 10px;">
                         <div style="color:var(--text); font-weight:800; font-size:0.95rem; flex:1; min-width: 0;">
                             ${nextStopBadge}
-                            <div style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word;">${s.customer_name}</div>
+                            <div style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; word-break: break-word; ${isReturned ? 'opacity:0.5;' : ''}">${s.customer_name}</div>
                             
                             <div style="font-size:0.75rem; color:var(--text-mut); margin-top:6px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                                 <span><i class="fas fa-file-invoice" style="margin-right:2px;"></i> ${s.document_numbers ? s.document_numbers.join(', ') : ''}</span>
@@ -6212,14 +6218,14 @@
             // Check if ANY stop is currently marked as next
             const hasNextStop = batchOrders.some(o => o.is_next_stop && o.status === 'Loaded');
 
-            // Sort: Pay Later (Top) -> Next Stop -> Pending -> Delivered
+            // Sort: Pay Later (Top) -> Next Stop -> Pending -> Delivered/Returned
             batchOrders.sort((a, b) => {
-                const aDeliv = a.status === 'Delivered';
-                const bDeliv = b.status === 'Delivered';
+                const aDone = a.status === 'Delivered' || a.status === 'Returned';
+                const bDone = b.status === 'Delivered' || b.status === 'Returned';
                 
                 if (a.pay_later !== b.pay_later) return a.pay_later ? -1 : 1;
-                if (aDeliv !== bDeliv) return aDeliv ? 1 : -1;
-                if (!aDeliv && a.is_next_stop !== b.is_next_stop) return a.is_next_stop ? -1 : 1;
+                if (aDone !== bDone) return aDone ? 1 : -1;
+                if (!aDone && a.is_next_stop !== b.is_next_stop) return a.is_next_stop ? -1 : 1;
                 
                 return (a.customer_name || '').localeCompare(b.customer_name || '');
             });
@@ -6228,19 +6234,27 @@
                 const custName = order.customer_name || CUSTOMERS.find(c => c.code === order.customer_code)?.name || order.customer_code;
                 const billsStr = order.document_numbers ? order.document_numbers.join(', ') : '';
 
-                if (order.status === 'Delivered') {
-                    const isPayLater = order.pay_later;
-                    const bgCol = isPayLater ? '#FEF2F2' : '#F0FDF4';
-                    const borderCol = isPayLater ? '#FCA5A5' : '#BBF7D0';
-                    const textCol = isPayLater ? '#991B1B' : 'var(--success)';
-                    const statusText = isPayLater ? '<i class="fas fa-clock"></i> PAY LATER' : '<i class="fas fa-check-circle"></i> Delivered';
+                if (order.status === 'Delivered' || order.status === 'Returned') {
+                    const isReturned = order.status === 'Returned';
+                    const isPayLater = order.pay_later && !isReturned;
+                    
+                    const bgCol = isReturned || isPayLater ? '#FEF2F2' : '#F0FDF4';
+                    const borderCol = isReturned || isPayLater ? '#FCA5A5' : '#BBF7D0';
+                    const textCol = isReturned || isPayLater ? '#991B1B' : 'var(--success)';
+                    
+                    let statusText = '';
+                    if (isReturned) statusText = '<i class="fas fa-undo"></i> RETURNED';
+                    else if (isPayLater) statusText = '<i class="fas fa-clock"></i> PAY LATER';
+                    else statusText = '<i class="fas fa-check-circle"></i> Delivered';
+
+                    const photoBtn = isReturned ? '' : `<button onclick="showPhotoModal('${order.id}')" style="background:white; color:${textCol}; border:1px solid ${textCol}; padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:700; cursor:pointer;">View Photo</button>`;
 
                     return `
                     <div style="background: ${bgCol}; padding: 12px; border-radius: 6px; border: 1px solid ${borderCol}; margin-bottom: 10px;">
                         <div style="font-weight: 800; font-size: 0.95rem; color:var(--text); margin-bottom: 4px;">${custName}</div>
                         <div style="display:flex; justify-content:space-between; align-items:center;">
                             <span style="font-size: 0.8rem; color:${textCol}; font-weight:800;">${statusText}</span>
-                            <button onclick="showPhotoModal('${order.id}')" style="background:white; color:${textCol}; border:1px solid ${textCol}; padding:4px 8px; border-radius:4px; font-size:0.7rem; font-weight:700; cursor:pointer;">View Photo</button>
+                            ${photoBtn}
                         </div>
                     </div>`;
                 } else {
@@ -6263,7 +6277,7 @@
                             ${markNextBtn}
                         </div>
                         <div style="text-align:right;">
-                            <div style="font-weight: 800; font-size: 1.1rem; color:var(--text); margin-bottom:6px;">₹   ${fmt(order.amount)}</div>
+                            <div style="font-weight: 800; font-size: 1.1rem; color:var(--text); margin-bottom:6px;">₹ ${fmt(order.amount)}</div>
                             ${isDriver 
                                 ? `<span style="background:var(--brand-light); color:var(--brand); border: 1px solid var(--brand); padding: 4px 10px; border-radius:4px; font-size:0.75rem; font-weight:700; display:inline-block;">Loaded</span>`
                                 : `<span style="background:var(--warning); color:white; padding: 4px 10px; border-radius:4px; font-size:0.75rem; font-weight:700; display:inline-block;">Deliver <i class="fas fa-chevron-right" style="margin-left:4px;"></i></span>`
@@ -6378,6 +6392,57 @@
         }
 
         let tempPhotos = []; 
+        async function markStopAsReturn() {
+            const orderId = currentDeliveryStopId;
+            if (!orderId) return;
+
+            const isConfirmed = await showConfirm("Mark as Returned?", "Are you sure you want to mark this entire order as RETURNED?<br><br>The customer refused the items.", "Yes, Mark Returned");
+            if (!isConfirmed) return;
+
+            const btn = document.getElementById('btn-del-return');
+            if (btn) { btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i>`; btn.disabled = true; }
+
+            const now = new Date().toISOString();
+            const isErp = orderId.startsWith('ERP') || orderId.startsWith('BAT');
+            const tableName = isErp ? 'erp_deliveries' : 'orders';
+
+            try {
+                if (!navigator.onLine) throw new Error("Offline");
+
+                // CRITICAL: We set the amount to 0 so it doesn't corrupt your "Unpaid" math!
+                const { error } = await sbClient.from(tableName).update({ status: 'Returned', delivered_at: now, amount: 0 }).eq('id', orderId);
+                if (error) throw error;
+
+                const targetArray = isErp ? ERP_DELIVERIES : SUBMITTED_ORDERS;
+                const orderIndex = targetArray.findIndex(o => o.id === orderId);
+                
+                if (orderIndex > -1) {
+                    targetArray[orderIndex].status = 'Returned';
+                    targetArray[orderIndex].delivered_at = now;
+                    targetArray[orderIndex].amount = 0; 
+                }
+
+                saveLocalState();
+                
+                if (isErp && targetArray[orderIndex]) {
+                    const batchId = targetArray[orderIndex].batch_id;
+                    const remainingStops = targetArray.filter(o => o.batch_id === batchId && o.status === 'Loaded');
+                    if (remainingStops.length > 0) promptNextStop(batchId, remainingStops);
+                    else showSuccess("Order marked as Returned. Batch Complete!");
+                } else {
+                    showSuccess("Order marked as Returned.");
+                }
+                
+                renderDeliveryDetailList();
+                renderDelivery(); 
+                exitDeliveryStop(); 
+
+            } catch (e) {
+                showWarning("Sync Failed", `Could not connect to database.`);
+            } finally {
+                if (btn) { btn.innerHTML = `<i class="fas fa-undo"></i> Return`; btn.disabled = false; }
+            }
+        }
 
         function openDeliveryPaymentModal() {
             if (tempPhotos.length === 0) {
