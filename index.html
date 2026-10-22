@@ -12144,7 +12144,8 @@
                 filterDate = document.getElementById('del-hist-date-filter').value;
             }
 
-            const stops = ERP_DELIVERIES.filter(o => o.batch_id === batchId && o.status === 'Delivered' &&
+            // CRITICAL FIX: Make sure we fetch both Delivered AND Returned stops!
+            const stops = ERP_DELIVERIES.filter(o => o.batch_id === batchId && (o.status === 'Delivered' || o.status === 'Returned') &&
                 new Date(new Date(o.delivered_at || o.created_at).getTime() - (new Date().getTimezoneOffset() * 60000)).toISOString().split('T')[0] === filterDate);
             
             let reportData = [];
@@ -12154,7 +12155,7 @@
                 const custName = s.customer_name || CUSTOMERS.find(c => c.code === s.customer_code)?.name || s.customer_code;
                 let cAmt = 0, gAmt = 0, tCol = 0;
                 
-                if (!s.pay_later) {
+                if (!s.pay_later && s.status !== 'Returned') {
                     const myCol = (ALL_COLLECTIONS.length ? ALL_COLLECTIONS : MY_COLLECTIONS).find(c => {
                         const d = new Date(c.created_at);
                         const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
@@ -12170,7 +12171,7 @@
                 
                 const unpaid = s.amount - tCol;
                 rCash += cAmt; rGpay += gAmt; rAmt += s.amount; 
-                if(unpaid > 0) rUnpaid += unpaid;
+                if(unpaid > 0 && s.status !== 'Returned') rUnpaid += unpaid;
 
                 reportData.push({
                     name: custName,
@@ -12179,7 +12180,8 @@
                     cash: cAmt,
                     upi: gAmt,
                     collected: tCol,
-                    unpaid: unpaid > 0 ? unpaid : 0
+                    unpaid: unpaid > 0 ? unpaid : 0,
+                    status: s.status // Pass status to the PDF generator
                 });
             });
 
@@ -12196,7 +12198,9 @@
             const list = document.getElementById('bcr-list');
             list.innerHTML = reportData.map(r => {
                 let badge = '';
-                if (r.unpaid > 0) {
+                if (r.status === 'Returned') {
+                    badge = `<span style="background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:800;">RETURNED</span>`;
+                } else if (r.unpaid > 0) {
                     badge = `<span style="background:#FEE2E2; color:#991B1B; border:1px solid #FCA5A5; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:800;">UNPAID: ₹${fmt(r.unpaid)}</span>`;
                 } else {
                     badge = `<span style="background:#DCFCE7; color:#166534; border:1px solid #BBF7D0; padding:2px 6px; border-radius:4px; font-size:0.65rem; font-weight:800;">PAID: ₹${fmt(r.collected)}</span>`;
@@ -12206,11 +12210,11 @@
                 <div style="background:white; border-radius:6px; padding:12px; margin-bottom:8px; border:1px solid var(--border);">
                     <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                         <div style="flex:1; padding-right:10px;">
-                            <div style="font-weight:800; font-size:0.85rem; color:var(--text); line-height:1.2; margin-bottom:4px;">${r.name}</div>
+                            <div style="font-weight:800; font-size:0.85rem; color:var(--text); line-height:1.2; margin-bottom:4px; ${r.status === 'Returned' ? 'text-decoration:line-through; opacity:0.6;' : ''}">${r.name}</div>
                             <div style="font-size:0.7rem; color:var(--text-mut);">${r.bills}</div>
                         </div>
                         <div style="text-align:right;">
-                            <div style="font-weight:800; font-size:0.95rem; color:var(--text); margin-bottom:4px;">₹ ${fmt(r.amount)}</div>
+                            <div style="font-weight:800; font-size:0.95rem; color:var(--text); margin-bottom:4px; ${r.status === 'Returned' ? 'display:none;' : ''}">₹ ${fmt(r.amount)}</div>
                             ${badge}
                         </div>
                     </div>
@@ -12238,17 +12242,30 @@
             doc.text(`Batch: ${m.id}`, 14, 28);
             doc.text(`Date: ${m.date}`, 14, 34);
 
-            // SORT LOGIC: Bring Unpaid items to the top (largest unpaid first), then sort alphabetically
             const sortedData = [...currentBatchReportData].sort((a, b) => {
                 if (a.unpaid !== b.unpaid) {
-                    return b.unpaid - a.unpaid; // Largest unpaid at the absolute top
+                    return b.unpaid - a.unpaid; // Largest unpaid at top
                 }
-                return a.name.localeCompare(b.name); // Alphabetical fallback if unpaid amounts are equal (or both 0)
+                // Group returns together at the bottom of the unpaid list
+                if (a.status !== b.status) {
+                    if (a.status === 'Returned') return 1; 
+                    if (b.status === 'Returned') return -1;
+                }
+                return a.name.localeCompare(b.name); 
             });
 
             const tableBody = sortedData.map((r, i) => {
-                // Check if unpaid is 20 or more. If so, highlight red.
-                // Apply Math.round() to completely remove decimals for a cleaner look
+                // If it's a return, override the cells with clean dashes and a red RETURNED badge
+                if (r.status === 'Returned') {
+                     return [
+                        i + 1,
+                        r.name.substring(0, 30),
+                        '-',
+                        '-',
+                        { content: `RETURNED`, styles: { textColor: [153, 27, 27], fontStyle: 'bold' } }
+                    ];
+                }
+
                 const roundedUnpaid = Math.round(r.unpaid);
                 const unpaidCell = roundedUnpaid >= 20 
                     ? { content: `Rs ${roundedUnpaid}`, styles: { textColor: [220, 38, 38], fontStyle: 'bold' } }
@@ -12263,7 +12280,6 @@
                 ];
             });
 
-            // Apply rounding and logic to the Grand Total row
             const roundedTotalAmt = Math.round(m.totalAmt);
             const roundedTotalCol = Math.round(m.totalCol);
             const roundedTotalUnpaid = Math.round(m.unpaid);
