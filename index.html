@@ -6987,18 +6987,17 @@
             
             feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
 
-            // Lazy load the billed orders for this date from the cloud
+            // CRITICAL FIX: We now filter by packed_at so orders taken yesterday but billed today show up correctly!
             if (filterDate && navigator.onLine) {
                 try {
                     const { data } = await sbClient.from('orders')
                         .select('*')
                         .eq('status', 'Billed')
-                        .gte('created_at', filterDate)
-                        .lte('created_at', filterDate + 'T23:59:59.999Z')
-                        .order('created_at', { ascending: false });
+                        .gte('packed_at', filterDate)
+                        .lte('packed_at', filterDate + 'T23:59:59.999Z')
+                        .order('packed_at', { ascending: false });
                     
                     if (data) {
-                        // Merge safely so drill-downs still work
                         const newIds = new Set(data.map(d => d.id));
                         SUBMITTED_ORDERS = [...(SUBMITTED_ORDERS || []).filter(o => !newIds.has(o.id)), ...data];
                     }
@@ -7008,7 +7007,8 @@
             let filtered = (SUBMITTED_ORDERS || []).filter(o => o.status === 'Billed');
             if (filterDate) {
                 filtered = filtered.filter(o => {
-                    const d = new Date(o.created_at);
+                    // Use packed_at. If it's very old and missing it, fallback to created_at
+                    const d = new Date(o.packed_at || o.created_at);
                     const localDate = new Date(d.getTime() - (d.getTimezoneOffset() * 60000)).toISOString().split('T')[0];
                     return localDate === filterDate;
                 });
@@ -7108,11 +7108,11 @@
                 let rateUsed = data.locked_rate || getApplicableRate(item, totalQty, data.r, data.cr);
                 let finalVal = isRemoved ? 0 : (totalQty * rateUsed);
 
-                let mrpText = `₹ ${fmt(item.mrp)}`;
+                let mrpText = `<span style="color:var(--text); font-weight:800;">₹${fmt(item.mrp)}</span>`;
                 if (data.mrp_override) {
                     if (!data.is_new && !isRemoved) rowClass += " highlight-mrp";
                     highlightTags += `<span class="pack-new-badge" style="background:var(--warning); color:#B45309;">MRP CHANGED</span> `;
-                    mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹ ${fmt(data.old_mrp)}</del><br>₹ ${fmt(data.mrp_override)}`;
+                    mrpText = `<del style="color:var(--text-mut); font-size:0.7rem;">₹${fmt(data.old_mrp)}</del> <span style="color:var(--accent); font-weight:800;">₹${fmt(data.mrp_override)}</span>`;
                 }
 
                 return `
@@ -7124,9 +7124,10 @@
                         <div style="display:flex; align-items:center; ${isRemoved ? 'text-decoration: line-through; opacity: 0.5;' : ''}">
                             <span class="pack-qty">${totalQty} Pcs</span>
                             <span class="pack-meta">(${data.c} Cs + ${data.p} Pcs)</span>
+                            <span style="margin-left:auto; font-size:0.75rem; color:var(--text-mut);">MRP: ${mrpText}</span>
                         </div>
                     </div>
-                    <div style="text-align: right; font-weight: 700; font-size: 0.85rem; color: var(--text);">
+                    <div style="text-align: right; font-weight: 700; font-size: 0.85rem; color: var(--text); padding-left:10px;">
                         <span style="font-size:0.7rem; color:var(--text-mut);">₹${fmt(rateUsed)}/pc</span><br>
                         <span style="color: var(--brand); font-size:1.05rem;">₹ ${fmt(finalVal)}</span>
                     </div>
@@ -7139,13 +7140,19 @@
             if(!confirm("Confirm and convert this to a Sale Order? This will remove it from the queue and download the Excel file.")) return;
 
             currentBillOrder.status = 'Billed';
+            const now = new Date().toISOString();
+            currentBillOrder.packed_at = now; // Stamp exact time of billing to keep history perfectly aligned
 
             try {
-                const { error } = await sbClient.from('orders').update({ status: 'Billed' }).eq('id', currentBillOrder.id);
+                // Update cloud using the fresh timestamp
+                const { error } = await sbClient.from('orders').update({ status: 'Billed', packed_at: now }).eq('id', currentBillOrder.id);
                 if(error) throw error;
                 
                 const idx = SUBMITTED_ORDERS.findIndex(o => o.id === currentBillOrder.id);
-                if(idx > -1) SUBMITTED_ORDERS[idx].status = 'Billed';
+                if(idx > -1) {
+                    SUBMITTED_ORDERS[idx].status = 'Billed';
+                    SUBMITTED_ORDERS[idx].packed_at = now;
+                }
                 
                 exportOrderExcel(currentBillOrder.id);
                 exitBilling();
