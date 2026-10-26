@@ -576,6 +576,27 @@
             </div>
         </div>
     </div>
+    <!-- EDIT BANK MODAL -->
+    <div id="acc-edit-bank-modal" class="modal-overlay hidden" style="z-index: 5000;">
+        <div class="modal-content" style="max-width: 320px;">
+            <div class="modal-header">
+                <span style="font-weight: 800;"><i class="fas fa-university"></i> Edit Bank</span>
+                <i class="fas fa-times" onclick="closeModal('acc-edit-bank-modal')" style="cursor:pointer; color:var(--text-mut);"></i>
+            </div>
+            <div class="modal-body">
+                <p style="font-size:0.85rem; color:var(--text-mut); margin-bottom:15px; text-align: center;">Update the opening balance and start date to reconcile.</p>
+                <input type="hidden" id="edit-bank-id">
+                
+                <span class="step-lbl" style="display:block; margin-bottom:6px;">Opening Balance (₹)</span>
+                <input type="number" id="edit-bank-bal" style="width:100%; padding:10px; border:1px solid var(--border-dark); border-radius:6px; outline:none; margin-bottom:15px; font-size: 1.1rem; font-weight: 800;">
+                
+                <span class="step-lbl" style="display:block; margin-bottom:6px;">As Of Date</span>
+                <input type="date" id="edit-bank-date" style="width:100%; padding:10px; border:1px solid var(--border-dark); border-radius:6px; outline:none; margin-bottom:20px; font-size: 1rem; font-weight: 700; font-family:inherit;">
+                
+                <button onclick="saveAccBankEdit()" id="btn-save-bank-edit" style="width:100%; background:var(--brand); color:white; border:none; padding:12px; border-radius:6px; font-weight:800; cursor:pointer; font-size: 1rem;">Update Bank</button>
+            </div>
+        </div>
+    </div>
     <!-- RECEIPT EDIT MODAL -->
     <div id="rec-edit-modal" class="modal-overlay hidden" style="z-index: 4000;">
         <div class="modal-content" style="max-width: 350px;">
@@ -10029,17 +10050,39 @@
             // Render Banks
             const bList = document.getElementById('acc-bank-list');
             bList.innerHTML = window.BANKS.length === 0 ? "No banks added." : window.BANKS.map(b => {
-                // Calculate current balance (Opening + Cash IN - Cleared Cheque OUT)
+                // Calculate current balance and count transactions
                 let currBal = b.opening_balance || 0;
+                let txnCnt = 0;
                 window.BANK_TXNS.forEach(t => {
-                    if (t.bank_id === b.id && t.status === 'Cleared') {
-                        if (t.type === 'IN' || t.type === 'OTHER_IN') currBal += t.amount;
-                        if (t.type === 'OUT' || t.type === 'OTHER_OUT') currBal -= t.amount;
+                    if (t.bank_id === b.id) {
+                        txnCnt++;
+                        if (t.status === 'Cleared') {
+                            if (t.type === 'IN' || t.type === 'OTHER_IN') currBal += t.amount;
+                            if (t.type === 'OUT' || t.type === 'OTHER_OUT') currBal -= t.amount;
+                        }
                     }
                 });
-                return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid #E5E7EB;">
-                    <span style="font-weight:700;">${b.name}</span>
-                    <span style="color:var(--brand); font-weight:800;">₹   ${fmt(currBal)}</span>
+
+                // Safely format the bank name for the click event
+                const safeBankName = b.name.replace(/'/g, "\\'");
+
+                return `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #E5E7EB;">
+                    <div>
+                        <div style="font-weight:800; color:var(--text); font-size: 0.95rem;">${b.name}</div>
+                        <div style="font-size:0.65rem; color:var(--text-mut); margin-top:2px;">Since: ${b.as_of_date}</div>
+                    </div>
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        <div style="text-align:right;">
+                            <span style="font-size:0.6rem; color:var(--text-mut); text-transform:uppercase; font-weight:700;">Cur. Bal</span><br>
+                            <span style="color:var(--brand); font-weight:800; font-size:1.05rem;">₹ ${fmt(currBal)}</span>
+                        </div>
+                        <div style="display:flex; gap:6px; flex-shrink:0;">
+                            <button onclick="openAdminBankTxns('${b.id}', '${safeBankName}')" style="background:#E0E7FF; color:#4F46E5; border:none; padding:8px 10px; border-radius:4px; cursor:pointer;" title="View Transactions"><i class="fas fa-eye"></i></button>
+                            <button onclick="openAccBankEdit('${b.id}')" style="background:var(--brand-light); color:var(--brand); border:none; padding:8px 10px; border-radius:4px; cursor:pointer;" title="Edit Bank"><i class="fas fa-edit"></i></button>
+                            <button onclick="deleteAccBank('${b.id}', ${txnCnt})" style="background:#FEE2E2; color:var(--accent); border:none; padding:8px 10px; border-radius:4px; cursor:pointer;" title="Delete Bank"><i class="fas fa-trash"></i></button>
+                        </div>
+                    </div>
                 </div>`;
             }).join('');
 
@@ -10047,7 +10090,7 @@
             const combinedVendors = getCombinedVendors();
             const vList = document.getElementById('acc-vendor-list');
             vList.innerHTML = combinedVendors.length === 0 ? "No vendors added." : combinedVendors.map(vName => 
-                `<div style="padding:4px 0; border-bottom:1px solid #E5E7EB; font-weight:600;">${vName}</div>`
+                `<div style="padding:6px 0; border-bottom:1px solid #E5E7EB; font-weight:700; font-size:0.85rem; color:var(--text);">${vName}</div>`
             ).join('');
         }
 
@@ -10089,6 +10132,66 @@
                 renderAccManage(); renderAccEntry();
                 document.getElementById('csv-upload-vendors').value = '';
             }; reader.readAsText(file);
+        }
+        /* --- BANK EDIT & DELETE LOGIC --- */
+        function openAccBankEdit(id) {
+            const bank = window.BANKS.find(b => b.id === id);
+            if (!bank) return;
+            document.getElementById('edit-bank-id').value = bank.id;
+            document.getElementById('edit-bank-bal').value = bank.opening_balance;
+            document.getElementById('edit-bank-date').value = bank.as_of_date;
+            document.getElementById('acc-edit-bank-modal').classList.remove('hidden');
+        }
+
+        async function saveAccBankEdit() {
+            const id = document.getElementById('edit-bank-id').value;
+            const bal = parseFloat(document.getElementById('edit-bank-bal').value) || 0;
+            const d = document.getElementById('edit-bank-date').value;
+            
+            if (!d) { showWarning("Invalid", "As Of Date is required."); return; }
+
+            const btn = document.getElementById('btn-save-bank-edit');
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>'; btn.disabled = true;
+
+            try {
+                const { error } = await sbClient.from('banks').update({ opening_balance: bal, as_of_date: d }).eq('id', id);
+                if (error) throw error;
+
+                // Update Local Memory
+                const bank = window.BANKS.find(b => b.id === id);
+                if (bank) { bank.opening_balance = bal; bank.as_of_date = d; }
+
+                showSuccess("Bank reconciled successfully!");
+                closeModal('acc-edit-bank-modal');
+                renderAccManage(); // Refresh the list
+            } catch(e) {
+                showWarning("Network Error", "Could not update bank in the cloud.");
+            } finally {
+                btn.innerHTML = 'Update Bank'; btn.disabled = false;
+            }
+        }
+
+        async function deleteAccBank(id, txnCnt) {
+            if (txnCnt > 0) {
+                showWarning("Cannot Delete", "This bank has active transactions attached to it.<br><br>If the balance is wrong, click the blue Edit icon to reconcile it instead.");
+                return;
+            }
+            const isConfirmed = await showConfirm("Delete Bank?", "Are you sure you want to permanently delete this bank account?", "Yes, Delete");
+            if (!isConfirmed) return;
+
+            try {
+                const { error } = await sbClient.from('banks').delete().eq('id', id);
+                if (error) throw error;
+                
+                // Clear from Local Memory
+                window.BANKS = window.BANKS.filter(b => b.id !== id);
+                
+                showSuccess("Bank deleted successfully.");
+                renderAccManage();
+                renderAccEntry(); // Refresh dropdowns on entry tab
+            } catch (e) {
+                showWarning("Network Error", "Could not delete bank from the cloud.");
+            }
         }
 
         function renderAccEntry() {
