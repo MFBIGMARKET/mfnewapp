@@ -10058,14 +10058,20 @@
             const bList = document.getElementById('acc-bank-list');
             bList.innerHTML = window.BANKS.length === 0 ? "No banks added." : window.BANKS.map(b => {
                 // Calculate current balance and count transactions
-                let currBal = b.opening_balance || 0;
+                let currBal = parseFloat(b.opening_balance) || 0;
                 let txnCnt = 0;
+                
                 window.BANK_TXNS.forEach(t => {
                     if (t.bank_id === b.id) {
                         txnCnt++;
-                        if (t.status === 'Cleared') {
-                            if (t.type === 'IN' || t.type === 'OTHER_IN') currBal += t.amount;
-                            if (t.type === 'OUT' || t.type === 'OTHER_OUT') currBal -= t.amount;
+                        const effDate = (t.type === 'OUT' && t.status === 'Cleared') ? t.cleared_date : t.trans_date;
+                        
+                        // CRITICAL FIX: Only apply transactions that happen ON or AFTER the As Of Date
+                        if (!b.as_of_date || effDate >= b.as_of_date) {
+                            if (t.status === 'Cleared') {
+                                if (t.type === 'IN' || t.type === 'OTHER_IN') currBal += t.amount;
+                                if (t.type === 'OUT' || t.type === 'OTHER_OUT') currBal -= t.amount;
+                            }
                         }
                     }
                 });
@@ -10366,14 +10372,20 @@
             }
 
             list.innerHTML = window.BANKS.map(b => {
-                let currBal = b.opening_balance || 0;
+                let currBal = parseFloat(b.opening_balance) || 0;
                 
                 window.BANK_TXNS.forEach(t => {
                     if (t.bank_id === b.id) {
+                        const effDate = (t.type === 'OUT' && t.status === 'Cleared') ? t.cleared_date : t.trans_date;
+                        
                         if (t.status === 'Cleared') {
-                            if (t.type === 'IN' || t.type === 'OTHER_IN') currBal += t.amount;
-                            if (t.type === 'OUT' || t.type === 'OTHER_OUT') currBal -= t.amount;
+                            // CRITICAL FIX: Only apply cleared transactions that happen ON or AFTER the As Of Date
+                            if (!b.as_of_date || effDate >= b.as_of_date) {
+                                if (t.type === 'IN' || t.type === 'OTHER_IN') currBal += t.amount;
+                                if (t.type === 'OUT' || t.type === 'OTHER_OUT') currBal -= t.amount;
+                            }
                         } else if (t.status === 'Pending' && t.trans_date <= todayStr) {
+                            // Pending cheques still count towards the red pending warning text
                             grandTotalPending += t.amount;
                         }
                     }
@@ -10384,13 +10396,13 @@
                 <div style="background: white; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 10px; padding: 14px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 2px rgba(0,0,0,0.02); cursor: pointer;" onclick="openAdminBankTxns('${b.id}', '${safeBankName}')">
                     <div style="font-weight: 800; font-size: 1rem; color:var(--text);">${b.name}</div>
                     <div style="text-align: right;">
-                        <div style="font-weight: 800; font-size: 1.2rem; color:var(--brand);">₹   ${fmt(currBal)}</div>
+                        <div style="font-weight: 800; font-size: 1.2rem; color:var(--brand);">₹ ${fmt(currBal)}</div>
                         <div style="font-size: 0.65rem; color: var(--text-mut); font-weight: 700; margin-top: 4px;">View Txns <i class="fas fa-chevron-right"></i></div>
                     </div>
                 </div>`;
             }).join('');
 
-            document.getElementById('admin-acc-pending-clear').innerText = `₹   ${fmt(grandTotalPending)}`;
+            document.getElementById('admin-acc-pending-clear').innerText = `₹ ${fmt(grandTotalPending)}`;
         }
 
         function renderAdminIssuedDash() {
@@ -11439,45 +11451,98 @@
             
             if (!currentAdminBankId || !fromDate || !toDate) return;
 
-            let txns = window.BANK_TXNS.filter(t => {
+            const bank = window.BANKS.find(b => b.id === currentAdminBankId);
+            if (!bank) return;
+
+            const formatD = (dStr) => {
+                if (!dStr) return '';
+                const p = dStr.split('-');
+                return p.length === 3 ? `${p[2]}-${p[1]}-${p[0]}` : dStr;
+            };
+
+            // 1. Get ALL valid transactions (Do not hide old ones anymore!)
+            let allValidTxns = window.BANK_TXNS.filter(t => {
                 if (t.bank_id !== currentAdminBankId) return false;
-                
-                // STRICT RULE: Do not show pending cheques in the ledger. Only actual cleared events.
                 if (t.status === 'Pending') return false; 
+                return true; 
+            });
+
+            // 2. Sort chronologically (Oldest to Newest)
+            allValidTxns.sort((a,b) => {
+                const dateA = a.type === 'OUT' ? a.cleared_date : a.trans_date;
+                const dateB = b.type === 'OUT' ? b.cleared_date : b.trans_date;
+                return new Date(dateA) - new Date(dateB) || new Date(a.created_at) - new Date(b.created_at);
+            });
+
+            // 3. REVERSE MATH: Find the exact balance at the absolute beginning of time
+            const statedBal = parseFloat(bank.opening_balance) || 0;
+            let sumBeforeAsOf = 0;
+            
+            if (bank.as_of_date) {
+                allValidTxns.forEach(t => {
+                    const effDate = t.type === 'OUT' ? t.cleared_date : t.trans_date;
+                    if (effDate < bank.as_of_date) {
+                        if (t.type === 'IN' || t.type === 'OTHER_IN') sumBeforeAsOf += t.amount;
+                        if (t.type === 'OUT' || t.type === 'OTHER_OUT') sumBeforeAsOf -= t.amount;
+                    }
+                });
+            }
+            
+            // Subtract the old transactions from the stated balance to find our anchor point
+            let runningBal = bank.as_of_date ? (statedBal - sumBeforeAsOf) : statedBal;
+            let periodOpeningBal = runningBal; 
+            
+            // 4. Sweep forward through time to calculate every row's running balance
+            allValidTxns.forEach(t => {
+                const effDate = t.type === 'OUT' ? t.cleared_date : t.trans_date;
                 
-                // Since OUTs here are guaranteed Cleared, we use cleared_date. Others use trans_date.
+                if (t.type === 'IN' || t.type === 'OTHER_IN') runningBal += t.amount;
+                if (t.type === 'OUT' || t.type === 'OTHER_OUT') runningBal -= t.amount;
+                
+                // If it happened before our UI filter date, it becomes part of the period's Opening Balance
+                if (effDate < fromDate) {
+                    periodOpeningBal = runningBal;
+                } else {
+                    t._running_bal = runningBal; // Attach the math to the row to display later
+                }
+            });
+
+            // 5. Now filter down to just what the user wants to see in the UI
+            let periodTxns = allValidTxns.filter(t => {
                 const effDate = t.type === 'OUT' ? t.cleared_date : t.trans_date;
                 return effDate >= fromDate && effDate <= toDate;
             });
 
-            if (typeFilter === 'Credit') {
-                txns = txns.filter(t => t.type === 'IN' || t.type === 'OTHER_IN');
-            } else if (typeFilter === 'Debit') {
-                txns = txns.filter(t => t.type === 'OUT' || t.type === 'OTHER_OUT');
-            }
+            if (typeFilter === 'Credit') periodTxns = periodTxns.filter(t => t.type === 'IN' || t.type === 'OTHER_IN');
+            else if (typeFilter === 'Debit') periodTxns = periodTxns.filter(t => t.type === 'OUT' || t.type === 'OTHER_OUT');
 
-            // Sort by effective date descending
-            txns.sort((a,b) => {
-                const dateA = a.type === 'OUT' ? a.cleared_date : a.trans_date;
-                const dateB = b.type === 'OUT' ? b.cleared_date : b.trans_date;
-                return new Date(dateB) - new Date(dateA);
-            });
+            // 6. Reverse to Descending (Newest First) for the display
+            periodTxns.reverse();
 
             let netTotal = 0;
-            
-            if (txns.length === 0) {
-                feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--text-mut);">No transactions found for this period.</div>`;
-                document.getElementById('abt-net-total').innerText = '₹0';
+            periodTxns.forEach(t => {
+                const isCredit = (t.type === 'IN' || t.type === 'OTHER_IN');
+                if (isCredit) netTotal += t.amount;
+                else netTotal -= t.amount;
+            });
+
+            // UI Render
+            if (periodTxns.length === 0) {
+                feed.innerHTML = `
+                <div style="background: #F9FAFB; padding: 14px; border-radius: 8px; border: 1px dashed var(--border-dark); margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center;">
+                    <div style="font-weight: 700; color:var(--text-mut); font-size: 0.85rem;">Opening Balance (As of ${formatD(fromDate)})</div>
+                    <div style="font-weight: 800; color:var(--brand); font-size: 1.1rem;">₹ ${fmt(periodOpeningBal)}</div>
+                </div>
+                <div style="text-align:center; padding: 40px; color: var(--text-mut);">No transactions found for this period.</div>`;
+                
+                document.getElementById('abt-net-total').innerText = '₹ 0';
                 document.getElementById('abt-net-total').style.color = 'var(--text)';
                 return;
             }
 
-            feed.innerHTML = txns.map(t => {
+            let html = periodTxns.map(t => {
                 const isCredit = (t.type === 'IN' || t.type === 'OTHER_IN');
                 
-                if (isCredit) netTotal += t.amount;
-                else netTotal -= t.amount;
-
                 let typeLabel = '';
                 if (t.type === 'IN') typeLabel = 'CASH INJECT';
                 else if (t.type === 'OTHER_IN') typeLabel = 'OTHER INCOME';
@@ -11487,11 +11552,11 @@
                 let statBadge = '';
                 if (t.type === 'OUT') statBadge = `<span style="font-size:0.6rem; font-weight:800; color:#166534; background:#DCFCE7; padding:2px 6px; border-radius:4px; margin-left:6px;">CLEARED</span>`;
 
-                const effDateStr = t.type === 'OUT' ? t.cleared_date : t.trans_date;
-                const origDateHtml = t.type === 'OUT' ? `<div style="font-size:0.65rem; color:var(--text-mut); margin-top:2px;">(Issued: ${t.trans_date})</div>` : '';
+                const effDateStr = formatD(t.type === 'OUT' ? t.cleared_date : t.trans_date);
+                const origDateHtml = t.type === 'OUT' ? `<div style="font-size:0.65rem; color:var(--text-mut); margin-top:2px;">(Issued: ${formatD(t.trans_date)})</div>` : '';
 
                 return `
-                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="background: white; padding: 12px; border-radius: 6px; border: 1px solid var(--border); margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center; box-shadow: 0 1px 2px rgba(0,0,0,0.02);">
                     <div style="flex:1; padding-right:10px;">
                         <div style="font-weight: 800; font-size: 0.85rem; color:var(--text); margin-bottom:4px;">${t.vendor_name || typeLabel}</div>
                         <div style="font-size: 0.75rem; color:var(--text-mut); font-weight:700;">${effDateStr} ${statBadge}</div>
@@ -11500,9 +11565,19 @@
                     </div>
                     <div style="text-align: right; flex-shrink:0;">
                         <b style="color:${isCredit ? 'var(--success)' : 'var(--accent)'}; font-size:1.05rem;">${isCredit ? '+' : '-'}₹ ${fmt(t.amount)}</b>
+                        <div style="font-size: 0.7rem; color: var(--text-mut); font-weight: 700; margin-top: 4px;">Bal: ₹ ${fmt(t._running_bal)}</div>
                     </div>
                 </div>`;
             }).join('');
+
+            // Append Opening Balance Row at the absolute bottom (Oldest Position)
+            html += `
+            <div style="background: #F9FAFB; padding: 14px; border-radius: 8px; border: 1px dashed var(--border-dark); margin-bottom: 10px; display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-weight: 700; color:var(--text-mut); font-size: 0.85rem;">Opening Balance (As of ${formatD(fromDate)})</div>
+                <div style="font-weight: 800; color:var(--brand); font-size: 1.1rem;">₹ ${fmt(periodOpeningBal)}</div>
+            </div>`;
+
+            feed.innerHTML = html;
 
             const netEl = document.getElementById('abt-net-total');
             netEl.innerText = `${netTotal > 0 ? '+' : ''}₹ ${fmt(netTotal)}`;
