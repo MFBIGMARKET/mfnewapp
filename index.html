@@ -5741,9 +5741,25 @@
             feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br><b>Fetching ERP Bills...</b></div>`;
 
             try {
-                // 1. Fetch ERP Sales for Date Range
-                const { data: sales } = await sbClient.from('erp_sales').select('*').gte('doc_date', fromD).lte('doc_date', toD);
-                currentBatchingSales = sales || [];
+                // 1. Fetch ERP Sales for Date Range (PAGINATED to bypass the 1000 row limit!)
+                let allSales = [];
+                let hasMore = true;
+                let page = 0;
+                const pageSize = 1000;
+
+                while (hasMore) {
+                    const { data, error } = await sbClient.from('erp_sales')
+                        .select('*')
+                        .gte('doc_date', fromD)
+                        .lte('doc_date', toD)
+                        .range(page * pageSize, (page + 1) * pageSize - 1);
+                    
+                    if (error) throw error;
+                    if (data) allSales.push(...data);
+                    if (!data || data.length < pageSize) hasMore = false;
+                    page++;
+                }
+                currentBatchingSales = allSales;
 
                 // 2. Fetch existing deliveries to prevent double batching
                 const { data: existingBatches } = await sbClient.from('erp_deliveries').select('document_numbers');
@@ -6000,11 +6016,28 @@
             }
         }
 
-        function renderBatchingHistory() {
+        async function renderBatchingHistory() {
             const feed = document.getElementById('batch-hist-feed');
             if(!feed) return;
             const filterDate = document.getElementById('batch-hist-date').value;
             
+            feed.innerHTML = `<div style="text-align:center; padding: 40px; color: var(--brand);"><i class="fas fa-spinner fa-spin fa-2x"></i></div>`;
+
+            // CRITICAL FIX: Fetch batches exactly for the selected date from the cloud!
+            // Exclude photos to keep bandwidth at zero.
+            if (filterDate && navigator.onLine) {
+                try {
+                    const { data } = await sbClient.from('erp_deliveries')
+                        .select('id, batch_id, customer_name, document_numbers, amount, status, batch_date, created_at, delivered_at, pay_later, is_next_stop, verified_items')
+                        .eq('batch_date', filterDate);
+                    
+                    if (data) {
+                        const newIds = new Set(data.map(d => d.id));
+                        ERP_DELIVERIES = [...(ERP_DELIVERIES || []).filter(o => !newIds.has(o.id)), ...data];
+                    }
+                } catch(e) {}
+            }
+
             let filtered = ERP_DELIVERIES.filter(o => o.batch_id);
             if (filterDate) filtered = filtered.filter(o => o.batch_date === filterDate);
             
@@ -6034,7 +6067,7 @@
                     <div style="display:flex; justify-content:space-between; align-items:center; padding: 8px 0; border-bottom: 1px dashed var(--border); font-size: 0.8rem; ${isRemoved ? 'opacity:0.5; text-decoration:line-through;' : ''}">
                         <div style="color:var(--text); font-weight:700; flex:1; padding-right:10px;">${s.customer_name}</div>
                         <div style="display:flex; align-items:center; gap:10px; flex-shrink:0;">
-                            <span style="font-weight:800; color:var(--brand);">₹   ${fmt(s.amount)}</span>
+                            <span style="font-weight:800; color:var(--brand);">₹ ${fmt(s.amount)}</span>
                             ${canRemove ? `<button onclick="removeStopFromBatch('${s.id}', '${b.id}')" style="background:#FEE2E2; color:var(--accent); border:1px solid #FCA5A5; border-radius:4px; padding:4px 8px; cursor:pointer;"><i class="fas fa-trash"></i></button>` : ''}
                         </div>
                     </div>`;
